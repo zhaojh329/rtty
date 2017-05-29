@@ -1,35 +1,99 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <ev.h>
-#include <time.h>
-#include <stdlib.h>
-#include "list.h"
-#include "msg.h"
+#include <mongoose.h>
+#include <pty.h>
 #include "util.h"
 
-#define CON_TYPE_UNKNOWN 	0
-#define CON_TYPE_USER 		1
-#define CON_TYPE_RT 		2
+static char *devid;
+static const char *s_address = "localhost:1883";
 
-LIST_HEAD(connections);
+ev_io pty_watcher;
+int pty;
 
-struct connection {
-	int fd;
-	struct list_head node;
-	int type;
-	int online;
-	char mac[8];
-	int user;
-	ev_io w;
-};
+int id = 0;
 
-int rt_sock;
-int usr_sock;
+static void pty_read_cb(struct ev_loop *loop, ev_io *w, int revents)
+{
+	int len = 0;
+	char buf[1024] = "";
+	struct mg_connection *nc = (struct mg_connection *)w->data;
+	
+	len = read(w->fd, buf, sizeof(buf));
+	if (len > 0) {
+		printf("---------------------len = %d-------------------------------\n", len);
+		printf("[%.*s]\n", len, buf);
+		mg_mqtt_publish(nc, "touser", id++, MG_MQTT_QOS(0), buf, len);
+	}
+	else {
+		perror("read");
+		ev_io_stop(EV_DEFAULT, w);
+	}
+}
 
+static void start_pty(struct mg_connection *nc)
+{
+	pid_t pid;
+	
+	pid = forkpty(&pty, NULL, NULL, NULL);
+	if (pid < 0) {
+		perror("forkpty");
+		return;
+	} else if (pid == 0) {
+		execl("/bin/login", "login", NULL);
+	}
+
+	ev_io_init(&pty_watcher, pty_read_cb, pty, EV_READ);
+	pty_watcher.data = nc;
+	ev_io_start(EV_DEFAULT, &pty_watcher);
+}
+
+static void ev_handler(struct mg_connection *nc, int ev, void *data)
+{
+	struct mg_mqtt_message *msg = (struct mg_mqtt_message *)data;
+
+	switch (ev) {
+		case MG_EV_CONNECT: {
+			struct mg_send_mqtt_handshake_opts opts;
+			memset(&opts, 0, sizeof(opts));
+
+			mg_set_protocol_mqtt(nc);
+			mg_send_mqtt_handshake_opt(nc, devid, opts);
+			break;
+		}
+
+		case MG_EV_MQTT_CONNACK: {				
+			static struct mg_mqtt_topic_expression s_topic_expr[] = {
+				{.topic = "connect", MG_MQTT_QOS(0)},
+				{.topic = "todev", MG_MQTT_QOS(0)}
+			};
+							
+			if (msg->connack_ret_code != MG_EV_MQTT_CONNACK_ACCEPTED) {
+				printf("Got mqtt connection error: %d\n", msg->connack_ret_code);
+				ev_break(EV_DEFAULT, EVBREAK_ALL);
+				return;
+			}
+
+			mg_mqtt_subscribe(nc, s_topic_expr, 
+				sizeof(s_topic_expr) / sizeof(struct mg_mqtt_topic_expression), 0);
+			break;
+		}
+
+		case MG_EV_MQTT_PUBLISH: {
+			printf("%.*s:[%.*s]\n", (int)msg->topic.len, msg->topic.p, (int)msg->payload.len,
+				msg->payload.p);
+
+			if (!mg_vcmp(&msg->topic, "connect")) {
+				start_pty(nc);
+			} else if (!mg_vcmp(&msg->topic, "todev")) {
+				if(write(pty, msg->payload.p, msg->payload.len) < 0)
+					perror("write");
+			}
+		
+			break;
+		}
+		case MG_EV_CLOSE:
+	      printf("Connection closed\n");
+	      exit(1);
+	}
+}
 
 static void signal_cb(struct ev_loop *loop, ev_signal *w, int revents)
 {
@@ -37,138 +101,39 @@ static void signal_cb(struct ev_loop *loop, ev_signal *w, int revents)
 	ev_break(loop, EVBREAK_ALL);
 }
 
-int rt_sock;
-int usr_sock;
-
-static void connection_free(struct connection *con)
-{
-	if (!con)
-		return;
-	if (con->fd > 0)
-		close(con->fd);
-
-	ev_io_stop(EV_DEFAULT, &con->w);
-
-	list_del(&con->node);
-
-	free(con);
-}
-
-struct connection *find_dev_by_mac(char *mac)
-{
-	struct connection *con;
-	list_for_each_entry(con, &connections, node) {
-		if (memcmp(con->mac, mac, 6))
-			return con;
-	}
-
-	return NULL;
-}
-
-
-static void con_read_cb(struct ev_loop *loop, ev_io *w, int revents)
-{
-	struct connection *con = (struct connection *)w->data;
-	char buf[1024] = "";
-	int len;
-	struct msg *h = (struct msg *)buf;
-	int direction, type;
-	
-	len = read(w->fd, buf, sizeof(buf));
-	if (len == 0) {
-		connection_free(con);
-		return;
-	}
-
-	hexdump(buf, 5);
-	
-	direction = h->direction;
-	type = h->type;
-	
-	if (direction == DIR_R2S) {
-		if (type == TYPE_HEART) {
-			if (!con->online) {
-				con->type = CON_TYPE_RT;
-				con->online = 1;
-				memcpy(con->mac, h->buf, 6);
-			}
-			
-		} else if (type == TYPE_DATA) {
-			if (write(usr_sock, h->buf, h->data_len) < 0)
-				perror("write");
-			printf("data:[%s]\n", h->buf);
-		}
-	} else if (direction == DIR_U2S) {
-		con->type = CON_TYPE_USER;
-
-		if (type == TYPE_CONNECT) {
-			struct connection *dev = find_dev_by_mac(h->buf);
-			if (!dev) {
-				printf("Not found\n");
-				connection_free(con);
-				return;
-			}
-
-			dev->user = w->fd;
-			h->direction = DIR_S2R;
-			if (write(dev->fd, buf, len) < 0)
-				perror("write");
-		} else if (type == TYPE_DATA) {
-			h->direction = DIR_S2R;
-			if (write(rt_sock, buf, len) < 0)
-				perror("write");
-		}
-	}
-}
-static void accept_read_cb(struct ev_loop *loop, ev_io *w, int revents)
-{
-	int fd = -1;
-	struct connection *con = NULL;
-	
-	fd = accept(w->fd, NULL, NULL);
-	con = calloc(1, sizeof(struct connection));
-	if (!con) {
-		close(fd);
-		perror("calloc");
-		return;
-	}
-
-	con->fd = fd;
-	list_add(&con->node, &connections);
-
-	printf("new con:%d\n", con->fd);
-	ev_io_init(&con->w, con_read_cb, con->fd, EV_READ);
-	con->w.data = con;
-	ev_io_start(loop, &con->w);
-}
-
-int main(int argc, char **argv)
+int main(int argc, char *argv[])
 {
 	struct ev_loop *loop = EV_DEFAULT;
 	ev_signal sig_watcher;
-	int listen_fd;
-	ev_io accept_watcher;
+	struct mg_mgr mgr;
+	char mac[6] = "";
 
 	ev_signal_init(&sig_watcher, signal_cb, SIGINT);
 	ev_signal_start(loop, &sig_watcher);
+	
+	mg_mgr_init(&mgr, NULL);
 
-	listen_fd = tcp_listen(NULL, 7000);
-	if (listen_fd < 0) {
-		fprintf(stderr, "tcp_listen failed\n");
-		exit(1);
+	if (mg_connect(&mgr, s_address, ev_handler) == NULL) {
+		fprintf(stderr, "mg_connect(%s) failed\n", s_address);
 	}
 
-	ev_io_init(&accept_watcher, accept_read_cb, listen_fd, EV_READ);
-	ev_io_start(loop, &accept_watcher);
+	get_iface_mac("enp3s0", mac);
 
-	printf("Server start...\n");
+	devid = calloc(1, 13);
+	sprintf(devid, "%02hhX%02hhX%02hhX%02hhX%02hhX%02hhX",
+		mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
 
-	srandom(time(NULL));
+	printf("devid:%s\n", devid);
 	
 	ev_run(loop, 0);
 
-	printf("Server exit...\n");
-		
+	printf("exit...\n");
+
+	free(devid);
+	
+	mg_mgr_free(&mgr);
+
 	return 0;
 }
+
 
