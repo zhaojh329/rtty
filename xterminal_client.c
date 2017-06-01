@@ -1,15 +1,70 @@
 #include <mongoose.h>
+#include <pty.h>
 #include "util.h"
-#include <termios.h>
+#include "list.h"
+
+struct client {
+	char cliid[128];
+	char session[128];
+	int pty;
+	ev_io watcher;
+	struct mg_connection *nc;
+	struct list_head node;
+};
 
 int asprintf(char **strp, const char *fmt, ...);
 void *memmem(const void *haystack, size_t haystacklen, const void *needle, size_t needlelen);
 
-static char *macaddr;
-static char *myid;
+LIST_HEAD(clients);
 
+static char *devid;
 static const char *s_address = "localhost:1883";
-struct termios oterm, nterm;
+
+static void pty_read_cb(struct ev_loop *loop, ev_io *w, int revents)
+{
+	int len = 0;
+	char buf[1024] = "";
+	char topic[128] = "";
+	struct client *c = (struct client *)w->data;
+	
+	len = read(w->fd, buf, sizeof(buf));
+	if (len > 0) {
+		sprintf(topic, "xterminal/%s/response/data/%s", devid, c->cliid);
+		mg_mqtt_publish(c->nc, topic, 0, MG_MQTT_QOS(0), buf, len);
+	}
+	else {
+		perror("read");
+		ev_io_stop(EV_DEFAULT, w);
+	}
+}
+
+static void start_pty(struct client *c)
+{
+	pid_t pid;
+	struct timeval tv;
+	struct mg_mqtt_topic_expression topic_expr;
+	
+	printf("new con:[%s]\n", c->cliid);
+	
+	pid = forkpty(&c->pty, NULL, NULL, NULL);
+	if (pid < 0) {
+		perror("forkpty");
+		return;
+	} else if (pid == 0) {
+		execl("/bin/login", "login", NULL);
+	}
+
+	gettimeofday(&tv, NULL);
+
+	sprintf(c->session, "%ld", tv.tv_sec * 1000 + tv.tv_usec / 1000);
+	asprintf((char **)&topic_expr.topic, "xterminal/%s/request/%s/data/+", devid, c->session);
+	mg_mqtt_subscribe(c->nc, &topic_expr, 1, 0);
+	free((char *)topic_expr.topic);
+	
+	ev_io_init(&c->watcher, pty_read_cb, c->pty, EV_READ);
+	c->watcher.data = c;
+	ev_io_start(EV_DEFAULT, &c->watcher);
+}
 
 static void ev_handler(struct mg_connection *nc, int ev, void *data)
 {
@@ -21,13 +76,13 @@ static void ev_handler(struct mg_connection *nc, int ev, void *data)
 			memset(&opts, 0, sizeof(opts));
 
 			mg_set_protocol_mqtt(nc);
-			mg_send_mqtt_handshake_opt(nc, "xxxx12342", opts);
+			mg_send_mqtt_handshake_opt(nc, devid, opts);
 			break;
 		}
 
-		case MG_EV_MQTT_CONNACK: {
+		case MG_EV_MQTT_CONNACK: {				
 			struct mg_mqtt_topic_expression topic_expr[2];
-			
+							
 			if (msg->connack_ret_code != MG_EV_MQTT_CONNACK_ACCEPTED) {
 				printf("Got mqtt connection error: %d\n", msg->connack_ret_code);
 				ev_break(EV_DEFAULT, EVBREAK_ALL);
@@ -35,10 +90,10 @@ static void ev_handler(struct mg_connection *nc, int ev, void *data)
 			}
 
 			topic_expr[0].qos = MG_MQTT_QOS(0);
-			asprintf((char **)&topic_expr[0].topic, "xterminal/%s/response/data/%s", macaddr, myid);
-			
+			asprintf((char **)&topic_expr[0].topic, "xterminal/%s/request/connect/+", devid);
+
 			topic_expr[1].qos = MG_MQTT_QOS(0);
-			asprintf((char **)&topic_expr[1].topic, "xterminal/%s/response/exit/%s", macaddr, myid);
+			asprintf((char **)&topic_expr[1].topic, "xterminal/%s/request/data/+", devid);
 			
 			mg_mqtt_subscribe(nc, topic_expr, 2, 0);
 
@@ -48,24 +103,24 @@ static void ev_handler(struct mg_connection *nc, int ev, void *data)
 			break;
 		}
 
-		case MG_EV_MQTT_SUBACK: {
-			char topic[128] = "";
-			sprintf(topic, "xterminal/%s/request/connect/%s", macaddr, myid);
-			mg_mqtt_publish(nc, topic, 0, MG_MQTT_QOS(0), NULL, 0);
-			break;
-		}
-
-		case MG_EV_MQTT_PUBLISH: {
-			if (memmem(msg->topic.p, msg->topic.len, "data", strlen("data"))) {
-				int ret = write(STDOUT_FILENO, msg->payload.p, msg->payload.len);
+		case MG_EV_MQTT_PUBLISH:
+			if (memmem(msg->topic.p, msg->topic.len, "connect", strlen("connect"))) {
+				struct client *c = calloc(1, sizeof(struct client));
+				if (!c) {
+					perror("calloc");
+					break;
+				}
+				c->nc = nc;
+				memcpy(c->cliid, msg->topic.p + 39, msg->topic.len - 39);
+				start_pty(c);
+			} else if (memmem(msg->topic.p, msg->topic.len, "data", strlen("data"))) {
+				int ret = write(1, msg->payload.p, msg->payload.len);
 				if (ret < 0)
 					perror("write");
-			} else if (memmem(msg->topic.p, msg->topic.len, "exit", strlen("exit"))) {
-				tcsetattr(0, TCSANOW, &oterm);
-				ev_break(EV_DEFAULT, EVBREAK_ALL);
 			}
+		
 			break;
-		}
+		
 		case MG_EV_CLOSE:
 	      printf("Connection closed\n");
 	      exit(1);
@@ -74,91 +129,56 @@ static void ev_handler(struct mg_connection *nc, int ev, void *data)
 
 static void signal_cb(struct ev_loop *loop, ev_signal *w, int revents)
 {
-	printf("Got signal: %d\n", w->signum);
-	ev_break(loop, EVBREAK_ALL);
-}
-
-static void stdin_read_cb(struct ev_loop *loop, ev_io *w, int revents)
-{
-	int len = 0;
-	char buf[1024] = "", topic[128] = "";
+	char topic[128] = "";
 	struct mg_connection *nc = (struct mg_connection *)w->data;
-	
-	len = read(w->fd, buf, sizeof(buf));
-	if (len > 0) {
-		sprintf(topic, "xterminal/%s/request/data/%s", macaddr, myid);
-		mg_mqtt_publish(nc, topic, 0, MG_MQTT_QOS(0), buf, len);
-	}
-}
+	printf("Got signal: %d\n", w->signum);
 
-		
-static void usage(const char *name)
-{
-	fprintf(stderr,
-		"Usage: %s [OPTION]\n"
-		"	-m macaddr\n"
-		"	-i id\n"
-		"\n", name
-	);
-	
-	exit(0);
+	if (w->signum == SIGCHLD) {
+		sprintf(topic, "xterminal/%s/response/exit/%s", devid, cliid);
+		mg_mqtt_publish(nc, topic, 0, MG_MQTT_QOS(0), NULL, 0);
+	} else if (w->signum == SIGINT) {
+		ev_break(loop, EVBREAK_ALL);
+	}
 }
 
 int main(int argc, char *argv[])
 {
 	struct ev_loop *loop = EV_DEFAULT;
-	ev_signal sig_watcher;
+	ev_signal sigint_watcher;
+	ev_signal sigchld_watcher;
 	struct mg_mgr mgr;
-	ev_io stdin_watcher;
 	struct mg_connection *nc;
-	int ch;
-
-	while ((ch = getopt(argc, argv, "m:i:")) != -1) {
-		switch (ch) {
-		case 'm':
-			macaddr = optarg;
-			break;
-
-		case 'i':
-			myid = optarg;
-			break;
-			
-		default:
-			usage(argv[0]);
-		}
-	}
-	
-	if ((optind < argc) || !macaddr || !myid) {
-		usage(argv[0]);
-	}
-	
-	ev_signal_init(&sig_watcher, signal_cb, SIGINT);
-	ev_signal_start(loop, &sig_watcher);
+	char mac[6] = "";
 	
 	mg_mgr_init(&mgr, NULL);
 
-	nc = mg_connect(&mgr, s_address, ev_handler);
+	nc = mg_connect(&mgr, s_address, ev_handler); 
 	if (!nc) {
 		fprintf(stderr, "mg_connect(%s) failed\n", s_address);
+		exit(1);
 	}
 
-	ev_io_init(&stdin_watcher, stdin_read_cb, 0, EV_READ);
-	stdin_watcher.data = nc;
-	ev_io_start(loop, &stdin_watcher);
+	ev_signal_init(&sigint_watcher, signal_cb, SIGINT);
+	sigint_watcher.data = nc;
+	ev_signal_start(loop, &sigint_watcher);
 
-	tcgetattr(0, &oterm);
-	tcgetattr(0, &nterm);
-	nterm.c_iflag &= ~(IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR | IGNCR | ICRNL | IXON);
-	nterm.c_lflag &= ~(ECHO | ECHONL | ICANON | IEXTEN);
-	nterm.c_lflag |=  ISIG;
-	nterm.c_cc[VMIN] = 1;
-	nterm.c_cc[VTIME] = 0;
-	nterm.c_cc[VINTR] = 1;
-	tcsetattr(0, TCSANOW, &nterm);
+	ev_signal_init(&sigchld_watcher, signal_cb, SIGCHLD);
+	sigchld_watcher.data = nc;
+	ev_signal_start(loop, &sigchld_watcher);
+
+	get_iface_mac("enp3s0", mac);
+
+	devid = calloc(1, 13);
+	sprintf(devid, "%02hhX%02hhX%02hhX%02hhX%02hhX%02hhX",
+		mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+
+	printf("devid:%s\n", devid);
 	
 	ev_run(loop, 0);
 
 	printf("exit...\n");
+
+	free(devid);
 	
 	mg_mgr_free(&mgr);
 
