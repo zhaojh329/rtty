@@ -18,7 +18,6 @@ void *memmem(const void *haystack, size_t haystacklen, const void *needle, size_
 LIST_HEAD(clients);
 
 static char *devid;
-static const char *s_address = "localhost:1883";
 
 static void pty_read_cb(struct ev_loop *loop, ev_io *w, int revents)
 {
@@ -141,6 +140,14 @@ static void signal_cb(struct ev_loop *loop, ev_signal *w, int revents)
 	}
 }
 
+static void heartbeat_cb(struct ev_loop *loop, ev_timer *w, int revents)
+{
+	struct mg_connection *nc = (struct mg_connection *)w->data;
+	
+	mg_mqtt_publish(nc, "xterminal/heartbeat", 0, MG_MQTT_QOS(0), devid, strlen(devid));
+	printf("send heartbeat:%s\n", devid);
+}
+
 static int get_iface_mac(const char *ifname, char mac[6])
 {
     int r, s;
@@ -174,9 +181,11 @@ int main(int argc, char *argv[])
 	struct ev_loop *loop = EV_DEFAULT;
 	ev_signal sigint_watcher;
 	ev_signal sigchld_watcher;
+	ev_timer heartbeat_timer;
 	struct mg_mgr mgr;
 	struct mg_connection *nc;
 	char mac[6] = "";
+	const char *s_address = "localhost:1883";
 	
 	mg_mgr_init(&mgr, NULL);
 
@@ -193,6 +202,10 @@ int main(int argc, char *argv[])
 	ev_signal_init(&sigchld_watcher, signal_cb, SIGCHLD);
 	sigchld_watcher.data = nc;
 	ev_signal_start(loop, &sigchld_watcher);
+	
+	ev_timer_init(&heartbeat_timer, heartbeat_cb, 0.1, 2.0);
+	heartbeat_timer.data = nc;
+	ev_timer_start(loop, &heartbeat_timer);
 
 	get_iface_mac("enp3s0", mac);
 

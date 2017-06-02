@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+		<title>Websocket Test</title>
+	</head>
+	<body>
+		<button type="button" onclick="connect()">Connect</button>
+		<script>
+			function connect() {
+				var ws = new WebSocket("ws://" + location.host);
+				ws.onopen = function() {
+					console.log("connect ok");
+					ws.send("Hello WebSocket");
+				};
+				
+				ws.onmessage = function (evt) {
+					console.log("recv:"+evt.data);
+				};
+				
+				ws.onclose = function() {
+					console.log("close");
+				};
+			}
+		</script>
+	</body>
+</html>
