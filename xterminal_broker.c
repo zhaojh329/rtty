@@ -1,7 +1,6 @@
 #include <mongoose.h>
-#include "util.h"
 #include <termios.h>
-#include <list.h>
+#include "list.h"
 
 int asprintf(char **strp, const char *fmt, ...);
 void *memmem(const void *haystack, size_t haystacklen, const void *needle, size_t needlelen);

@@ -1,6 +1,6 @@
 #include <mongoose.h>
 #include <pty.h>
-#include "util.h"
+#include <net/if.h>
 #include "list.h"
 
 struct client {
@@ -134,11 +134,39 @@ static void signal_cb(struct ev_loop *loop, ev_signal *w, int revents)
 	printf("Got signal: %d\n", w->signum);
 
 	if (w->signum == SIGCHLD) {
-		sprintf(topic, "xterminal/%s/response/exit/%s", devid, cliid);
+		//sprintf(topic, "xterminal/%s/response/exit/%s", devid, cliid);
 		mg_mqtt_publish(nc, topic, 0, MG_MQTT_QOS(0), NULL, 0);
 	} else if (w->signum == SIGINT) {
 		ev_break(loop, EVBREAK_ALL);
 	}
+}
+
+static int get_iface_mac(const char *ifname, char mac[6])
+{
+    int r, s;
+    struct ifreq ifr;
+
+    strncpy(ifr.ifr_name, ifname, 15);
+    ifr.ifr_name[15] = '\0';
+
+    s = socket(AF_INET, SOCK_DGRAM, 0);
+    if (-1 == s) {
+		perror("socket");
+		return -1;
+    }
+
+    r = ioctl(s, SIOCGIFHWADDR, &ifr);
+    if (r == -1) {
+        perror("ioctl");
+        close(s);
+        return -1;
+    }
+
+    close(s);
+
+	memcpy(mac, ifr.ifr_hwaddr.sa_data, 6);
+	
+    return 0;
 }
 
 int main(int argc, char *argv[])
