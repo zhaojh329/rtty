@@ -1,11 +1,9 @@
 #include <mongoose.h>
 #include <termios.h>
-#include "list.h"
-
-int asprintf(char **strp, const char *fmt, ...);
-void *memmem(const void *haystack, size_t haystacklen, const void *needle, size_t needlelen);
+#include "common.h"
 
 static LIST_HEAD(device_list);
+static LIST_HEAD(session_list);
 
 struct device {
 	char mac[13];
@@ -13,16 +11,36 @@ struct device {
 	struct list_head node;
 };
 
-static char *macaddr;
-static char *myid;
+struct session {
+	char id[33];
+	struct list_head node;
+	struct mg_connection *nc;
+};
 
-static const char *index_page = "<!DOCTYPE html><html><head>"
-	"<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\"/><title>Websocket Test</title></head>"
-	"<body><button type=\"button\" onclick=\"connect()\">Connect</button>"
-	"<script>function connect(){var ws = new WebSocket(\"ws://\" + location.host);ws.onopen = function() {"
-	"console.log(\"connect ok\");ws.send(\"Hello WebSocket\");};ws.onmessage = function (evt) {"
-	"console.log(\"recv:\"+evt.data);};ws.onclose = function(){console.log(\"close\");};}</script></body></html>";
-
+static struct session *session_new(struct mg_connection *nc)
+{
+	char buf[128];
+	struct timeval tv;
+	
+	struct session *s = calloc(1, sizeof(struct session));
+	if (!s) {
+		perror("calloc");
+		return NULL;
+	}
+	
+	list_add(&s->node, &session_list);
+	
+	gettimeofday(&tv, NULL);
+	
+	snprintf(buf, sizeof(buf), "%ld", tv.tv_sec * 1000 + tv.tv_usec / 1000);
+	
+	cs_md5(s->id, buf, strlen(buf), NULL);
+	
+	s->nc = nc;
+	printf("new session:%s\n", s->id);
+	
+	return s;
+}
 
 static struct device *find_device_by_mac(struct mg_str *mac)
 {
@@ -51,10 +69,10 @@ static void update_device(struct mg_str *mac)
 	}
 	
 	dev->alive = 10;
-
-	printf("update_device:%s\n", dev->mac);
 }
 	
+struct mg_connection *mqtt_nc;
+
 static void ev_handler(struct mg_connection *nc, int ev, void *ev_data)
 {
 	if (ev == MG_EV_CONNECT) {
@@ -82,10 +100,7 @@ static void ev_handler(struct mg_connection *nc, int ev, void *ev_data)
 
 		free((char *)topic_expr[0].topic);
 		
-	} else if (ev == MG_EV_MQTT_SUBACK) {
-		char topic[128] = "";
-		sprintf(topic, "xterminal/%s/request/connect/%s", macaddr, myid);
-		mg_mqtt_publish(nc, topic, 0, MG_MQTT_QOS(0), NULL, 0);
+		mqtt_nc = nc;
 		
 	} else if (ev == MG_EV_MQTT_PUBLISH) {
 		struct mg_mqtt_message *msg = (struct mg_mqtt_message *)ev_data;
@@ -101,26 +116,36 @@ static void ev_handler(struct mg_connection *nc, int ev, void *ev_data)
 			
 			mg_send_head(nc, 200, -1, NULL);
 			
+			mg_printf_http_chunk(nc, "[");
+			
 			list_for_each_entry(dev, &device_list, node) {
-				mg_printf_http_chunk(nc, "%s|", dev->mac);
+				mg_printf_http_chunk(nc, "\"%s\",", dev->mac);
 			}
+			
+			mg_printf_http_chunk(nc, "\"\"]");
 			
 			mg_send_http_chunk(nc, "", 0);
 		} else {
-			mg_send_head(nc, 200, strlen(index_page), NULL);
-			mg_printf(nc, "%s", index_page);
+			struct mg_serve_http_opts opts = {};
+			mg_serve_http(nc, hm, opts);
 		}
-	} else if (ev == MG_EV_WEBSOCKET_HANDSHAKE_DONE) {
-		char buf[] = "Hello Websocket Client";
-		printf("New websocket connection:%p\n", nc);
-		mg_send_websocket_frame(nc, WEBSOCKET_OP_TEXT, buf, strlen(buf));
 	
 	} else if (ev == MG_EV_WEBSOCKET_FRAME) {
 		struct websocket_message *wm = (struct websocket_message *)ev_data;
-		printf("recv websocket:%.*s\n", (int)wm->size, wm->data);
+		const char *pattern = "connect ????????????";
+		const struct mg_str pstr = {pattern, strlen(pattern)};
+		
+		if (mg_match_prefix_n(pstr, mg_mk_str_n((const char *)wm->data, wm->size))) {
+			char topic[128] = "";
+			struct session *s = session_new(nc);
+			if (!s)
+				return;
+			
+			sprintf(topic, "xterminal/%.*s/%s", (int)(wm->size - 8), wm->data + 8, s->id);
+			mg_mqtt_publish(mqtt_nc, topic, 0, MG_MQTT_QOS(0), NULL, 0);
+		}
 		
 	} else if (ev == MG_EV_CLOSE) {
-		printf("Connection closed\n");
 	}
 }
 
@@ -130,7 +155,7 @@ static void device_alive_cb(struct ev_loop *loop, ev_timer *w, int revents)
 	
 	list_for_each_entry_safe(dev, tmp, &device_list, node) {
 		if (dev->alive-- == 0) {
-			printf("del device:%s\n", dev->mac);
+			printf("del timeout device:%s\n", dev->mac);
 			list_del(&dev->node);
 			free(dev);
 		}
