@@ -3,7 +3,87 @@
 #include <net/if.h>
 #include "common.h"
 
+struct session {
+	pid_t pid;
+	int pty;
+	char id[33];
+	struct list_head node;
+	ev_io watcher;
+	char topic_dev[128];
+	char topic_srv[128];
+	struct mg_connection *nc;
+};
+
 static char *devid;
+static LIST_HEAD(session_list);
+
+static void pty_read_cb(struct ev_loop *loop, ev_io *w, int revents)
+{
+	int len = 0;
+	char buf[1024] = "";
+	struct session *s = (struct session *)w->data;
+	
+	len = read(w->fd, buf, sizeof(buf));
+	if (len > 0) {
+		mg_mqtt_publish(s->nc, s->topic_dev, 0, MG_MQTT_QOS(0), buf, len);
+		printf("pub to:%s %s\n", s->topic_dev, buf);
+	} else {
+		perror("read");
+		ev_io_stop(loop, w);
+	}
+}
+
+static struct session *find_session_by_id(char *id)
+{
+	struct session *s = NULL;
+	
+	list_for_each_entry(s, &session_list, node) {
+		if (!strcmp(s->id, id))
+			return s;
+	}
+	
+	return NULL;
+}
+
+static void new_connect(struct mg_connection *nc, char *id)
+{
+	struct session *s = NULL;
+	pid_t pid;
+	int pty;
+	struct mg_mqtt_topic_expression topic_expr[1];
+	
+	pid = forkpty(&pty, NULL, NULL, NULL);
+	if (pid < 0) {
+		perror("forkpty");
+		return;
+	} else if (pid == 0) {
+		execl("/bin/login", "login", NULL);
+	}
+	
+	s = calloc(1, sizeof(struct session));
+	if (!s) {
+		perror("calloc");
+		return;
+	}
+	
+	list_add(&s->node, &session_list);
+	strncpy(s->id, id, sizeof(s->id));
+	s->pid = pid;
+	s->pty = pty;
+	s->nc = nc;
+	
+	topic_expr[0].qos = MG_MQTT_QOS(0);
+	asprintf((char **)&topic_expr[0].topic, "xterminal/%s/%s/srvdata", devid, id);
+	mg_mqtt_subscribe(nc, topic_expr, 1, 44);
+	printf("sub:%s\n", topic_expr[0].topic);
+	free((char *)topic_expr[0].topic);
+	
+	snprintf(s->topic_dev, sizeof(s->topic_dev), "xterminal/%s/%s/devdata", devid, id);
+	
+	ev_io_init(&s->watcher, pty_read_cb, pty, EV_READ);
+	s->watcher.data = s;
+	ev_io_start(EV_DEFAULT, &s->watcher);
+}
 
 static void ev_handler(struct mg_connection *nc, int ev, void *ev_data)
 {
@@ -26,7 +106,7 @@ static void ev_handler(struct mg_connection *nc, int ev, void *ev_data)
 		}
 		
 		topic_expr[0].qos = MG_MQTT_QOS(0);
-		asprintf((char **)&topic_expr[0].topic, "xterminal/%s/+", devid);
+		asprintf((char **)&topic_expr[0].topic, "xterminal/%s/connect/+", devid);
 		
 		mg_mqtt_subscribe(nc, topic_expr, 1, 0);
 
@@ -34,7 +114,27 @@ static void ev_handler(struct mg_connection *nc, int ev, void *ev_data)
 		
 	} else if (ev == MG_EV_MQTT_PUBLISH) {
 		struct mg_mqtt_message *msg = (struct mg_mqtt_message *)ev_data;
-		printf("connect:%.*s\n", (int)msg->topic.len, msg->topic.p);
+		
+		if (memmem(msg->topic.p, msg->topic.len, "connect", strlen("connect"))) {
+			char id[33] = "";
+			strncpy(id, msg->topic.p + 31, 32);
+			
+			new_connect(nc, id);
+		} else {
+			char  id[33] = "";
+			struct session *s = NULL;
+			
+			strncpy(id, msg->topic.p + 23, 32);
+			s = find_session_by_id(id);
+			if (s) {
+				int ret = write(s->pty, msg->payload.p, msg->payload.len);
+				if (ret < 0)
+					perror("write");
+			}
+			
+		}
+	} else if (ev == MG_EV_CLOSE) {
+		printf("connection close:%p\n", nc);
 	}
 }
 
@@ -123,5 +223,3 @@ int main(int argc, char *argv[])
 
 	return 0;
 }
-
-

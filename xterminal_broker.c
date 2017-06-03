@@ -13,33 +13,21 @@ struct device {
 
 struct session {
 	char id[33];
+	struct device *dev;
 	struct list_head node;
 	struct mg_connection *nc;
 };
 
-static struct session *session_new(struct mg_connection *nc)
+static struct session *find_session_by_nc(struct mg_connection *nc)
 {
-	char buf[128];
-	struct timeval tv;
+	struct session *s = NULL;
 	
-	struct session *s = calloc(1, sizeof(struct session));
-	if (!s) {
-		perror("calloc");
-		return NULL;
+	list_for_each_entry(s, &session_list, node) {
+		if (s->nc == nc)
+			return s;
 	}
 	
-	list_add(&s->node, &session_list);
-	
-	gettimeofday(&tv, NULL);
-	
-	snprintf(buf, sizeof(buf), "%ld", tv.tv_sec * 1000 + tv.tv_usec / 1000);
-	
-	cs_md5(s->id, buf, strlen(buf), NULL);
-	
-	s->nc = nc;
-	printf("new session:%s\n", s->id);
-	
-	return s;
+	return NULL;
 }
 
 static struct device *find_device_by_mac(struct mg_str *mac)
@@ -70,8 +58,41 @@ static void update_device(struct mg_str *mac)
 	
 	dev->alive = 10;
 }
+
+static struct session *session_new(struct mg_connection *nc, struct mg_str *mac)
+{
+	char buf[128] = "";
+	struct timeval tv;
+	struct session *s = NULL;
+	struct device *dev = NULL;
 	
-struct mg_connection *mqtt_nc;
+	dev = find_device_by_mac(mac);
+	if (!dev)
+		return NULL;
+	
+	s = calloc(1, sizeof(struct session));
+	if (!s) {
+		perror("calloc");
+		return NULL;
+	}
+	
+	list_add(&s->node, &session_list);
+	s->dev = dev;
+	
+	gettimeofday(&tv, NULL);
+	
+	snprintf(buf, sizeof(buf), "%ld", tv.tv_sec * 1000 + tv.tv_usec / 1000);
+	
+	cs_md5(s->id, buf, strlen(buf), NULL);
+	
+	s->nc = nc;
+	printf("new session:%s\n", s->id);
+	
+	return s;
+}
+	
+static struct mg_connection *mqtt_nc;
+static struct mg_connection *websocket_nc;
 
 static void ev_handler(struct mg_connection *nc, int ev, void *ev_data)
 {
@@ -101,12 +122,14 @@ static void ev_handler(struct mg_connection *nc, int ev, void *ev_data)
 		free((char *)topic_expr[0].topic);
 		
 		mqtt_nc = nc;
-		
+
 	} else if (ev == MG_EV_MQTT_PUBLISH) {
 		struct mg_mqtt_message *msg = (struct mg_mqtt_message *)ev_data;
 		
 		if (!mg_vcmp(&msg->topic, "xterminal/heartbeat")) {
 			update_device(&msg->payload);
+		} else if (memmem(msg->topic.p, msg->topic.len, "devdata", strlen("devdata"))) {
+			mg_send_websocket_frame(websocket_nc, WEBSOCKET_OP_TEXT, msg->payload.p, msg->payload.len);
 		}
 			
 	} else if (ev == MG_EV_HTTP_REQUEST) {
@@ -129,23 +152,43 @@ static void ev_handler(struct mg_connection *nc, int ev, void *ev_data)
 			struct mg_serve_http_opts opts = {};
 			mg_serve_http(nc, hm, opts);
 		}
-	
+	} else if (ev == MG_EV_WEBSOCKET_HANDSHAKE_DONE) {
+		websocket_nc = nc;
+		
 	} else if (ev == MG_EV_WEBSOCKET_FRAME) {
 		struct websocket_message *wm = (struct websocket_message *)ev_data;
-		const char *pattern = "connect ????????????";
-		const struct mg_str pstr = {pattern, strlen(pattern)};
 		
-		if (mg_match_prefix_n(pstr, mg_mk_str_n((const char *)wm->data, wm->size))) {
-			char topic[128] = "";
-			struct session *s = session_new(nc);
-			if (!s)
-				return;
+		
+		if (wm->flags & WEBSOCKET_OP_TEXT) {
+			const char *pattern = "connect ????????????";
+			const struct mg_str pstr = {pattern, strlen(pattern)};
 			
-			sprintf(topic, "xterminal/%.*s/%s", (int)(wm->size - 8), wm->data + 8, s->id);
-			mg_mqtt_publish(mqtt_nc, topic, 0, MG_MQTT_QOS(0), NULL, 0);
+			if (mg_match_prefix_n(pstr, mg_mk_str_n((const char *)wm->data, wm->size)) > 0) {
+				char topic[128] = "";
+				struct mg_mqtt_topic_expression topic_expr[1];
+				struct mg_str mac = mg_mk_str_n((const char *)(wm->data + 8), wm->size - 8);
+				struct session *s = session_new(nc, &mac);
+				
+				if (!s)
+					return;
+				
+				topic_expr[0].qos = MG_MQTT_QOS(0);
+				asprintf((char **)&topic_expr[0].topic, "xterminal/%.*s/%s/devdata", (int)mac.len, mac.p, s->id);
+				mg_mqtt_subscribe(mqtt_nc, topic_expr, 1, 44);
+				free((char *)topic_expr[0].topic);
+				
+				sprintf(topic, "xterminal/%.*s/connect/%s", (int)mac.len, mac.p, s->id);
+				mg_mqtt_publish(mqtt_nc, topic, 0, MG_MQTT_QOS(0), NULL, 0);
+			} else {
+				char topic[128] = "";
+				struct session *s = find_session_by_nc(nc);
+				sprintf(topic, "xterminal/%s/%s/srvdata", s->dev->mac, s->id);
+				mg_mqtt_publish(mqtt_nc, topic, 0, MG_MQTT_QOS(0), wm->data, wm->size);
+				printf("pub to:%s %.*s\n", topic, (int)wm->size, wm->data);
+			}
 		}
-		
 	} else if (ev == MG_EV_CLOSE) {
+		//printf("connection close:%p\n", nc);
 	}
 }
 
