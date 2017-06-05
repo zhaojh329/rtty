@@ -13,14 +13,9 @@ local session = {}
 
 local function new_connect(nc, id)
 	local pid, pty = evmg.forkpty()
-	if pid == 0 then
-		posix.exec ("/bin/login")
-	end
+	if pid == 0 then posix.exec ("/bin/login") end
 	
-	session[id] = {
-		pid = pid,
-		pty = pty
-	}
+	session[id] = {pty = pty}
 	
 	mgr:mqtt_subscribe(nc, "xterminal/" .. devid .. "/" .. id .. "/srvdata");
 	
@@ -30,12 +25,12 @@ local function new_connect(nc, id)
 		local d, err = posix.read(w:getfd(), 1024)
 		if not d then
 			w:stop(loop)
-			error("read error:" .. err)
+			posix.wait(pid)
+			session[id] = nil
+			return
 		end
 		mgr:mqtt_publish(nc, topic_dev, d);
 	end, pty, ev.READ):start(loop)
-	
-	print("new connect ok")
 end
 
 local function ev_handle(nc, event, msg)
@@ -57,13 +52,12 @@ local function ev_handle(nc, event, msg)
 		
 	elseif event == evmg.MG_EV_MQTT_PUBLISH then
 		local topic = msg.topic
-		print("mqtt recv:", topic)
 		if topic:match("connect") then
 			local id = topic:match("xterminal/" .. devid .. "/connect/(%w+)")
 			new_connect(nc, id)
 		else
 			local id = topic:match("xterminal/" .. devid .. "/(%w+)/srvdata")
-			posix.write(session[id].pty, msg.payload);
+			posix.write(session[id].pty, msg.payload)
 		end
 	end
 end

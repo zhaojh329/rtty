@@ -12,6 +12,19 @@ local mgr = evmg.init()
 local device = {}
 local session = {}
 
+local function generate_sid()
+	local t = {}
+	for i = 1, 5 do
+		t[#t + 1] = string.char(math.random(65, 90))
+	end
+	
+	for i = 1, 5 do
+		t[#t + 1] = string.char(math.random(48, 57))
+	end
+	
+	return table.concat(t)
+end
+
 local function find_sid_by_websocket(nc)
 	for k, v in pairs(session) do
 		if v.websocket_nc == nc then
@@ -46,7 +59,6 @@ local function ev_handle(nc, event, msg)
 		
 	elseif event == evmg.MG_EV_MQTT_PUBLISH then
 		local topic = msg.topic
-		print("mqtt recv:", topic)
 		if topic == "xterminal/heartbeat" then
 			local mac = msg.payload
 			if not device[mac] then
@@ -79,7 +91,7 @@ local function ev_handle(nc, event, msg)
 		local data = msg.data
 		if data:match("connect ") then
 			local mac = data:match("connect (%w+)")
-			local sid = "fsdg23423"
+			local sid = generate_sid()
 			
 			session[sid] = {
 				websocket_nc = nc,
@@ -95,6 +107,8 @@ local function ev_handle(nc, event, msg)
 		end
 	end
 end
+
+math.randomseed(tostring(os.time()):reverse():sub(1, 6))
 
 mgr:connect("localhost:1883", ev_handle)
 
