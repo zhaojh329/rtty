@@ -1,27 +1,32 @@
-<!DOCTYPE html>
-<html>
-	<head>
-		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-		<title>Websocket Test</title>
-	</head>
-	<body>
-		<button type="button" onclick="connect()">Connect</button>
-		<script>
-			function connect() {
-				var ws = new WebSocket("ws://" + location.host);
-				ws.onopen = function() {
-					console.log("connect ok");
-					ws.send("Hello WebSocket");
-				};
-				
-				ws.onmessage = function (evt) {
-					console.log("recv:"+evt.data);
-				};
-				
-				ws.onclose = function() {
-					console.log("close");
-				};
-			}
-		</script>
-	</body>
-</html>
+<!doctype html>
+  <html>
+    <head>
+      <link rel="stylesheet" href="xterm.css" />
+	  <script src="jquery-1.12.4.min.js"></script>
+	  <script src="xterm.js"></script>
+	  <script src="utf8.js"></script>
+      
+    </head>
+    <body>
+      <div id="terminal"></div>
+      <script>
+
+		var ws = new WebSocket("ws://" + location.host);
+		var term = new Terminal();
+		ws.onopen = function() {
+			term.open(document.getElementById('terminal'));
+			
+			ws.send("connect 448A5BEC4927");
+			
+			term.on('data', function(data) {
+				ws.send(data);
+			});
+		};
+		
+		ws.onmessage = function (e) {
+			term.write(e.data);
+		};
+		
+      </script>
+    </body>
+  </html>
