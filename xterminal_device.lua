@@ -8,8 +8,20 @@ local cjson = require("cjson")
 local loop = ev.Loop.default
 
 local mgr = evmg.init()
-local devid = "448A5BEC4927"
+local ifname = "enp3s0"
+local devid = nil
 local session = {}
+
+local function get_dev_id(ifname)
+	local file = io.open("/sys/class/net/" .. ifname .. "/address", "r")
+	if not file then return nil end
+	local d = file:read("*a")
+	file:close()
+	
+	if not d then return nil end	
+	
+	return d:gsub(":", ""):upper()
+end
 
 local function new_connect(nc, id)
 	local pid, pty = evmg.forkpty()
@@ -61,6 +73,14 @@ local function ev_handle(nc, event, msg)
 		end
 	end
 end
+
+devid = get_dev_id(ifname)
+if not devid then
+	print("get dev id failed for", ifname)
+	os.exit()
+end
+
+print("devid:", devid)
 
 mgr:connect("localhost:1883", ev_handle)
 
