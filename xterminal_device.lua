@@ -18,7 +18,7 @@ local function get_dev_id(ifname)
 	local d = file:read("*a")
 	file:close()
 	
-	if not d then return nil end	
+	if not d then return nil end
 	
 	return d:gsub(":", ""):upper()
 end
