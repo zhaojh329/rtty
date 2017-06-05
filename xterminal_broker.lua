@@ -112,7 +112,7 @@ math.randomseed(tostring(os.time()):reverse():sub(1, 6))
 
 mgr:connect("localhost:1883", ev_handle)
 
-mgr:bind("8000", ev_handle, {proto = "http"})
+mgr:bind("8000", ev_handle, {proto = "http", document_root = "www"})
 print("Listen on http 8000...")
 
 ev.Signal.new(function(loop, sig, revents)
