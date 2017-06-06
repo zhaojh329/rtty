@@ -24,6 +24,26 @@ local function generate_sid()
 	
 	return table.concat(t)
 end
+function validate_macaddr(val)
+	if val then
+		val = string.upper(val);
+		
+		if val:match(
+			"^[A-F0-9][A-F0-9]:[A-F0-9][A-F0-9]:[A-F0-9][A-F0-9]:" ..
+			 "[A-F0-9][A-F0-9]:[A-F0-9][A-F0-9]:[A-F0-9][A-F0-9]$") or
+			val:match(
+				"^[A-F0-9][A-F0-9]%-[A-F0-9][A-F0-9]%-[A-F0-9][A-F0-9]%-" ..
+				 "[A-F0-9][A-F0-9]%-[A-F0-9][A-F0-9]%-[A-F0-9][A-F0-9]$") or
+			val:match(
+				"^[A-F0-9][A-F0-9][A-F0-9][A-F0-9][A-F0-9][A-F0-9]" ..
+				 "[A-F0-9][A-F0-9][A-F0-9][A-F0-9][A-F0-9][A-F0-9]$")
+		then
+			return true
+		end
+	end
+
+	return false
+end
 
 local function find_sid_by_websocket(nc)
 	for k, v in pairs(session) do
@@ -62,13 +82,13 @@ local function ev_handle(nc, event, msg)
 		if topic == "xterminal/heartbeat" then
 			local mac = msg.payload
 			if not device[mac] then
-				device[mac] = {}
+				device[mac] = {mqtt_nc = nc}
 				print("new dev:", mac)
 			end
-			device[mac] = {alive = 5, mqtt_nc = nc}
+			device[mac].alive = 5
 		elseif topic:match("devdata") then
 			local mac, sid = topic:match("xterminal/(%w+)/(%w+)/devdata")
-			mgr:send_websocket_frame(session[sid].websocket_nc, msg.payload)
+			mgr:send_websocket_frame(session[sid].websocket_nc, msg.payload, evmg.WEBSOCKET_OP_BINARY)
 		end
 		
 	elseif event == evmg.MG_EV_HTTP_REQUEST then
@@ -77,7 +97,6 @@ local function ev_handle(nc, event, msg)
 			mgr:send_head(nc, 200, -1)
 			
 			local devs = {}
-			
 			for k, v in pairs(device) do
 				devs[#devs + 1] = k
 			end
@@ -86,20 +105,36 @@ local function ev_handle(nc, event, msg)
 			mgr:print_http_chunk(nc, "")
 			return true
 		end
+	
+	elseif event == evmg.MG_EV_WEBSOCKET_HANDSHAKE_REQUEST then
+		session[generate_sid()] = {
+			websocket_nc = nc,
+			mac = msg.query_string:match("mac=([%x,:]+)"):gsub(":", ""):upper()
+		}
+	elseif event == evmg.MG_EV_WEBSOCKET_HANDSHAKE_DONE then
+		local sid = find_sid_by_websocket(nc)
+		local s = session[sid]
+		local mac = s.mac
+		if not validate_macaddr(mac) then
+			data = {status = "error", reason = "invalid macaddress"}
+			mgr:send_websocket_frame(nc, cjson.encode(data))
+			return
+		end
 		
+		if not device[mac] then
+			data = {status = "error", reason = "device not online"}
+			mgr:send_websocket_frame(nc, cjson.encode(data))
+			return
+		end
+		
+		mgr:mqtt_subscribe(device[mac].mqtt_nc, "xterminal/" .. mac ..  "/" .. sid .. "/devdata");
+		mgr:mqtt_publish(device[mac].mqtt_nc, "xterminal/" .. mac .. "/connect/" .. sid, "");
+			
 	elseif event == evmg.MG_EV_WEBSOCKET_FRAME then
 		local data = msg.data
-		if data:match("connect ") then
-			local mac = data:match("connect (%w+)")
-			local sid = generate_sid()
-			
-			session[sid] = {
-				websocket_nc = nc,
-				mac = mac
-			}
-			
-			mgr:mqtt_subscribe(device[mac].mqtt_nc, "xterminal/" .. mac ..  "/" .. sid .. "/devdata");
-			mgr:mqtt_publish(device[mac].mqtt_nc, "xterminal/" .. mac .. "/connect/" .. sid, "");
+		local op = msg.op
+		
+		if op == evmg.WEBSOCKET_OP_TEXT then
 		else
 			local sid = find_sid_by_websocket(nc)
 			local s = session[sid]

@@ -8,14 +8,14 @@ local cjson = require("cjson")
 local loop = ev.Loop.default
 
 local mgr = evmg.init()
-local ifname = "enp3s0"
+local ifname = "ens38"
 local devid = nil
 local session = {}
 
 local function get_dev_id(ifname)
 	local file = io.open("/sys/class/net/" .. ifname .. "/address", "r")
 	if not file then return nil end
-	local d = file:read("*a")
+	local d = file:read("*l")
 	file:close()
 	
 	if not d then return nil end
@@ -25,7 +25,7 @@ end
 
 local function new_connect(nc, id)
 	local pid, pty = evmg.forkpty()
-	if pid == 0 then posix.exec ("/bin/login") end
+	if pid == 0 then posix.exec ("/bin/login", {}) end
 	
 	session[id] = {pty = pty}
 	
