@@ -31,7 +31,7 @@
 			}
 			
 			function new_session(mac) {
-				var ws = new WebSocket("ws://" + location.host + "?mac=" + mac);
+				ws = new WebSocket("ws://" + location.host + "?mac=" + mac);
 				ws.onopen = function() {
 					var term = new Terminal({
 						focus: true,
@@ -74,17 +74,17 @@
 				};
 			}
 		
-		$(function() {
-			$("#connect").click(function(e) {
-				$("#msg").html("").hide();
-				$("#connect").attr("disabled", true);
-				new_session($("#mac").val());
+			$(function() {
+				$("#connect").click(function(e) {
+					$("#msg").html("").hide();
+					$("#connect").attr("disabled", true);
+					new_session($("#mac").val());
+				});
+				
+				$("#disconnect").click(function(e) {
+					ws.close();
+				});
 			});
-			
-			$("#disconnect").click(function(e) {
-				ws.close();
-			});
-		});
 		</script>
 	</body>
 </html>

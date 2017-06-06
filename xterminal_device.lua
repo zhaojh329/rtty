@@ -27,13 +27,14 @@ local function new_connect(nc, id)
 	local pid, pty = evmg.forkpty()
 	if pid == 0 then posix.exec ("/bin/login", {}) end
 	
-	session[id] = {pty = pty}
+	session[id] = {pid = pid, pty = pty}
 	
 	mgr:mqtt_subscribe(nc, "xterminal/" .. devid .. "/" .. id .. "/srvdata");
+	mgr:mqtt_subscribe(nc, "xterminal/" .. devid .. "/" .. id .. "/exit");
 	
 	local topic_dev = "xterminal/" .. devid .. "/" .. id ..  "/devdata"
 	
-	ev.IO.new(function(loop, w, revents)
+	session[id].rio = ev.IO.new(function(loop, w, revents)
 		local d, err = posix.read(w:getfd(), 1024)
 		if not d then
 			w:stop(loop)
@@ -42,7 +43,9 @@ local function new_connect(nc, id)
 			return
 		end
 		mgr:mqtt_publish(nc, topic_dev, d);
-	end, pty, ev.READ):start(loop)
+	end, pty, ev.READ)
+	
+	session[id].rio:start(loop)
 end
 
 local function ev_handle(nc, event, msg)
@@ -67,9 +70,13 @@ local function ev_handle(nc, event, msg)
 		if topic:match("connect") then
 			local id = topic:match("xterminal/" .. devid .. "/connect/(%w+)")
 			new_connect(nc, id)
-		else
+		elseif topic:match("srvdata") then
 			local id = topic:match("xterminal/" .. devid .. "/(%w+)/srvdata")
 			posix.write(session[id].pty, msg.payload)
+		elseif topic:match("exit") then
+			local id = topic:match("xterminal/" .. devid .. "/(%w+)/exit")
+			posix.kill(session[id].pid)
+			session[id].rio:stop(loop)
 		end
 	end
 end

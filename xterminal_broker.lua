@@ -24,20 +24,14 @@ local function generate_sid()
 	
 	return table.concat(t)
 end
+
 function validate_macaddr(val)
 	if val then
-		val = string.upper(val);
+		if #val == 17 and (val:match("^%x+:%x+:%x+:%x+:%x+:%x+$") or val:match("^%x+%-%x+%-%x+%-%x+%-%x+%-%x+$")) then
+			return true
+		end
 		
-		if val:match(
-			"^[A-F0-9][A-F0-9]:[A-F0-9][A-F0-9]:[A-F0-9][A-F0-9]:" ..
-			 "[A-F0-9][A-F0-9]:[A-F0-9][A-F0-9]:[A-F0-9][A-F0-9]$") or
-			val:match(
-				"^[A-F0-9][A-F0-9]%-[A-F0-9][A-F0-9]%-[A-F0-9][A-F0-9]%-" ..
-				 "[A-F0-9][A-F0-9]%-[A-F0-9][A-F0-9]%-[A-F0-9][A-F0-9]$") or
-			val:match(
-				"^[A-F0-9][A-F0-9][A-F0-9][A-F0-9][A-F0-9][A-F0-9]" ..
-				 "[A-F0-9][A-F0-9][A-F0-9][A-F0-9][A-F0-9][A-F0-9]$")
-		then
+		if #val == 12 and val:match("^%x+%x+%x+%x+%x+%x$") then
 			return true
 		end
 	end
@@ -116,17 +110,17 @@ local function ev_handle(nc, event, msg)
 		local s = session[sid]
 		local mac = s.mac
 		if not validate_macaddr(mac) then
-			data = {status = "error", reason = "invalid macaddress"}
-			mgr:send_websocket_frame(nc, cjson.encode(data))
+			mgr:send_websocket_frame(nc, cjson.encode({status = "error", reason = "invalid macaddress"}))
 			return
 		end
 		
 		if not device[mac] then
-			data = {status = "error", reason = "device not online"}
-			mgr:send_websocket_frame(nc, cjson.encode(data))
+			mgr:send_websocket_frame(nc, cjson.encode({status = "error", reason = "device not online"}))
 			return
 		end
 		
+		mgr:send_websocket_frame(nc, cjson.encode({status = "ok"}))
+			
 		mgr:mqtt_subscribe(device[mac].mqtt_nc, "xterminal/" .. mac ..  "/" .. sid .. "/devdata");
 		mgr:mqtt_publish(device[mac].mqtt_nc, "xterminal/" .. mac .. "/connect/" .. sid, "");
 			
@@ -139,6 +133,15 @@ local function ev_handle(nc, event, msg)
 			local sid = find_sid_by_websocket(nc)
 			local s = session[sid]
 			mgr:mqtt_publish(device[s.mac].mqtt_nc, "xterminal/" .. s.mac ..  "/" .. sid .. "/srvdata", msg.data);
+		end
+	elseif event == evmg.MG_EV_CLOSE then
+		local sid = find_sid_by_websocket(nc)
+		local s = session[sid]
+		
+		if s then
+			print("session close:", nc)
+			mgr:mqtt_publish(device[s.mac].mqtt_nc, "xterminal/" .. s.mac ..  "/" .. sid .. "/exit", "");
+			session[sid] = nil
 		end
 	end
 end
