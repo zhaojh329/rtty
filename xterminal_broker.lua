@@ -82,6 +82,7 @@ local function ev_handle(nc, event, msg)
 			device[mac].alive = 5
 		elseif topic:match("devdata") then
 			local mac, sid = topic:match("xterminal/(%w+)/(%w+)/devdata")
+			if not session[sid] then return end
 			mgr:send_websocket_frame(session[sid].websocket_nc, msg.payload, evmg.WEBSOCKET_OP_BINARY)
 		end
 		
@@ -125,23 +126,19 @@ local function ev_handle(nc, event, msg)
 		mgr:mqtt_publish(device[mac].mqtt_nc, "xterminal/" .. mac .. "/connect/" .. sid, "");
 			
 	elseif event == evmg.MG_EV_WEBSOCKET_FRAME then
-		local data = msg.data
-		local op = msg.op
-		
-		if op == evmg.WEBSOCKET_OP_TEXT then
-		else
-			local sid = find_sid_by_websocket(nc)
-			local s = session[sid]
-			mgr:mqtt_publish(device[s.mac].mqtt_nc, "xterminal/" .. s.mac ..  "/" .. sid .. "/srvdata", msg.data);
-		end
+		local sid = find_sid_by_websocket(nc)
+		local s = session[sid]
+		mgr:mqtt_publish(device[s.mac].mqtt_nc, "xterminal/" .. s.mac ..  "/" .. sid .. "/srvdata", msg.data);
 	elseif event == evmg.MG_EV_CLOSE then
 		local sid = find_sid_by_websocket(nc)
 		local s = session[sid]
 		
 		if s then
-			print("session close:", nc)
-			mgr:mqtt_publish(device[s.mac].mqtt_nc, "xterminal/" .. s.mac ..  "/" .. sid .. "/exit", "");
 			session[sid] = nil
+			print("session close:", nc, sid)
+			if device[s.mac] then
+				mgr:mqtt_publish(device[s.mac].mqtt_nc, "xterminal/" .. s.mac ..  "/" .. sid .. "/exit", "");
+			end
 		end
 	end
 end

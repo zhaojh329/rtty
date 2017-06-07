@@ -14,7 +14,7 @@
 		</div>
 		<span id="msg" style="display:none; color:red;"></span>
 
-		<div id="terminal"></div>
+		<div id="terminal-container"></div>
 		<script>
 			var ws;
 			function ab2str(buf) {
@@ -36,7 +36,7 @@
 					var term = new Terminal({
 						focus: true,
 						cursorBlink: true,
-						rows: 100
+						screenKeys: true
 					});
 					term.on('data', function(data) {
 						var binary_data = str2ab(data);
@@ -47,7 +47,10 @@
 						document.title = title;
 					});
 					
-					term.open(document.getElementById('terminal'));
+					term.on('open', function() {
+					});
+					
+					term.open(document.getElementById('terminal-container'), true);
 					
 					ws.binaryType = 'arraybuffer';
 					

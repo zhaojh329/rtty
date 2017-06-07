@@ -8,7 +8,7 @@ local cjson = require("cjson")
 local loop = ev.Loop.default
 
 local mgr = evmg.init()
-local ifname = "ens38"
+local ifname = "enp3s0"
 local devid = nil
 local session = {}
 
@@ -75,8 +75,10 @@ local function ev_handle(nc, event, msg)
 			posix.write(session[id].pty, msg.payload)
 		elseif topic:match("exit") then
 			local id = topic:match("xterminal/" .. devid .. "/(%w+)/exit")
-			posix.kill(session[id].pid)
-			session[id].rio:stop(loop)
+			if session[id] then
+				posix.kill(session[id].pid)
+				session[id].rio:stop(loop)
+			end
 		end
 	end
 end
