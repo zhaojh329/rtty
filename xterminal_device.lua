@@ -8,7 +8,7 @@ local cjson = require("cjson")
 local loop = ev.Loop.default
 
 local mgr = evmg.init()
-local ifname = "enp3s0"
+local ifname = "ens38"
 local devid = nil
 local session = {}
 
