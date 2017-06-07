@@ -25,8 +25,8 @@
 	<body>
 		<div style="margin-bottom: 10px;">
 			<input type="text" placeholder="Please input mac." id="mac" />
-			<input type="button" value="connect" id="connect" />
-			<input type="button" value="disconnect" id="disconnect" disabled="disabled" />
+			<input type="button" value="Connect" id="connect" />
+			<input type="button" value="Disconnect" id="disconnect" disabled="disabled" />
 		</div>
 		<span id="msg" style="display:none; color:red;"></span>
 
@@ -82,7 +82,7 @@
 							$("#disconnect").attr("disabled", false);
 							var resp = JSON.parse(evt.data);
 							if (resp.status == 'ok')
-								$("#connect").val("connected");
+								$("#connect").val("Connected");
 							else {
 								ws.close();
 								$("#msg").html(resp.reason).show();
@@ -91,7 +91,7 @@
 					};
 					
 					ws.onclose = function () {
-						$("#connect").attr("disabled", false).val("connect");
+						$("#connect").attr("disabled", false).val("Connect");
 						$("#disconnect").attr("disabled", true);
 						term.destroy();
 					};
@@ -101,7 +101,7 @@
 			$(function() {
 				$("#connect").click(function(e) {
 					$("#msg").html("").hide();
-					$("#connect").attr("disabled", true);
+					$("#connect").attr("Disabled", true);
 					new_session($("#mac").val());
 				});
 				
