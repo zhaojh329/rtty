@@ -6,7 +6,7 @@ PKG_RELEASE:=$(PKG_SOURCE_VERSION)
 
 PKG_SOURCE_PROTO:=git
 PKG_SOURCE_URL:=https://github.com/zhaojh329/xterminal.git
-PKG_SOURCE_VERSION:=9ad98f4aedacad202675291b1adb256068513acf
+PKG_SOURCE_VERSION:=2b53cd53ebcf1a8860bd0f9cbc4e60c5270e3bb1
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 
 include $(INCLUDE_DIR)/package.mk
