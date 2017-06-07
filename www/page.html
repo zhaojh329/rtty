@@ -5,9 +5,8 @@
 		<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
 		<title>xTerminal</title>
 		<link rel="stylesheet" href="xterm.css" />
-		<script src="jquery-1.12.4.min.js"></script>
 		<script src="xterm.js"></script>
-		<script src="addons/fit/fit.js"></script>
+		<script src="fit.js"></script>
 	</head>
 	<style>
 		html, body {
@@ -79,36 +78,42 @@
 						if (evt.data instanceof ArrayBuffer) {
 							term.write(ab2str(evt.data));
 						} else {
-							$("#disconnect").attr("disabled", false);
+							document.getElementById("disconnect").disabled = false;
 							var resp = JSON.parse(evt.data);
 							if (resp.status == 'ok')
-								$("#connect").val("Connected");
+								document.getElementById("connect").value = "Connected";
 							else {
 								ws.close();
-								$("#msg").html(resp.reason).show();
+								
+								var msg = document.getElementById("msg");
+								msg.innerHTML = resp.reason;
+								msg.style.display = "block";
 							}
 						}
 					};
 					
 					ws.onclose = function () {
-						$("#connect").attr("disabled", false).val("Connect");
-						$("#disconnect").attr("disabled", true);
+						var con = document.getElementById("connect");
+						con.disabled = false;
+						con.value = "Connect";
+					
+						document.getElementById("disconnect").disabled = true;
 						term.destroy();
 					};
 				};
 			}
 		
-			$(function() {
-				$("#connect").click(function(e) {
-					$("#msg").html("").hide();
-					$("#connect").attr("Disabled", true);
-					new_session($("#mac").val());
-				});
-				
-				$("#disconnect").click(function(e) {
-					ws.close();
-				});
-			});
+			document.getElementById("connect").onclick = function() {
+				var msg = document.getElementById("msg");
+				msg.innerHTML = "";
+				msg.style.display = "none";
+				this.disabled = true;
+				new_session(document.getElementById("mac").value);
+			};
+		
+			document.getElementById("disconnect").onclick = function() {
+				ws.close();
+			}
 		</script>
 	</body>
 </html>
