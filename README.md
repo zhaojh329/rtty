@@ -7,6 +7,8 @@ XTerminal is based on [evmongoose](https://github.com/zhaojh329/evmongoose) impl
 
 ![](https://github.com/zhaojh329/xterminal/blob/master/xterminal.png)
 
+![](https://github.com/zhaojh329/xterminal/blob/master/demo.png)
+
 # How To Install
 ## Install server on Ubuntu
 ### Install dependency
