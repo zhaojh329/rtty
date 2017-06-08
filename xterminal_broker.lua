@@ -11,6 +11,7 @@ local mgr = evmg.init()
 
 local device = {}
 local session = {}
+local document_root = arg[1] or "wwww"
 
 local function generate_sid()
 	local t = {}
@@ -147,7 +148,7 @@ math.randomseed(tostring(os.time()):reverse():sub(1, 6))
 
 mgr:connect("localhost:1883", ev_handle)
 
-mgr:bind("8000", ev_handle, {proto = "http", document_root = "www"})
+mgr:bind("8000", ev_handle, {proto = "http", document_root = document_root})
 print("Listen on http 8000...")
 
 ev.Signal.new(function(loop, sig, revents)

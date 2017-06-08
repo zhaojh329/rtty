@@ -15,11 +15,12 @@ define Package/xterminal
   SECTION:=net
   CATEGORY:=Network
   TITLE:=xTerminal
+  URL:=https://github.com/zhaojh329/xterminal
   DEPENDS:=+lua-cjson +evmongoose +luaposix
 endef
 
 define Package/xterminal/description
-	
+	Xterminal is a multi device remote web shell tool
 endef
 
 define Build/Compile
