@@ -8,7 +8,7 @@ xTerminal是一个多终端的远程Web Shell工具。你可以通过浏览器�
 # 安装
 ## 在Ubuntu上安装Server
 ### 安装依赖
-* [evmongoose](https://github.com/zhaojh329/evmongoose/blob/master/README.md)
+* [evmongoose](https://github.com/zhaojh329/evmongoose/blob/master/README_ZH.md)
 
 * lua-posix
 
