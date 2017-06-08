@@ -5,6 +5,8 @@
 XTerminal is a remote web shell tool for multi terminal devices.You can login to your Linux device via the browser at the specified MAC address.
 XTerminal is based on [evmongoose](https://github.com/zhaojh329/evmongoose) implementation, It consists of two parts, server and client.
 
+![](https://github.com/zhaojh329/xterminal/blob/master/xterminal.png)
+
 # How To Install
 ## Install server on Ubuntu
 ### Install dependency
