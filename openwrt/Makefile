@@ -29,8 +29,8 @@ endef
 define Package/xterminal/install
 	$(INSTALL_DIR) $(1)/usr/sbin $(1)/etc/init.d $(1)/etc/config
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/xterminal_device.lua $(1)/usr/sbin/xterminal_device
-	$(INSTALL_BIN)./files/xterminal.init $(1)/etc/init.d/xterminal
-	$(INSTALL_CONF)./files/xterminal.config $(1)/etc/config/xterminal
+	$(INSTALL_BIN) ./files/xterminal.init $(1)/etc/init.d/xterminal
+	$(INSTALL_CONF) ./files/xterminal.config $(1)/etc/config/xterminal
 endef
 
 $(eval $(call BuildPackage,xterminal))
