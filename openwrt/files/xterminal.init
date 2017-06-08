@@ -5,9 +5,21 @@ START=99
 
 BIN=/usr/sbin/xterminal_device
 
+mqtt_hostname=
+mqtt_port=
+
+parse_conf() {
+	local cfg=$1
+	config_get mqtt_hostname "$cfg" "mqtt_hostname"
+	config_get mqtt_port "$cfg" "mqtt_port"
+}
+
 start_service() {
+	config_load xterminal
+	config_foreach parse_conf base
+
 	procd_open_instance
-	procd_set_param command $BIN br-lan
+	procd_set_param command $BIN br-lan "$mqtt_hostname:$mqtt_port"
 	procd_close_instance
 }
 

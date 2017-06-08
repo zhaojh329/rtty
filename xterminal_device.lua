@@ -9,6 +9,8 @@ local loop = ev.Loop.default
 
 local mgr = evmg.init()
 local ifname = arg[1] or "eth0"
+local server = arg[2] or "localhost:1883"
+
 local devid = nil
 local session = {}
 
@@ -91,7 +93,7 @@ end
 
 print("devid:", devid)
 
-mgr:connect("localhost:1883", ev_handle)
+mgr:connect(server, ev_handle)
 
 ev.Signal.new(function(loop, sig, revents)
 	loop:unloop()
