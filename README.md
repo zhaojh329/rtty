@@ -3,6 +3,7 @@
 ![](https://img.shields.io/badge/license-GPLV3-brightgreen.svg?style=plastic "License")
 
 XTerminal is a remote web shell tool for multi terminal devices.You can login to your Linux device via the browser at the specified MAC address.
+It suits the company to the company very much Thousands of Linux devices are deployed around the world for remote debugging.
 XTerminal is based on [evmongoose](https://github.com/zhaojh329/evmongoose) implementation, It consists of two parts, server and client.
 
 ![](https://github.com/zhaojh329/xterminal/blob/master/xterminal.png)

@@ -2,8 +2,8 @@
 
 ![](https://img.shields.io/badge/license-GPLV3-brightgreen.svg?style=plastic "License")
 
-xTerminal是一个多终端的远程Web Shell工具。你可以通过浏览器根据特定的设备MAC地址登录到你的Linux设备。
-它基于[evmongoose](https://github.com/zhaojh329/evmongoose)实现，由客户端和服务器两部分构成。
+xTerminal是一个多终端的远程Web Shell工具。你可以通过浏览器根据特定的设备MAC地址登录到你的Linux设备。它非常适合公司对公司
+部署在全球各地的成千上万的Linux设备进行远程调试。它基于[evmongoose](https://github.com/zhaojh329/evmongoose)实现，由客户端和服务器两部分构成。
 
 ![](https://github.com/zhaojh329/xterminal/blob/master/xterminal_zh.png)
 
