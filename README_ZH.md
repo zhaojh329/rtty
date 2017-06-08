@@ -14,12 +14,12 @@ xTerminal是一个多终端的远程Web Shell工具。你可以通过浏览器�
 
 		sudo apt install lua-posix
     
-### Install xTerminal Server
+### 安装 xTerminal Server
     git clone https://github.com/zhaojh329/xterminal.git
     cd xterminal/ubuntu
 	sudo make install
 
-## Install Client on OpenWRT/LEDE
+## 安装客户端 OpenWRT/LEDE
 	git clone https://github.com/zhaojh329/evmongoose.git
 	cp -r evmongoose/openwrt openwrt_dir/package/evmongoose
 	
@@ -35,6 +35,8 @@ xTerminal是一个多终端的远程Web Shell工具。你可以通过浏览器�
 	    <*> xterminal
 	
 	make package/xterminal/compile V=s
+
+# 使用
 
 # 贡献代码
 

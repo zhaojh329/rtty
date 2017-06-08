@@ -19,6 +19,9 @@ XTerminal is based on [evmongoose](https://github.com/zhaojh329/evmongoose) impl
     cd xterminal/ubuntu
 	sudo make install
 
+### Run Server on Ubuntu
+	/etc/init.d/xterminal start
+
 ## Install Client on OpenWRT/LEDE
 	git clone https://github.com/zhaojh329/evmongoose.git
 	cp -r evmongoose/openwrt openwrt_dir/package/evmongoose
@@ -35,6 +38,9 @@ XTerminal is based on [evmongoose](https://github.com/zhaojh329/evmongoose) impl
 	    <*> xterminal
 	
 	make package/xterminal/compile V=s
+
+# How to use
+
 
 # How To Contribute
 Feel free to create issues or pull-requests if you have any problems.
