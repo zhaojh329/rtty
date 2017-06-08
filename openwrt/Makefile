@@ -6,7 +6,7 @@ PKG_RELEASE:=$(PKG_SOURCE_VERSION)
 
 PKG_SOURCE_PROTO:=git
 PKG_SOURCE_URL:=https://github.com/zhaojh329/xterminal.git
-PKG_SOURCE_VERSION:=3bcc697c2829233ba5c854c9d68995b9a39aadd9
+PKG_SOURCE_VERSION:=4c06d2519634f95e5686aca74bf60ee608d770ee
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 
 include $(INCLUDE_DIR)/package.mk
@@ -27,8 +27,10 @@ define Build/Compile
 endef
 
 define Package/xterminal/install
-	$(INSTALL_DIR) $(1)/usr/sbin
-	$(INSTALL_DATA) $(PKG_BUILD_DIR)/xterminal_device.lua $(1)/usr/sbin/xterminal_device
+	$(INSTALL_DIR) $(1)/usr/sbin $(1)/etc/init.d $(1)/etc/config
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/xterminal_device.lua $(1)/usr/sbin/xterminal_device
+	$(INSTALL_BIN)./files/xterminal.init $(1)/etc/init.d/xterminal
+	$(INSTALL_CONF)./files/xterminal.config $(1)/etc/config/xterminal
 endef
 
 $(eval $(call BuildPackage,xterminal))
