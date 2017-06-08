@@ -14,9 +14,9 @@ xTerminal是一个多终端的远程Web Shell工具。你可以通过浏览器�
 ### 安装依赖
 * [evmongoose](https://github.com/zhaojh329/evmongoose/blob/master/README_ZH.md)
 
-* lua-posix
+* lua-posix mosquitto
 
-		sudo apt install lua-posix
+		sudo apt install lua-posix mosquitto
     
 ### 安装 xTerminal Server
     git clone https://github.com/zhaojh329/xterminal.git

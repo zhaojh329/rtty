@@ -15,9 +15,9 @@ XTerminal is based on [evmongoose](https://github.com/zhaojh329/evmongoose) impl
 ### Install dependency
 * [evmongoose](https://github.com/zhaojh329/evmongoose/blob/master/README.md)
 
-* lua-posix
+* lua-posix mosquitto
 
-		sudo apt install lua-posix
+		sudo apt install lua-posix mosquitto
     
 ### Install xTerminal Server
     git clone https://github.com/zhaojh329/xterminal.git
