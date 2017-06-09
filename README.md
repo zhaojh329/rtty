@@ -45,7 +45,9 @@ XTerminal is based on [evmongoose](https://github.com/zhaojh329/evmongoose) impl
 	make package/xterminal/compile V=s
 
 # How to use
-
+In the browser, enter the server address, the default port number 8000, and then in the page appears to enter the the 
+MAC address of then device to be connected to, MAC address format can be:
+xx:xx:xx:xx:xx:xx, xx-xx-xx-xx-xx-xx, xxxxxxxxxxxxx
 
 # How To Contribute
 Feel free to create issues or pull-requests if you have any problems.
@@ -55,5 +57,6 @@ before pushing any changes.**
 
 # Thanks for the following project
 * [evmongoose](https://github.com/zhaojh329/evmongoose)
+* [xterm.js](https://github.com/sourcelair/xterm.js)
 
 # If the project is helpful to you, please do not hesitate to star. Thank you!
