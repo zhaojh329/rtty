@@ -41,6 +41,10 @@ xTerminal是一个多终端的远程Web Shell工具。你可以通过浏览器�
 	make package/xterminal/compile V=s
 
 # 使用
+# 查询在线设备
+	http://server:8000/list
+	
+# 连接设备
 在浏览器中输入服务器地址，默认端口号8000，然后在出现的页面中输入要连接的设备MAC地址，MAC地址的格式可以是：
 xx:xx:xx:xx:xx:xx, xx-xx-xx-xx-xx-xx, xxxxxxxxxxxxx
 

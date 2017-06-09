@@ -45,6 +45,10 @@ XTerminal is based on [evmongoose](https://github.com/zhaojh329/evmongoose) impl
 	make package/xterminal/compile V=s
 
 # How to use
+# Query online device
+	http://server:8000/list
+
+# Connect to devic
 In the browser, enter the server address, the default port number 8000, and then in the page appears to enter the the 
 MAC address of then device to be connected to, MAC address format can be:
 xx:xx:xx:xx:xx:xx, xx-xx-xx-xx-xx-xx, xxxxxxxxxxxxx
