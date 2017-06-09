@@ -12,11 +12,12 @@ PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 include $(INCLUDE_DIR)/package.mk
 
 define Package/xterminal
-  SECTION:=net
-  CATEGORY:=Network
-  TITLE:=xTerminal
+  SECTION:=utils
+  CATEGORY:=Utilities
+  TITLE:=multi device remote web shell tool 
   URL:=https://github.com/zhaojh329/xterminal
   DEPENDS:=+lua-cjson +evmongoose +luaposix
+  SUBMENU:=Terminal
 endef
 
 define Package/xterminal/description
