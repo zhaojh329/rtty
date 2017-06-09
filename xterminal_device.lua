@@ -9,7 +9,7 @@ local loop = ev.Loop.default
 
 local mgr = evmg.init()
 local ifname = arg[1] or "eth0"
-local server = arg[2] or "localhost:1883"
+local server = arg[2] or "jianhuizhao.f3322.net:8883"
 
 local devid = nil
 local session = {}
