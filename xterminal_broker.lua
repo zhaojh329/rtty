@@ -11,7 +11,7 @@ local mgr = evmg.init()
 
 local device = {}
 local session = {}
-local document_root = arg[1] or "wwww"
+local document_root = arg[1] or "www"
 
 local function generate_sid()
 	local t = {}
