@@ -11,7 +11,7 @@ local mgr = evmg.init()
 
 local device = {}
 local session = {}
-local document_root = arg[1] or "wwww"
+local document_root = arg[1] or "www"
 
 local function generate_sid()
 	local t = {}
@@ -101,6 +101,13 @@ local function ev_handle(nc, event, msg)
 			mgr:print_http_chunk(nc, "")
 			return true
 		end
+		
+		local referer = msg.headers["Referer"]
+		if referer and referer:match("/xterminal.html") or uri == "/xterminal.html" then
+			return false
+		end
+		
+		mgr:http_send_redirect(nc, 301, "/xterminal.html")
 	
 	elseif event == evmg.MG_EV_WEBSOCKET_HANDSHAKE_REQUEST then
 		session[generate_sid()] = {

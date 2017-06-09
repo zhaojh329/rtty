@@ -3,16 +3,20 @@
 ![](https://img.shields.io/badge/license-GPLV3-brightgreen.svg?style=plastic "License")
 
 xTerminal是一个多终端的远程Web Shell工具。你可以通过浏览器根据特定的设备MAC地址登录到你的Linux设备。
-它基于[evmongoose](https://github.com/zhaojh329/evmongoose)实现，由客户端和服务器两部分构成。
+它非常适合公司对公司部署在全球各地的成千上万的Linux设备进行远程调试。它基于[evmongoose](https://github.com/zhaojh329/evmongoose)实现，由客户端和服务器两部分构成。
+
+![](https://github.com/zhaojh329/xterminal/blob/master/xterminal_zh.png)
+
+![](https://github.com/zhaojh329/xterminal/blob/master/demo.png)
 
 # 安装
 ## 在Ubuntu上安装Server
 ### 安装依赖
 * [evmongoose](https://github.com/zhaojh329/evmongoose/blob/master/README_ZH.md)
 
-* lua-posix
+* lua-posix mosquitto
 
-		sudo apt install lua-posix
+		sudo apt install lua-posix mosquitto
     
 ### 安装 xTerminal Server
     git clone https://github.com/zhaojh329/xterminal.git
@@ -37,6 +41,8 @@ xTerminal是一个多终端的远程Web Shell工具。你可以通过浏览器�
 	make package/xterminal/compile V=s
 
 # 使用
+在浏览器中输入服务器地址，默认端口号8000，然后在出现的页面中输入要连接的设备MAC地址，MAC地址的格式可以是：
+xx:xx:xx:xx:xx:xx, xx-xx-xx-xx-xx-xx, xxxxxxxxxxxxx
 
 # 贡献代码
 
@@ -53,6 +59,7 @@ xTerminal使用github托管其源代码，贡献代码使用github的PR(Pull Req
 	
 ## 感谢以下项目提供帮助
 * [evmongoose](https://github.com/zhaojh329/evmongoose)
+* [xterm.js](https://github.com/sourcelair/xterm.js)
 
 # 技术交流
 QQ群：153530783
