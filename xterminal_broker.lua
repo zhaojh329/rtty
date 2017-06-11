@@ -72,6 +72,10 @@ local function ev_handle(nc, event, msg)
 			end
 		end, 1, 3):start(loop)
 		
+		ev.Timer.new(function(loop, timer, revents)
+			mgr:mqtt_ping(nc)
+		end, 10, 10):start(loop)
+		
 	elseif event == evmg.MG_EV_MQTT_PUBLISH then
 		local topic = msg.topic
 		if topic == "xterminal/heartbeat" then

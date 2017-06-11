@@ -82,6 +82,8 @@ local function ev_handle(nc, event, msg)
 				session[id].rio:stop(loop)
 			end
 		end
+	elseif event == evmg.MG_EV_CLOSE then
+		print("connection", nc, "closed")
 	end
 end
 
