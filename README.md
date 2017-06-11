@@ -24,6 +24,13 @@ XTerminal is based on [evmongoose](https://github.com/zhaojh329/evmongoose) impl
     cd xterminal/ubuntu
 	sudo make install
 
+### Modify config(/etc/xterminal.conf)
+	mqtt-port=1883
+	http-port=8000
+	document=/etc/xterminal_web
+	http-username=xterminal
+	http-password=xterminal
+
 ### Run Server on Ubuntu
 	/etc/init.d/xterminal start
 
