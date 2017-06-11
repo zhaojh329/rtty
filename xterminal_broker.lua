@@ -2,7 +2,6 @@
 
 local ev = require("ev")
 local evmg = require("evmongoose")
-local posix = require 'posix'
 local cjson = require("cjson")
 
 local loop = ev.Loop.default
@@ -13,10 +12,92 @@ local device = {}
 local session = {}
 local http_sessions = {}
 
-local document_root = arg[1] or "www"
-
+local conf = "/etc/xterminal.conf"
+local mqtt_port = "1883"
+local http_port = "8000"
+local document_root = "www"
 local http_username = "xterminal"
 local http_password = "xterminal"
+
+local function usage()
+	print(arg[0], "options")
+	print("       -c 	             default /etc/xterminal.conf")
+	print("       --mqtt-port 	     default is 1883")
+	print("       --http-port 	     default is 8000")
+	print("       --document         default is ./www")
+	print("       --http-username 	 default is xterminal")
+	print("       --http-password 	 default is xterminal")
+	
+	os.exit()
+end
+
+local function parse_config()
+	local f = io.open(conf, "r")
+	if not f then return end
+	f:close()
+	
+	local key, val
+	for line in io.lines(conf) do
+		if not line:match("^#") then
+			key, val = line:match("([%w%-]+)=([%w/_]+)")
+			if key and val then
+				if key == "mqtt-port" then
+					mqtt_port = val
+				elseif key == "http-port" then
+					http_port = val
+				elseif key == "document" then
+					document_root = val
+				elseif key == "http-username" then
+					http_username = val
+				elseif key == "http-password" then	
+					http_password = val
+				end
+			end
+		end
+	end
+end
+
+local function parse_commandline()
+	local i = 1
+	repeat
+		if arg[i] == "-c" then
+			if not arg[i + 1] then usage() end
+			conf = arg[i + 1]
+			i = i + 2
+		elseif arg[i] == "--mqtt-port" then
+			if not arg[i + 1] then usage() end
+			mqtt_port = arg[i + 1]
+			i = i + 2
+		elseif arg[i] == "--http-port" then
+			if not arg[i + 1] then usage() end
+			http_port = arg[i + 1]
+			i = i + 2
+		elseif arg[i] == "--document" then
+			if not arg[i + 1] then usage() end
+			document_root = arg[i + 1]
+			i = i + 2
+		elseif arg[i] == "--http-username" then
+			if not arg[i + 1] then usage() end
+			http_username = arg[i + 1]
+			i = i + 2
+		elseif arg[i] == "--http-password" then
+			if not arg[i + 1] then usage() end
+			http_password = arg[i + 1]
+			i = i + 2
+		else
+			i = i + 1
+		end
+	until(not arg[i])
+end
+
+local function show_conf()
+	print("mqtt-port", mqtt_port)
+	print("http-port", http_port)
+	print("document", document_root)
+	print("http-username", http_username)
+	print("http-password", http_password)
+	os.exit()
+end
 
 local function generate_sid()
 	local t = {}
@@ -216,10 +297,15 @@ end, 5, 5):start(loop)
 
 math.randomseed(tostring(os.time()):reverse():sub(1, 6))
 
-mgr:connect("1883", ev_handle)
+parse_commandline()
+parse_config()
+--show_conf()
 
-mgr:bind("8000", ev_handle, {proto = "http", document_root = document_root})
-print("Listen on http 8000...")
+mgr:connect(mqtt_port, ev_handle)
+print("Connect to mqtt broker " .. mqtt_port .. "....")
+
+mgr:bind(http_port, ev_handle, {proto = "http", document_root = document_root})
+print("Listen on http " .. http_port .. "....")
 
 ev.Signal.new(function(loop, sig, revents)
 	loop:unloop()

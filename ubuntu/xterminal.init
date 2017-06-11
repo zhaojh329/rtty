@@ -13,6 +13,8 @@
 
 XTERMINALPID=/var/run/xterminal.pid
 
+argument="--mqtt-port $mqtt_port --http-port $http_port --document $document --http-username $http_username --http-password $http_password"
+
 # clear conflicting settings from the environment
 unset TMPDIR
 
@@ -26,7 +28,7 @@ case $1 in
 		
 		log_daemon_msg "Starting xterminal daemon" xterminal
 
-		if ! start-stop-daemon --start --quiet --oknodo --make-pidfile --pidfile $XTERMINALPID --background --exec /usr/sbin/xterminal_broker.lua -- /etc/xterminal_web; then
+		if ! start-stop-daemon --start --quiet --oknodo --make-pidfile --pidfile $XTERMINALPID --background --exec /usr/sbin/xterminal_broker.lua; then
 			log_end_msg 1
 			exit 1
 		fi
