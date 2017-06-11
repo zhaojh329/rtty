@@ -35,8 +35,9 @@ xTerminal是一个多终端的远程Web Shell工具。你可以通过浏览器�
 	./scripts/feeds install -a
 	
 	make menuconfig
-	Network  --->
-	    <*> xterminal
+	Utilities  --->
+		Terminal  --->
+			<*> xterminal
 	
 	make package/xterminal/compile V=s
 

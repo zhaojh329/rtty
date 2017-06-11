@@ -39,8 +39,9 @@ XTerminal is based on [evmongoose](https://github.com/zhaojh329/evmongoose) impl
 	./scripts/feeds install -a
 	
 	make menuconfig
-	Network  --->
-	    <*> xterminal
+	Utilities  --->
+		Terminal  --->
+			<*> xterminal
 	
 	make package/xterminal/compile V=s
 
