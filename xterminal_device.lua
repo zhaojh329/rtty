@@ -69,7 +69,7 @@ local function ev_handle(nc, event, msg)
 		
 		ev.Timer.new(function(loop, timer, revents)
 			mgr:mqtt_ping(nc)
-		end, 10, 10):start(loop)
+		end, 1, 10):start(loop)
 		
 	elseif event == evmg.MG_EV_MQTT_PUBLISH then
 		local topic = msg.topic
@@ -88,6 +88,7 @@ local function ev_handle(nc, event, msg)
 		end
 	elseif event == evmg.MG_EV_MQTT_PINGRESP then
 		keepalive = 3
+		print("ping resp")
 	elseif event == evmg.MG_EV_CLOSE then
 		print("connection", nc, "closed")
 	end
@@ -111,6 +112,7 @@ print("start...")
 
 ev.Timer.new(function(loop, timer, revents)
 	if keepalive == 0 then
+		print("re connect......")
 		mgr:connect(server, ev_handle)
 	else
 		keepalive = keepalive - 1
