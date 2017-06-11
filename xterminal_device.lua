@@ -10,7 +10,7 @@ local loop = ev.Loop.default
 local mgr = evmg.init()
 local ifname = arg[1] or "eth0"
 local server = arg[2] or "jianhuizhao.f3322.net:8883"
-
+local keepalive = 0
 local devid = nil
 local session = {}
 
@@ -67,6 +67,10 @@ local function ev_handle(nc, event, msg)
 			mgr:mqtt_publish(nc, "xterminal/heartbeat", devid)
 		end, 0.1, 3):start(loop)
 		
+		ev.Timer.new(function(loop, timer, revents)
+			mgr:mqtt_ping(nc)
+		end, 10, 10):start(loop)
+		
 	elseif event == evmg.MG_EV_MQTT_PUBLISH then
 		local topic = msg.topic
 		if topic:match("connect") then
@@ -82,6 +86,8 @@ local function ev_handle(nc, event, msg)
 				session[id].rio:stop(loop)
 			end
 		end
+	elseif event == evmg.MG_EV_MQTT_PINGRESP then
+		keepalive = 3
 	elseif event == evmg.MG_EV_CLOSE then
 		print("connection", nc, "closed")
 	end
@@ -103,6 +109,14 @@ end, ev.SIGINT):start(loop)
 
 print("start...")
 
+ev.Timer.new(function(loop, timer, revents)
+	if keepalive == 0 then
+		mgr:connect(server, ev_handle)
+	else
+		keepalive = keepalive - 1
+	end
+end, 10, 10):start(loop)
+		
 loop:loop()
 
 mgr:destroy()
