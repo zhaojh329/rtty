@@ -11,7 +11,12 @@ local mgr = evmg.init()
 
 local device = {}
 local session = {}
+local http_sessions = {}
+
 local document_root = arg[1] or "www"
+
+local http_username = "xterminal"
+local http_password = "xterminal"
 
 local function generate_sid()
 	local t = {}
@@ -24,6 +29,27 @@ local function generate_sid()
 	end
 	
 	return table.concat(t)
+end
+
+local function find_http_session(sid)
+	for _, s in ipairs(http_sessions) do
+		if s.sid == sid then
+			s.alive = 6
+			return s
+		end
+	end
+
+	return nil
+end
+
+local function del_http_session(sid)
+	for _, s in ipairs(http_sessions) do
+		if s.sid == sid then
+			table.remove(http_sessions, i)
+		end
+	end
+
+	return nil
 end
 
 function validate_macaddr(val)
@@ -93,6 +119,30 @@ local function ev_handle(nc, event, msg)
 		
 	elseif event == evmg.MG_EV_HTTP_REQUEST then
 		local uri = msg.uri
+		
+		if uri == "/login.html" then
+			if msg.method ~= "POST" then return end
+			
+			local user = mgr:get_http_var(msg.hm, "user")
+			local pass = mgr:get_http_var(msg.hm, "pass")
+			if user and user == http_username and pass and pass == http_password then
+				local sid = generate_sid()
+				http_sessions[#http_sessions + 1] = {sid = sid, alive = 6}
+				mgr:http_send_redirect(nc, 302, "/", "Set-Cookie: mgs=" .. sid .. "; path=/");
+			else
+				mgr:http_send_redirect(nc, 302, "/login.html")
+			end
+			return true
+		end
+		
+		local cookie = msg.headers["Cookie"] or ""
+		local sid = cookie:match("mgs=(%w+)")
+
+		if not find_http_session(sid) then
+			mgr:http_send_redirect(nc, 302, "/login.html")
+			return true
+		end
+		
 		if uri == "/list" then
 			mgr:send_head(nc, 200, -1)
 			
@@ -154,6 +204,15 @@ local function ev_handle(nc, event, msg)
 		end
 	end
 end
+
+ev.Timer.new(function(loop, timer, revents)
+	for i, s in ipairs(http_sessions) do
+		s.alive = s.alive - 1
+		if s.alive == 0 then
+			table.remove(http_sessions, i)
+		end
+	end
+end, 5, 5):start(loop)
 
 math.randomseed(tostring(os.time()):reverse():sub(1, 6))
 
