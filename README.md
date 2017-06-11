@@ -6,9 +6,9 @@ XTerminal is a remote web shell tool for multi terminal devices.You can login to
 It suits the company to the company very much Thousands of Linux devices are deployed around the world for remote debugging.
 XTerminal is based on [evmongoose](https://github.com/zhaojh329/evmongoose) implementation, It consists of two parts, server and client.
 
-![](https://github.com/zhaojh329/xterminal/blob/master/xterminal.png)
+![](https://github.com/zhaojh329/image/blob/master/xterminal.png)
 
-![](https://github.com/zhaojh329/xterminal/blob/master/demo.png)
+![](https://github.com/zhaojh329/image/blob/master/xterminal_demo.png)
 
 # How To Install
 ## Install server on Ubuntu
