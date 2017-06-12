@@ -17,6 +17,11 @@ xTerminal是一个多终端的远程Web Shell工具。你可以通过浏览器�
 * lua-posix mosquitto
 
 		sudo apt install lua-posix mosquitto
+	
+### 安装 xTerminal Server
+    git clone https://github.com/zhaojh329/xterminal.git
+    cd xterminal/ubuntu
+	sudo make install
 
 ### 修改配置(/etc/xterminal.conf)
 	mqtt-port=1883
@@ -25,11 +30,9 @@ xTerminal是一个多终端的远程Web Shell工具。你可以通过浏览器�
 	http-username=xterminal
 	http-password=xterminal
 	
-### 安装 xTerminal Server
-    git clone https://github.com/zhaojh329/xterminal.git
-    cd xterminal/ubuntu
-	sudo make install
-
+### 在Ubuntu上运行服务器
+	/etc/init.d/xterminal start
+	
 ## 安装客户端 OpenWRT/LEDE
 	git clone https://github.com/zhaojh329/evmongoose.git
 	cp -r evmongoose/openwrt openwrt_dir/package/evmongoose
