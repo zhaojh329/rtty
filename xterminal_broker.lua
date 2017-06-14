@@ -3,6 +3,7 @@
 local ev = require("ev")
 local evmg = require("evmongoose")
 local cjson = require("cjson")
+local syslog = require("syslog")
 
 local loop = ev.Loop.default
 
@@ -21,6 +22,13 @@ local ssl_cert = "server.pem"
 local ssl_key = "server.key"
 local http_username = "xterminal"
 local http_password = "xterminal"
+
+local function logger(...)	
+	syslog.openlog("xterminal device", syslog.LOG_PERROR + syslog.LOG_ODELAY, "LOG_USER")
+	--syslog.openlog("xterminal device", syslog.LOG_ODELAY, "LOG_USER")
+	syslog.syslog(...)
+	syslog.closelog()
+end
 
 local function usage()
 	print(arg[0], "options")
@@ -186,7 +194,7 @@ local function ev_handle(nc, event, msg)
 		
 	elseif event == evmg.MG_EV_MQTT_CONNACK then
 		if msg.connack_ret_code ~= evmg.MG_EV_MQTT_CONNACK_ACCEPTED then
-			print("Got mqtt connection error:", msg.connack_ret_code)
+			logger("LOG_ERR", "Got mqtt connection error: " .. msg.connack_ret_code)
 			return
 		end
 		
@@ -197,7 +205,7 @@ local function ev_handle(nc, event, msg)
 				v.alive = v.alive - 1
 				if v.alive == 0 then
 					device[k] = nil
-					print("timeout:", k)
+					logger("LOG_INFO", "timeout: " .. k)
 				end
 			end
 		end, 1, 3):start(loop)
@@ -212,7 +220,7 @@ local function ev_handle(nc, event, msg)
 			local mac = msg.payload
 			if not device[mac] then
 				device[mac] = {mqtt_nc = nc}
-				print("new dev:", mac)
+				logger("LOG_INFO", "new dev:" .. mac)
 			end
 			device[mac].alive = 5
 		elseif topic:match("devdata") then
@@ -304,7 +312,8 @@ local function ev_handle(nc, event, msg)
 		
 		if s then
 			session[sid] = nil
-			print("session close:", nc, sid)
+			logger("LOG_INFO", "session close: " .. sid)
+			
 			if device[s.mac] then
 				mgr:mqtt_publish(device[s.mac].mqtt_nc, "xterminal/" .. s.mac ..  "/" .. sid .. "/exit", "");
 			end
@@ -328,19 +337,19 @@ parse_config()
 if show then show_conf() end
 
 mgr:connect(mqtt_port, ev_handle)
-print("Connect to mqtt broker " .. mqtt_port .. "....")
+logger("LOG_INFO", "Connect to mqtt broker " .. mqtt_port .. "....")
 
 mgr:bind(http_port, ev_handle, {proto = "http", document_root = document_root, ssl_cert = ssl_cert, ssl_key = ssl_key})
-print("Listen on http " .. http_port .. "....")
+logger("LOG_INFO", "Listen on http " .. http_port .. "....")
 
 ev.Signal.new(function(loop, sig, revents)
 	loop:unloop()
 end, ev.SIGINT):start(loop)
 
-print("start...")
+logger("LOG_INFO", "start...")
 
 loop:loop()
 
 mgr:destroy()
 
-print("exit...")
+logger("LOG_INFO", "exit...")

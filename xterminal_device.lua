@@ -4,6 +4,7 @@ local ev = require("ev")
 local evmg = require("evmongoose")
 local posix = require 'posix'
 local cjson = require("cjson")
+local syslog = require("syslog")
 
 local loop = ev.Loop.default
 
@@ -13,6 +14,13 @@ local server = arg[2] or "jianhuizhao.f3322.net:8883"
 local keepalive = 0
 local devid = nil
 local session = {}
+
+local function logger(...)	
+	syslog.openlog("xterminal device", syslog.LOG_PERROR + syslog.LOG_ODELAY, "LOG_USER")
+	--syslog.openlog("xterminal device", syslog.LOG_ODELAY, "LOG_USER")
+	syslog.syslog(...)
+	syslog.closelog()
+end
 
 local function get_dev_id(ifname)
 	local file = io.open("/sys/class/net/" .. ifname .. "/address", "r")
@@ -57,7 +65,7 @@ local function ev_handle(nc, event, msg)
 		
 	elseif event == evmg.MG_EV_MQTT_CONNACK then
 		if msg.connack_ret_code ~= evmg.MG_EV_MQTT_CONNACK_ACCEPTED then
-			print("Got mqtt connection error:", msg.connack_ret_code)
+			logger("LOG_ERR", "Got mqtt connection error: " .. msg.connack_ret_code)
 			return
 		end
 		
@@ -75,6 +83,7 @@ local function ev_handle(nc, event, msg)
 		local topic = msg.topic
 		if topic:match("connect") then
 			local id = topic:match("xterminal/" .. devid .. "/connect/(%w+)")
+			logger("LOG_INFO", "New connection: " .. id)
 			new_connect(nc, id)
 		elseif topic:match("srvdata") then
 			local id = topic:match("xterminal/" .. devid .. "/(%w+)/srvdata")
@@ -82,25 +91,24 @@ local function ev_handle(nc, event, msg)
 		elseif topic:match("exit") then
 			local id = topic:match("xterminal/" .. devid .. "/(%w+)/exit")
 			if session[id] then
+				logger("LOG_INFO", "connection close: " .. id)
 				posix.kill(session[id].pid)
 				session[id].rio:stop(loop)
 			end
 		end
 	elseif event == evmg.MG_EV_MQTT_PINGRESP then
 		keepalive = 3
-		print("ping resp")
-	elseif event == evmg.MG_EV_CLOSE then
-		print("connection", nc, "closed")
 	end
 end
 
 devid = get_dev_id(ifname)
 if not devid then
 	print("get dev id failed for", ifname)
+	logger("LOG_ERR", "get dev id failed for " .. ifname)
 	os.exit()
 end
 
-print("devid:", devid)
+logger("LOG_INFO", "devid: " .. devid)
 
 mgr:connect(server, ev_handle)
 
@@ -108,11 +116,11 @@ ev.Signal.new(function(loop, sig, revents)
 	loop:unloop()
 end, ev.SIGINT):start(loop)
 
-print("start...")
+logger("LOG_INFO", "start...")
 
 ev.Timer.new(function(loop, timer, revents)
 	if keepalive == 0 then
-		print("re connect......")
+		logger("LOG_INFO", "re connect......")
 		mgr:connect(server, ev_handle)
 	else
 		keepalive = keepalive - 1
@@ -123,4 +131,4 @@ loop:loop()
 
 mgr:destroy()
 
-print("exit...")
+logger("LOG_INFO", "exit...")

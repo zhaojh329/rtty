@@ -16,7 +16,7 @@ define Package/xterminal
   CATEGORY:=Utilities
   TITLE:=multi device remote web shell tool 
   URL:=https://github.com/zhaojh329/xterminal
-  DEPENDS:=+lua-cjson +evmongoose +luaposix
+  DEPENDS:=+lua-cjson +evmongoose +luaposix +lsyslog
   SUBMENU:=Terminal
 endef
 
