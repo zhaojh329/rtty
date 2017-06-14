@@ -45,7 +45,7 @@
 			}
 			
 			function new_session(mac) {
-				ws = new WebSocket("ws://" + location.host + "?mac=" + mac);
+				ws = new WebSocket("wss://" + location.host + "?mac=" + mac);
 				ws.onopen = function() {
 					var term = new Terminal({
 						focus: true,
