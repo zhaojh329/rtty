@@ -62,10 +62,10 @@ two parts, server and client.
 		
 # How to use
 # Query online device
-	http://server:8000/list
+	http://server:8443/list
 
 # Connect to devic
-In the browser, enter the server address(https://server:8443), the default port number 8000, and then in the page appears to enter the the 
+In the browser, enter the server address(https://server:8443), the default port number 8443, and then in the page appears to enter the the 
 MAC address of then device to be connected to, MAC address format can be:
 xx:xx:xx:xx:xx:xx, xx-xx-xx-xx-xx-xx, xxxxxxxxxxxxx
 
