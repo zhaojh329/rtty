@@ -37,6 +37,7 @@ two parts, server and client.
 	/etc/init.d/xterminal start
 
 ## Install Client on OpenWRT/LEDE
+### Download/Compile
 	git clone https://github.com/zhaojh329/evmongoose.git
 	cp -r evmongoose/openwrt openwrt_dir/package/evmongoose
 	
@@ -54,6 +55,11 @@ two parts, server and client.
 	
 	make package/xterminal/compile V=s
 
+### Modify config(/etc/config/xterminal)
+	config base
+        option  mqtt_hostname   'jianhuizhao.f3322.net'
+        option  mqtt_port       '8883'
+		
 # How to use
 # Query online device
 	http://server:8000/list

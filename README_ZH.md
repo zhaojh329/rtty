@@ -36,6 +36,7 @@ xTerminal是一个多终端的远程Web Shell工具。有了它，你可以在�
 	/etc/init.d/xterminal start
 	
 ## 安装客户端 OpenWRT/LEDE
+### 下载/编译
 	git clone https://github.com/zhaojh329/evmongoose.git
 	cp -r evmongoose/openwrt openwrt_dir/package/evmongoose
 	
@@ -53,6 +54,11 @@ xTerminal是一个多终端的远程Web Shell工具。有了它，你可以在�
 	
 	make package/xterminal/compile V=s
 
+### 修改配置(/etc/config/xterminal)
+	config base
+        option  mqtt_hostname   'jianhuizhao.f3322.net'
+        option  mqtt_port       '8883'
+	
 # 使用
 # 查询在线设备
 	http://server:8000/list
