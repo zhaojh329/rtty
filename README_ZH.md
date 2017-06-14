@@ -23,7 +23,7 @@ xTerminal是一个多终端的远程Web Shell工具。有了它，你可以在�
     cd xterminal/ubuntu
 	sudo make install
 
-### 修改配置(/etc/xterminal.conf)
+### 修改配置(/etc/xterminal/xterminal.conf)
 	mqtt-port=1883
 	http-port=8443
 	document=/etc/xterminal/web

@@ -24,7 +24,7 @@ two parts, server and client.
     cd xterminal/ubuntu
 	sudo make install
 
-### Modify config(/etc/xterminal.conf)
+### Modify config(/etc/xterminal/xterminal.conf)
 	mqtt-port=1883
 	http-port=8443
 	document=/etc/xterminal/web
