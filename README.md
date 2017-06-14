@@ -26,10 +26,12 @@ two parts, server and client.
 
 ### Modify config(/etc/xterminal.conf)
 	mqtt-port=1883
-	http-port=8000
-	document=/etc/xterminal_web
+	http-port=8443
+	document=/etc/xterminal/web
 	http-username=xterminal
 	http-password=xterminal
+	ssl-cert=/etc/xterminal/server.pem
+	ssl-key=/etc/xterminal/server.key
 
 ### Run Server on Ubuntu
 	/etc/init.d/xterminal start

@@ -13,8 +13,6 @@
 
 XTERMINALPID=/var/run/xterminal.pid
 
-argument="--mqtt-port $mqtt_port --http-port $http_port --document $document --http-username $http_username --http-password $http_password"
-
 # clear conflicting settings from the environment
 unset TMPDIR
 

@@ -25,10 +25,12 @@ xTerminal是一个多终端的远程Web Shell工具。有了它，你可以在�
 
 ### 修改配置(/etc/xterminal.conf)
 	mqtt-port=1883
-	http-port=8000
-	document=/etc/xterminal_web
+	http-port=8443
+	document=/etc/xterminal/web
 	http-username=xterminal
 	http-password=xterminal
+	ssl-cert=/etc/xterminal/server.pem
+	ssl-key=/etc/xterminal/server.key
 	
 ### 在Ubuntu上运行服务器
 	/etc/init.d/xterminal start

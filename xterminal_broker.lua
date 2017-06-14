@@ -12,21 +12,27 @@ local device = {}
 local session = {}
 local http_sessions = {}
 
-local conf = "/etc/xterminal.conf"
+local show = false
+local conf = "/etc/xterminal/xterminal.conf"
 local mqtt_port = "1883"
-local http_port = "8000"
+local http_port = "8443"
 local document_root = "www"
+local ssl_cert = "server.pem"
+local ssl_key = "server.key"
 local http_username = "xterminal"
 local http_password = "xterminal"
 
 local function usage()
 	print(arg[0], "options")
-	print("       -c 	             default /etc/xterminal.conf")
+	print("       -c 	             default /etc/xterminal/xterminal.conf")
+	print("       -s                 Only show config")
 	print("       --mqtt-port 	     default is 1883")
 	print("       --http-port 	     default is 8000")
 	print("       --document         default is ./www")
 	print("       --http-username 	 default is xterminal")
-	print("       --http-password 	 default is xterminal")
+	print("       --http-password    default is xterminal")
+	print("       --ssl-cert 	     default is ./server.pem")
+	print("       --ssl-key 	     default is ./server.key")
 	
 	os.exit()
 end
@@ -39,7 +45,7 @@ local function parse_config()
 	local key, val
 	for line in io.lines(conf) do
 		if not line:match("^#") then
-			key, val = line:match("([%w%-]+)=([%w/_]+)")
+			key, val = line:match("([%w%-]+)=([%w%./_]+)")
 			if key and val then
 				if key == "mqtt-port" then
 					mqtt_port = val
@@ -51,6 +57,10 @@ local function parse_config()
 					http_username = val
 				elseif key == "http-password" then	
 					http_password = val
+				elseif key == "ssl-cert" then	
+					ssl_cert = val
+				elseif key == "ssl-key" then	
+					ssl_key = val
 				end
 			end
 		end
@@ -84,6 +94,17 @@ local function parse_commandline()
 			if not arg[i + 1] then usage() end
 			http_password = arg[i + 1]
 			i = i + 2
+		elseif arg[i] == "--ssl-cert" then
+			if not arg[i + 1] then usage() end
+			ssl_cert = arg[i + 1]
+			i = i + 2
+		elseif arg[i] == "--ssl-key" then
+			if not arg[i + 1] then usage() end
+			ssl_key = arg[i + 1]
+			i = i + 2
+		elseif arg[i] == "-s" then
+			show = true
+			i = i + 1
 		else
 			i = i + 1
 		end
@@ -96,6 +117,8 @@ local function show_conf()
 	print("document", document_root)
 	print("http-username", http_username)
 	print("http-password", http_password)
+	print("ssl-cert", ssl_cert)
+	print("ssl-key", ssl_key)
 	os.exit()
 end
 
@@ -302,12 +325,12 @@ math.randomseed(tostring(os.time()):reverse():sub(1, 6))
 
 parse_commandline()
 parse_config()
---show_conf()
+if show then show_conf() end
 
 mgr:connect(mqtt_port, ev_handle)
 print("Connect to mqtt broker " .. mqtt_port .. "....")
 
-mgr:bind(http_port, ev_handle, {proto = "http", document_root = document_root})
+mgr:bind(http_port, ev_handle, {proto = "http", document_root = document_root, ssl_cert = ssl_cert, ssl_key = ssl_key})
 print("Listen on http " .. http_port .. "....")
 
 ev.Signal.new(function(loop, sig, revents)
