@@ -10,7 +10,7 @@
 	</head>
 	<style>
 		html, body {
-			height: 97%;
+			height: 98%;
 			width: 99%;
 			background: #555;
 		}
@@ -28,7 +28,11 @@
 		</div>
 		<span id="msg" style="display:none; color:red;"></span>
 
-		<div id="terminal-container"></div>
+		<h2 id="copyright">Copyright © 2017 <a href="https://github.com/zhaojh329/xterminal" target="_black">zhaojh329 Github</a></h2>
+		
+		<div id="terminal-container">
+		</div>
+		
 		<script>
 			var ws;
 			function ab2str(buf) {
@@ -52,26 +56,27 @@
 						cursorBlink: true,
 						screenKeys: true
 					});
-					term.on('data', function(data) {
+					term.on("data", function(data) {
 						var binary_data = str2ab(data);
 						ws.send(binary_data);
 					});
 					
-					term.on('title', function(title) {
+					term.on("title", function(title) {
 						document.title = title;
 					});
 					
-					term.on('open', function() {
-						window.addEventListener('resize', function(event) {
+					term.on("open", function() {
+						document.getElementById("copyright").style.display = "none";
+						window.addEventListener("resize", function(event) {
 							term.fit();
 						});
 						
 						term.fit();
 					});
 					
-					term.open(document.getElementById('terminal-container'), true);
+					term.open(document.getElementById("terminal-container"), true);
 					
-					ws.binaryType = 'arraybuffer';
+					ws.binaryType = "arraybuffer";
 					
 					ws.onmessage = function(evt) {
 						if (evt.data instanceof ArrayBuffer) {
@@ -79,7 +84,7 @@
 						} else {
 							document.getElementById("disconnect").disabled = false;
 							var resp = JSON.parse(evt.data);
-							if (resp.status == 'ok')
+							if (resp.status == "ok")
 								document.getElementById("connect").value = "Connected";
 							else {
 								ws.close();
@@ -97,6 +102,7 @@
 						con.value = "Connect";
 					
 						document.getElementById("disconnect").disabled = true;
+						document.getElementById("copyright").style.display = "block";
 						term.destroy();
 					};
 				};
