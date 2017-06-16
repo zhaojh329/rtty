@@ -9,7 +9,7 @@ body{
     height: 100%;
     font-family: 'Open Sans',sans-serif;
     margin: 0;
-    background-color: #4A374A;
+    background-color: #555;
 }   
 #login{
     position: absolute;
