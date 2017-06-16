@@ -16,8 +16,8 @@ local devid = nil
 local session = {}
 
 local function logger(...)	
-	syslog.openlog("xterminal device", syslog.LOG_PERROR + syslog.LOG_ODELAY, "LOG_USER")
-	--syslog.openlog("xterminal device", syslog.LOG_ODELAY, "LOG_USER")
+	--syslog.openlog("xterminal device", syslog.LOG_PERROR + syslog.LOG_ODELAY, "LOG_USER")
+	syslog.openlog("xterminal device", syslog.LOG_ODELAY, "LOG_USER")
 	syslog.syslog(...)
 	syslog.closelog()
 end
@@ -39,10 +39,8 @@ local function new_connect(nc, id)
 	
 	session[id] = {pid = pid, pty = pty}
 	
-	mgr:mqtt_subscribe(nc, "xterminal/" .. devid .. "/" .. id .. "/srvdata");
-	mgr:mqtt_subscribe(nc, "xterminal/" .. devid .. "/" .. id .. "/exit");
-	
-	local topic_dev = "xterminal/" .. devid .. "/" .. id ..  "/devdata"
+	mgr:mqtt_subscribe(nc, "xterminal/todev/data/" .. id);
+	mgr:mqtt_subscribe(nc, "xterminal/todev/disconnect/" .. id);
 	
 	session[id].rio = ev.IO.new(function(loop, w, revents)
 		local d, err = posix.read(w:getfd(), 1024)
@@ -50,9 +48,10 @@ local function new_connect(nc, id)
 			w:stop(loop)
 			posix.wait(pid)
 			session[id] = nil
+			mgr:mqtt_publish(nc, "xterminal/touser/disconnect/" .. id, "");
 			return
 		end
-		mgr:mqtt_publish(nc, topic_dev, d);
+		mgr:mqtt_publish(nc, "xterminal/touser/data/" .. id, d);
 	end, pty, ev.READ)
 	
 	session[id].rio:start(loop)
@@ -69,10 +68,10 @@ local function ev_handle(nc, event, msg)
 			return
 		end
 		
-		mgr:mqtt_subscribe(nc, "xterminal/" .. devid ..  "/connect/+");
+		mgr:mqtt_subscribe(nc, "xterminal/connect/" .. devid ..  "/+");
 		
 		ev.Timer.new(function(loop, timer, revents)
-			mgr:mqtt_publish(nc, "xterminal/heartbeat", devid)
+			mgr:mqtt_publish(nc, "xterminal/heartbeat/" .. devid, "")
 		end, 0.1, 3):start(loop)
 		
 		ev.Timer.new(function(loop, timer, revents)
@@ -81,15 +80,15 @@ local function ev_handle(nc, event, msg)
 		
 	elseif event == evmg.MG_EV_MQTT_PUBLISH then
 		local topic = msg.topic
-		if topic:match("connect") then
-			local id = topic:match("xterminal/" .. devid .. "/connect/(%w+)")
+		if topic:match("xterminal/connect/%w+") then
+			local id = topic:match("xterminal/connect/" .. devid .. "/(%w+)")
 			logger("LOG_INFO", "New connection: " .. id)
 			new_connect(nc, id)
-		elseif topic:match("srvdata") then
-			local id = topic:match("xterminal/" .. devid .. "/(%w+)/srvdata")
+		elseif topic:match("xterminal/todev/data/%w+") then
+			local id = topic:match("xterminal/todev/data/(%w+)")
 			posix.write(session[id].pty, msg.payload)
-		elseif topic:match("exit") then
-			local id = topic:match("xterminal/" .. devid .. "/(%w+)/exit")
+		elseif topic:match("xterminal/todev/disconnect/%w+") then
+			local id = topic:match("xterminal/todev/disconnect/(%w+)")
 			if session[id] then
 				logger("LOG_INFO", "connection close: " .. id)
 				posix.kill(session[id].pid)
