@@ -14,6 +14,7 @@ local session = {}
 local http_sessions = {}
 
 local show = false
+local log_to_stderr = false
 local conf = "/etc/xterminal/xterminal.conf"
 local mqtt_port = "1883"
 local http_port = "8443"
@@ -23,9 +24,13 @@ local ssl_key = "server.key"
 local http_username = "xterminal"
 local http_password = "xterminal"
 
-local function logger(...)	
-	syslog.openlog("xterminal device", syslog.LOG_PERROR + syslog.LOG_ODELAY, "LOG_USER")
-	syslog.openlog("xterminal device", syslog.LOG_ODELAY, "LOG_USER")
+local function logger(...)
+	local opt = syslog.LOG_ODELAY
+	if log_to_stderr then
+		opt = opt + syslog.LOG_PERROR 
+	end
+	syslog.openlog("xterminal device", opt, "LOG_USER")
+
 	syslog.syslog(...)
 	syslog.closelog()
 end
@@ -34,6 +39,7 @@ local function usage()
 	print(arg[0], "options")
 	print("       -c 	             default /etc/xterminal/xterminal.conf")
 	print("       -s                 Only show config")
+	print("       -d                 Log to stderr")
 	print("       --mqtt-port 	     default is 1883")
 	print("       --http-port 	     default is 8000")
 	print("       --document         default is ./www")
@@ -112,6 +118,9 @@ local function parse_commandline()
 			i = i + 2
 		elseif arg[i] == "-s" then
 			show = true
+			i = i + 1
+		elseif arg[i] == "-d" then
+			log_to_stderr = true
 			i = i + 1
 		else
 			i = i + 1
@@ -294,17 +303,17 @@ local function ev_handle(nc, event, msg)
 		local mac = s.mac
 		if not validate_macaddr(mac) then
 			session[sid] = nil
-			mgr:send_websocket_frame(nc, cjson.encode({status = "error", reason = "invalid macaddress"}))
+			mgr:send_websocket_frame(nc, cjson.encode({status = "error", reason = "invalid macaddress"}), evmg.WEBSOCKET_OP_TEXT)
 			return
 		end
 		
 		if not device[mac] then
 			session[sid] = nil
-			mgr:send_websocket_frame(nc, cjson.encode({status = "error", reason = "device not online"}))
+			mgr:send_websocket_frame(nc, cjson.encode({status = "error", reason = "device not online"}), evmg.WEBSOCKET_OP_TEXT)
 			return
 		end
 		
-		mgr:send_websocket_frame(nc, cjson.encode({status = "ok"}))
+		mgr:send_websocket_frame(nc, cjson.encode({status = "ok"}), evmg.WEBSOCKET_OP_TEXT)
 			
 		mgr:mqtt_subscribe(device[mac].mqtt_nc, "xterminal/touser/data/" .. sid);
 		mgr:mqtt_subscribe(device[mac].mqtt_nc, "xterminal/touser/disconnect/" .. sid);
