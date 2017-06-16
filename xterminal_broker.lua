@@ -248,12 +248,14 @@ local function ev_handle(nc, event, msg)
 	elseif event == evmg.MG_EV_HTTP_REQUEST then
 		local uri = msg.uri
 		
+		if uri:match("/%w+%.js") or uri:match("/%w+%.css") then return false end
+		
 		if uri == "/login.html" then
 			if msg.method ~= "POST" then return end
 			
-			local user = mgr:get_http_var(msg.hm, "user")
-			local pass = mgr:get_http_var(msg.hm, "pass")
-			if user and user == http_username and pass and pass == http_password then
+			local username = mgr:get_http_var(msg.hm, "username")
+			local password = mgr:get_http_var(msg.hm, "password")
+			if username and username == http_username and password and password == http_password then
 				local sid = generate_sid()
 				http_sessions[#http_sessions + 1] = {sid = sid, alive = 6}
 				mgr:http_send_redirect(nc, 302, "/", "Set-Cookie: mgs=" .. sid .. "; path=/");
