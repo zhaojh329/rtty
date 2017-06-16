@@ -7,19 +7,69 @@ local cjson = require("cjson")
 local syslog = require("syslog")
 
 local loop = ev.Loop.default
-
 local mgr = evmg.init()
-local ifname = arg[1] or "eth0"
-local server = arg[2] or "jianhuizhao.f3322.net:8883"
+
+local show = false
+local log_to_stderr = false
+local ifname = "eth0"
+local mqtt_host = "localhost"
+local mqtt_port = "1883"
 local keepalive = 0
 local devid = nil
 local session = {}
 
-local function logger(...)	
-	--syslog.openlog("xterminal device", syslog.LOG_PERROR + syslog.LOG_ODELAY, "LOG_USER")
-	syslog.openlog("xterminal device", syslog.LOG_ODELAY, "LOG_USER")
+local function logger(...)
+	local opt = syslog.LOG_ODELAY
+	if log_to_stderr then
+		opt = opt + syslog.LOG_PERROR 
+	end
+	syslog.openlog("xterminal device", opt, "LOG_USER")
 	syslog.syslog(...)
 	syslog.closelog()
+end
+
+local function usage()
+	print(arg[0], "options")
+	print("       -s              Only show config")
+	print("       -d              Log to stderr")
+	print("       -i 	          default is eth0")
+	print("       --mqtt-port 	  default is 1883")
+	print("       --mqtt-host 	  default is localhost")
+	os.exit()
+end
+
+local function parse_commandline()
+	local i = 1
+	repeat
+		if arg[i] == "--mqtt-port" then
+			if not arg[i + 1] then usage() end
+			mqtt_port = arg[i + 1]
+			i = i + 2
+		elseif arg[i] == "--mqtt-host" then
+			if not arg[i + 1] then usage() end
+			mqtt_host = arg[i + 1]
+			i = i + 2
+		elseif arg[i] == "-i" then
+			if not arg[i + 1] then usage() end
+			ifname = arg[i + 1]
+			i = i + 2
+		elseif arg[i] == "-s" then
+			show = true
+			i = i + 1
+		elseif arg[i] == "-d" then
+			log_to_stderr = true
+			i = i + 1
+		else
+			i = i + 1
+		end
+	until(not arg[i])
+end
+
+local function show_conf()
+	print("mqtt-port", mqtt_port)
+	print("mqtt-host", mqtt_host)
+	print("ifname", ifname)
+	os.exit()
 end
 
 local function get_dev_id(ifname)
@@ -100,6 +150,9 @@ local function ev_handle(nc, event, msg)
 	end
 end
 
+parse_commandline()
+if show then show_conf() end
+
 devid = get_dev_id(ifname)
 if not devid then
 	print("get dev id failed for", ifname)
@@ -109,7 +162,7 @@ end
 
 logger("LOG_INFO", "devid: " .. devid)
 
-mgr:connect(server, ev_handle)
+mgr:connect(mqtt_host .. ":" .. mqtt_port, ev_handle)
 
 ev.Signal.new(function(loop, sig, revents)
 	loop:unloop()
@@ -120,7 +173,7 @@ logger("LOG_INFO", "start...")
 ev.Timer.new(function(loop, timer, revents)
 	if keepalive == 0 then
 		logger("LOG_INFO", "re connect......")
-		mgr:connect(server, ev_handle)
+		mgr:connect(mqtt_host .. ":" .. mqtt_port, ev_handle)
 	else
 		keepalive = keepalive - 1
 	end
