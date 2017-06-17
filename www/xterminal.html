@@ -1,122 +1,89 @@
-<!doctype html>
-<html>
-	<head>
-		<meta charset="utf-8" />
-		<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
-		<title>xTerminal</title>
-		<link rel="stylesheet" href="/css/xterm.css" />
-		<script src="/js/jquery-1.12.4.min.js"></script>
-		<script src="/js/xterm.js"></script>
-		<script src="/js/fit.js"></script>
-	</head>
-	<style>
-		html, body {
-			height: 98%;
-			background: #555;
-		}
-		
-		#terminal-container {
-			width: 100%;
-			height: 100%;
-		}
-		
-		#copyright {
-			position: absolute;
-			left:50%;
-			top:50%;
-			margin-left:-250px;
-			margin-top:-100px;
-		}
-		
-		a:hover{
-			color: #fff;
-			text-shadow:0 0 10px;
-		}
-	</style>
-	<body>
-		<div style="margin-bottom: 10px;">
-			<input type="text" placeholder="Please input mac." id="mac" />
-			<input type="button" value="Connect" id="connect" />
-			<input type="button" value="Disconnect" id="disconnect" disabled="disabled" />
-		</div>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>xTerminal</title>
+    <link rel="stylesheet" type="text/css" href="/css/app.css"/>
+	<link rel="stylesheet" href="/css/xterm.css" />
+	<script src="/js/jquery-1.12.4.min.js"></script>
+	<script src="/js/xterm.js"></script>
+	<script src="/js/fit.js"></script>
+</head>
+<body>
+    <div id="box">
+		<h1>xTerminal</h1>
+		<input id="macaddr" type="text" required="required" placeholder="Please input macaddr" name="macaddr"></input>
 		<span id="msg" style="display:none; color:red;"></span>
+		<button id="connect" class="btn" type="button">Connect</button>
+    </div>
+	<div id="terminal-container"></div>
+	<h1 class="copyright"><font color="white">Copyright © 2017 </font><a href="https://github.com/zhaojh329/xterminal" target="_black">zhaojh329 Github</a></h1>
+	<script>
+		var ws;
+		function ab2str(buf) {
+			return decodeURIComponent(escape(String.fromCharCode.apply(null, new Uint8Array(buf))));
+		}
 
-		<h1 id="copyright">Copyright © 2017 <a href="https://github.com/zhaojh329/xterminal" target="_black">zhaojh329 Github</a></h1>
-		
-		<div id="terminal-container"></div>
-		
-		<script>
-			var ws;
-			function ab2str(buf) {
-				return decodeURIComponent(escape(String.fromCharCode.apply(null, new Uint8Array(buf))));
+		function str2ab(str) {
+			var buf = new ArrayBuffer(str.length);
+			var bufView = new Uint8Array(buf);
+			for (var i = 0, strLen = str.length; i < strLen; i++) {
+				bufView[i] = str.charCodeAt(i);
 			}
-
-			function str2ab(str) {
-				var buf = new ArrayBuffer(str.length);
-				var bufView = new Uint8Array(buf);
-				for (var i = 0, strLen = str.length; i < strLen; i++) {
-					bufView[i] = str.charCodeAt(i);
-				}
-				return buf;
-			}
-			
-			function new_session(mac) {
-				ws = new WebSocket("wss://" + location.host + "?mac=" + mac);
-				ws.onopen = function() {
-					var term = new Terminal({
-						focus: true,
-						cursorBlink: true,
-						screenKeys: true
-					});
-					term.on("data", function(data) {
-						var binary_data = str2ab(data);
-						ws.send(binary_data);
-					});
-					
-					term.on("open", function() {
-						window.addEventListener("resize", function(event) {
-							term.fit();
-						});
-						
+			return buf;
+		}
+		
+		function new_session(mac) {
+			ws = new WebSocket("wss://" + location.host + "?mac=" + mac);
+			ws.onopen = function() {
+				var term = new Terminal({
+					focus: true,
+					cursorBlink: true,
+					screenKeys: true
+				});
+				
+				term.on("data", function(data) {
+					var binary_data = str2ab(data);
+					ws.send(binary_data);
+				});
+				
+				term.on("open", function() {
+					window.addEventListener("resize", function(event) {
 						term.fit();
 					});
 					
-					term.open($("#terminal-container")[0], true);
-					
-					ws.binaryType = "arraybuffer";
-					
-					ws.onmessage = function(evt) {
-						if (evt.data instanceof ArrayBuffer) {
-							term.write(ab2str(evt.data));
+					term.fit();
+				});
+				
+				ws.binaryType = "arraybuffer";
+				
+				ws.onmessage = function(evt) {
+					if (evt.data instanceof ArrayBuffer) {
+						term.write(ab2str(evt.data));
+					} else {
+						var resp = JSON.parse(evt.data);
+						
+						if (resp.status == "ok") {
+							term.open($("#terminal-container")[0], true);
 						} else {
-							$("#disconnect").attr("disabled", false);
-							var resp = JSON.parse(evt.data);
-							if (resp.status == "ok")
-								$("#connect").val("Connected");
-							else {
-								ws.close();
-								$("msg").html(resp.reason).show();
-							}
+							ws.close();
+							$("#msg").html(resp.reason).show();
 						}
-					};
-					
-					ws.onclose = function () {
-						$("#connect").attr("disabled", false).val("Connect");
-						$("#disconnect").attr("disabled", true);
-						term.destroy();
-					};
+					}
 				};
-			}
+				
+				ws.onclose = function () {
+					$("#login").show();
+					term.destroy();
+				};
+			};
+		}
 		
-			$("#connect").click(function() {
-				$("#msg").html("").hide();
-				$(this).attr("disabled", true);
-				new_session($("#mac").val());
-			});
-		
-			$("#disconnect").click(function() {
-				ws.close();
-			});
-		</script>
-	</body>
+		$("#connect").click(function() {
+			$("#msg").html("");
+			$("#login, #msg").hide();
+			new_session($("#macaddr").val());
+		});
+	</script>
+</body>
 </html>
