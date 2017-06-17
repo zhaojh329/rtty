@@ -257,7 +257,7 @@ local function ev_handle(nc, event, msg)
 			local password = mgr:get_http_var(msg.hm, "password")
 			if username and username == http_username and password and password == http_password then
 				local sid = generate_sid()
-				http_sessions[#http_sessions + 1] = {sid = sid, alive = 6}
+				http_sessions[#http_sessions + 1] = {sid = sid, alive = 120}
 				mgr:http_send_redirect(nc, 302, "/", "Set-Cookie: mgs=" .. sid .. "; path=/");
 			else
 				mgr:http_send_redirect(nc, 302, "/login.html")
