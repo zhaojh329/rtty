@@ -19,6 +19,19 @@
 			width: 100%;
 			height: 100%;
 		}
+		
+		#copyright {
+			position: absolute;
+			left:50%;
+			top:50%;
+			margin-left:-250px;
+			margin-top:-100px;
+		}
+		
+		a:hover{
+			color: #fff;
+			text-shadow:0 0 10px;
+		}
 	</style>
 	<body>
 		<div style="margin-bottom: 10px;">
@@ -28,7 +41,7 @@
 		</div>
 		<span id="msg" style="display:none; color:red;"></span>
 
-		<h2 id="copyright">Copyright © 2017 <a href="https://github.com/zhaojh329/xterminal" target="_black">zhaojh329 Github</a></h2>
+		<h1 id="copyright">Copyright © 2017 <a href="https://github.com/zhaojh329/xterminal" target="_black">zhaojh329 Github</a></h1>
 		
 		<div id="terminal-container"></div>
 		
@@ -61,7 +74,6 @@
 					});
 					
 					term.on("open", function() {
-						$("#copyright").hide();
 						window.addEventListener("resize", function(event) {
 							term.fit();
 						});
@@ -69,7 +81,7 @@
 						term.fit();
 					});
 					
-					term.open(document.getElementById("terminal-container"), true);
+					term.open($("#terminal-container")[0], true);
 					
 					ws.binaryType = "arraybuffer";
 					
@@ -91,7 +103,6 @@
 					ws.onclose = function () {
 						$("#connect").attr("disabled", false).val("Connect");
 						$("#disconnect").attr("disabled", true);
-						$("#copyright").show();
 						term.destroy();
 					};
 				};

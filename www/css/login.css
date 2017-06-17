@@ -64,7 +64,7 @@ input{
 	position: fixed;
 	bottom: 0;
 }
-a:visited{color:black;}
+
 a:hover{
 	color: #fff;
     text-shadow:0 0 10px;
