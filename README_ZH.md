@@ -72,7 +72,7 @@ xTerminal是一个多终端的远程Web Shell工具。有了它，你可以在�
 	
 # 使用
 # 查询在线设备
-	http://server:8443/list
+	https://server:8443/list
 	
 # 连接设备
 在浏览器中输入服务器地址，https协议，默认端口号8443（https://server:8443），然后在出现的页面中输入要连接的设备MAC地址，MAC地址的格式可以是：

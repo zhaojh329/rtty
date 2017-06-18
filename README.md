@@ -73,7 +73,7 @@ two parts, server and client.
 		
 # How to use
 # Query online device
-	http://server:8443/list
+	https://server:8443/list
 
 # Connect to devic
 In the browser, enter the server address(https://server:8443), the default port number 8443, and then in the page appears to enter the the 
