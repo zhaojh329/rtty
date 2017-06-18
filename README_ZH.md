@@ -6,8 +6,8 @@ xTerminal是一个多终端的远程Web Shell工具。有了它，你可以在�
 对公司部署在全球各地的成千上万的Linux设备进行远程调试。它基于[evmongoose](https://github.com/zhaojh329/evmongoose)实现，由客户端和服务器两部分构成。
 
 # [在线体验](https://jianhuizhao.f3322.net:8443)
-	username: xterminal
-	password: xterminal
+	用户名: xterminal
+	密码: xterminal
 	macaddr: 66:09:80:01:22:15
 	
 # 特性
