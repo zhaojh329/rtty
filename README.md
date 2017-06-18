@@ -11,6 +11,11 @@ two parts, server and client.
 	password: xterminal
 	macaddr: 66:09:80:01:22:15
 	
+# Features
+* Based on Web, easy to use
+* Support for connecting multiple terminals at the same time
+* Support uploading files to terminal devices
+	
 # How To Install
 ## Install server on Ubuntu
 ### Install dependency
