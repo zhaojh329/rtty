@@ -80,6 +80,9 @@ In the browser, enter the server address(https://server:8443), the default port 
 MAC address of then device to be connected to, MAC address format can be:
 xx:xx:xx:xx:xx:xx, xx-xx-xx-xx-xx-xx, xxxxxxxxxxxxx
 
+# Disonnect to devic
+Execute the exit command in the shell environment
+
 # How To Contribute
 Feel free to create issues or pull-requests if you have any problems.
 

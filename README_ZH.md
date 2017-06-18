@@ -78,6 +78,9 @@ xTerminal是一个多终端的远程Web Shell工具。有了它，你可以在�
 在浏览器中输入服务器地址，https协议，默认端口号8443（https://server:8443），然后在出现的页面中输入要连接的设备MAC地址，MAC地址的格式可以是：
 xx:xx:xx:xx:xx:xx, xx-xx-xx-xx-xx-xx, xxxxxxxxxxxxx
 
+# 断开连接
+在终端Shell环境执行exit命令
+
 # 贡献代码
 
 xTerminal使用github托管其源代码，贡献代码使用github的PR(Pull Request)的流程，十分的强大与便利:
