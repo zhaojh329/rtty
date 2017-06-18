@@ -12,6 +12,7 @@
 <body>
     <div id="box">
 		<h1>xTerminal</h1>
+		<span id="online" style="color:white;"></span>
 		<input id="macaddr" type="text" required="required" placeholder="Please input macaddr" name="macaddr"></input>
 		<span id="msg" style="display:none; color:red;"></span>
 		<button id="connect" class="btn" type="button">Connect</button>
@@ -84,6 +85,12 @@
 			$("#login, #msg").hide();
 			new_session($("#macaddr").val());
 		});
+		
+		window.setInterval(function() {
+			$.getJSON("/list", function(r) {
+				$("#online").text("Online Devices: " + r.length);
+			});
+		}, 1000)
 	</script>
 </body>
 </html>
