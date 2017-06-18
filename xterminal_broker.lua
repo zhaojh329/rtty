@@ -268,7 +268,7 @@ local function ev_handle(nc, event, msg)
 				http_sessions[#http_sessions + 1] = {sid = sid, alive = 120}
 				mgr:http_send_redirect(nc, 302, "/", "Set-Cookie: mgs=" .. sid .. "; path=/");
 				
-				logger("LOG_INFO", "login:" .. username .. ":" .. msg.headers["Host"])
+				logger("LOG_INFO", "login:" .. username .. ":" .. msg.remote_addr)
 			else
 				mgr:http_send_redirect(nc, 302, "/login.html")
 			end
@@ -316,7 +316,7 @@ local function ev_handle(nc, event, msg)
 			mac = mac
 		}
 		
-		logger("LOG_INFO", "connect '" .. mac .. "' by " .. msg.headers["Host"])
+		logger("LOG_INFO", "connect '" .. mac .. "' by " .. msg.remote_addr)
 	elseif event == evmg.MG_EV_WEBSOCKET_HANDSHAKE_DONE then
 		local sid = find_sid_by_websocket(nc)
 		local s = session[sid]
