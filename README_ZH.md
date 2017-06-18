@@ -8,6 +8,7 @@ xTerminal是一个多终端的远程Web Shell工具。有了它，你可以在�
 # [在线体验](https://jianhuizhao.f3322.net:8443)
 	username: xterminal
 	password: xterminal
+	macaddr: 66:09:80:01:22:15
 
 # 安装
 ## 在Ubuntu上安装Server

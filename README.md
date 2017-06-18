@@ -9,7 +9,8 @@ two parts, server and client.
 # [Online experience](https://jianhuizhao.f3322.net:8443)
 	username: xterminal
 	password: xterminal
-
+	macaddr: 66:09:80:01:22:15
+	
 # How To Install
 ## Install server on Ubuntu
 ### Install dependency
