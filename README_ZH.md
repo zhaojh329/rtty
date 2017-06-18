@@ -5,9 +5,9 @@
 xTerminal是一个多终端的远程Web Shell工具。有了它，你可以在任何一台能上网的设备上通过浏览器访问你的任何一台能上网的设备的Shell。它非常适合公司
 对公司部署在全球各地的成千上万的Linux设备进行远程调试。它基于[evmongoose](https://github.com/zhaojh329/evmongoose)实现，由客户端和服务器两部分构成。
 
-![](https://github.com/zhaojh329/image/blob/master/xterminal_zh.png)
-
-![](https://github.com/zhaojh329/image/blob/master/xterminal_demo.png)
+# [在线体验](https://jianhuizhao.f3322.net:8443)
+	username: xterminal
+	password: xterminal
 
 # 安装
 ## 在Ubuntu上安装Server
