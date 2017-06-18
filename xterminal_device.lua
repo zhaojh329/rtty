@@ -110,7 +110,7 @@ end
 local function ev_handle(nc, event, msg)
 	if event == evmg.MG_EV_CONNECT then
 		mgr:set_protocol_mqtt(nc)
-		mgr:send_mqtt_handshake_opt(nc)
+		mgr:send_mqtt_handshake_opt(nc, {clean_session = true})
 		
 	elseif event == evmg.MG_EV_MQTT_CONNACK then
 		if msg.connack_ret_code ~= evmg.MG_EV_MQTT_CONNACK_ACCEPTED then
