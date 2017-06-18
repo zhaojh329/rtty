@@ -261,6 +261,8 @@ local function ev_handle(nc, event, msg)
 				local sid = generate_sid()
 				http_sessions[#http_sessions + 1] = {sid = sid, alive = 120}
 				mgr:http_send_redirect(nc, 302, "/", "Set-Cookie: mgs=" .. sid .. "; path=/");
+				
+				logger("LOG_INFO", "login:" .. username .. ":" .. msg.headers["Host"])
 			else
 				mgr:http_send_redirect(nc, 302, "/login.html")
 			end
