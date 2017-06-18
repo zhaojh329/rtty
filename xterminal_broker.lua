@@ -28,7 +28,7 @@ local function logger(...)
 	if log_to_stderr then
 		opt = opt + syslog.LOG_PERROR 
 	end
-	syslog.openlog("xterminal device", opt, "LOG_USER")
+	syslog.openlog("xterminal broker", opt, "LOG_USER")
 
 	syslog.syslog(...)
 	syslog.closelog()
