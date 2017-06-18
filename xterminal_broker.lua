@@ -197,6 +197,12 @@ local function find_sid_by_websocket(nc)
 	return nil
 end
 
+local upfile_name
+local function upload_fname(fname)
+	upfile_name = fname
+	return "/tmp/" .. fname
+end
+
 local function ev_handle(nc, event, msg)
 	if event == evmg.MG_EV_CONNECT then
 		mgr:set_protocol_mqtt(nc)
@@ -269,6 +275,8 @@ local function ev_handle(nc, event, msg)
 			return true
 		end
 		
+		if upfile_name and uri:gsub("/", "") == upfile_name then return false end
+		
 		local cookie = msg.headers["Cookie"] or ""
 		local sid = cookie:match("mgs=(%w+)")
 
@@ -297,6 +305,9 @@ local function ev_handle(nc, event, msg)
 		
 		mgr:http_send_redirect(nc, 301, "/xterminal.html")
 	
+	elseif event == evmg.MG_EV_HTTP_MULTIPART_REQUEST_END then
+		local cmd = string.format("rm -f %s/%s; ln -s /tmp/%s %s/%s", document_root, upfile_name, upfile_name, document_root, upfile_name)
+		os.execute(cmd)
 	elseif event == evmg.MG_EV_WEBSOCKET_HANDSHAKE_REQUEST then
 		local mac = msg.query_string and msg.query_string:match("mac=([%x,:]+)") or ""
 		mac = mac:gsub(":", ""):upper()
@@ -331,7 +342,16 @@ local function ev_handle(nc, event, msg)
 	elseif event == evmg.MG_EV_WEBSOCKET_FRAME then
 		local sid = find_sid_by_websocket(nc)
 		local s = session[sid]
-		mgr:mqtt_publish(device[s.mac].mqtt_nc, "xterminal/todev/data/" .. sid, msg.data);
+		if msg.op == evmg.WEBSOCKET_OP_BINARY then
+			mgr:mqtt_publish(device[s.mac].mqtt_nc, "xterminal/todev/data/" .. sid, msg.data);
+		elseif msg.op == evmg.WEBSOCKET_OP_TEXT then
+			if msg.data == "delfile" then
+				ev.Timer.new(function(loop, timer, revents)
+					local cmd = string.format("rm -f /tmp/%s %s/%s", upfile_name, document_root, upfile_name)
+					os.execute(cmd)
+				end, 5):start(loop)	
+			end
+		end
 	elseif event == evmg.MG_EV_CLOSE then
 		local sid = find_sid_by_websocket(nc)
 		local s = session[sid]
@@ -366,7 +386,8 @@ if show then show_conf() end
 mgr:connect(mqtt_port, ev_handle)
 logger("LOG_INFO", "Connect to mqtt broker " .. mqtt_port .. "....")
 
-mgr:bind(http_port, ev_handle, {proto = "http", document_root = document_root, ssl_cert = ssl_cert, ssl_key = ssl_key})
+local nc = mgr:bind(http_port, ev_handle, {proto = "http", document_root = document_root, ssl_cert = ssl_cert, ssl_key = ssl_key})
+mgr:set_fu_fname_fn(nc, upload_fname)
 logger("LOG_INFO", "Listen on http " .. http_port .. "....")
 
 ev.Signal.new(function(loop, sig, revents)

@@ -12,15 +12,22 @@
 <body>
     <div id="box">
 		<h1>xTerminal</h1>
-		<span id="online" style="color:white;"></span>
+		<span id="online" style="color:white;">Online Devices: Loading</span>
 		<input id="macaddr" type="text" required="required" placeholder="Please input macaddr" name="macaddr"></input>
 		<span id="msg" style="display:none; color:red;"></span>
 		<button id="connect" class="btn" type="button">Connect</button>
     </div>
+	
+	<div class="upfile">
+		<iframe id="ajaxUpload" name="ajaxUpload"></iframe>
+		<form id="fileForm" method="POST" enctype="multipart/form-data" target="ajaxUpload">
+			<input type="file" id="fileName" name="fileName"/>
+			<span id="uploadmsg">Upload file to Device</span>
+		</form>
+	</div>
 	<div id="terminal-container"></div>
 	<h1 class="copyright"><font color="white">Copyright © 2017 </font><a href="https://github.com/zhaojh329/xterminal" target="_black">zhaojh329 Github</a></h1>
 	<script>
-		var ws;
 		function ab2str(buf) {
 			return decodeURIComponent(escape(String.fromCharCode.apply(null, new Uint8Array(buf))));
 		}
@@ -34,10 +41,12 @@
 			return buf;
 		}
 		
+		var ws;
+		var term;
 		function new_session(mac) {
 			ws = new WebSocket("wss://" + location.host + "?mac=" + mac);
 			ws.onopen = function() {
-				var term = new Terminal({
+				term = new Terminal({
 					focus: true,
 					cursorBlink: true,
 					screenKeys: true
@@ -54,6 +63,8 @@
 					});
 					
 					term.fit();
+					
+					$("#fileForm").show();
 				});
 				
 				ws.binaryType = "arraybuffer";
@@ -75,6 +86,7 @@
 				
 				ws.onclose = function () {
 					$("#login").show();
+					$("#fileForm").hide();
 					term.destroy();
 				};
 			};
@@ -90,7 +102,37 @@
 			$.getJSON("/list", function(r) {
 				$("#online").text("Online Devices: " + r.length);
 			});
-		}, 1000)
+		}, 1000);
+		
+		var lastFileName;
+		$("#ajaxUpload").load(function() {
+			// This method is also performed when the page first appears
+			if(lastFileName == undefined)
+				return;
+				
+			var body = $(window.frames['ajaxUpload'].document.body);   // body in iframe
+			$("#uploadmsg").text(body.context.textContent);
+			
+			var file = body.context.textContent.split(' ')[1];
+			var url = location.protocol + "//" + location.host + "/" + file
+			
+			ws.send(str2ab("wget " + url + " -O /tmp/" + file));
+			ws.send(str2ab("\n"));
+			ws.send("delfile");
+		});
+
+		$("#fileName").change(function() {
+			var fileName = $("#fileName").val();
+			var pos = fileName.lastIndexOf("\\");
+			fileName = fileName.substr(pos + 1, fileName.length);
+			lastFileName = fileName;
+	
+			if (lastFileName && lastFileName.length > 0) {
+				$("#uploadmsg").text("Uploading...");
+				$("#fileForm").submit();
+				$("#fileName").val("");
+			}
+		});
 	</script>
 </body>
 </html>
