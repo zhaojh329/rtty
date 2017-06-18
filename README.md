@@ -41,7 +41,7 @@ two parts, server and client.
 	ssl-key=/etc/xterminal/server.key
 
 ### Run Server on Ubuntu
-	/etc/init.d/xterminal start
+	sudo /etc/init.d/xterminal start
 
 ## Install Client on OpenWRT/LEDE
 ### Download/Compile

@@ -40,7 +40,7 @@ xTerminal是一个多终端的远程Web Shell工具。有了它，你可以在�
 	ssl-key=/etc/xterminal/server.key
 	
 ### 在Ubuntu上运行服务器
-	/etc/init.d/xterminal start
+	sudo /etc/init.d/xterminal start
 	
 ## 安装客户端 OpenWRT/LEDE
 ### 下载/编译
