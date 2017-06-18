@@ -21,8 +21,7 @@ local http_port = "8443"
 local document_root = "www"
 local ssl_cert = "server.pem"
 local ssl_key = "server.key"
-local http_username = "xterminal"
-local http_password = "xterminal"
+local http_auth = {}
 
 local function logger(...)
 	local opt = syslog.LOG_ODELAY
@@ -43,8 +42,7 @@ local function usage()
 	print("       --mqtt-port 	     default is 1883")
 	print("       --http-port 	     default is 8000")
 	print("       --document         default is ./www")
-	print("       --http-username 	 default is xterminal")
-	print("       --http-password    default is xterminal")
+	print("       --http-auth        set http auth(username:password), default is xterminal:xterminal")
 	print("       --ssl-cert 	     default is ./server.pem")
 	print("       --ssl-key 	     default is ./server.key")
 	
@@ -59,7 +57,7 @@ local function parse_config()
 	local key, val
 	for line in io.lines(conf) do
 		if not line:match("^#") then
-			key, val = line:match("([%w%-]+)=([%w%./_]+)")
+			key, val = line:match("([%w%-]+)=([%w%.:/_]+)")
 			if key and val then
 				if key == "mqtt-port" then
 					mqtt_port = val
@@ -67,10 +65,8 @@ local function parse_config()
 					http_port = val
 				elseif key == "document" then
 					document_root = val
-				elseif key == "http-username" then
-					http_username = val
-				elseif key == "http-password" then	
-					http_password = val
+				elseif key == "http-auth" then
+					http_auth[#http_auth + 1] = val
 				elseif key == "ssl-cert" then	
 					ssl_cert = val
 				elseif key == "ssl-key" then	
@@ -100,13 +96,9 @@ local function parse_commandline()
 			if not arg[i + 1] then usage() end
 			document_root = arg[i + 1]
 			i = i + 2
-		elseif arg[i] == "--http-username" then
+		elseif arg[i] == "--http-auth" then
 			if not arg[i + 1] then usage() end
-			http_username = arg[i + 1]
-			i = i + 2
-		elseif arg[i] == "--http-password" then
-			if not arg[i + 1] then usage() end
-			http_password = arg[i + 1]
+			http_auth[#http_auth + 1] = arg[i + 1]
 			i = i + 2
 		elseif arg[i] == "--ssl-cert" then
 			if not arg[i + 1] then usage() end
@@ -129,14 +121,23 @@ local function parse_commandline()
 end
 
 local function show_conf()
-	print("mqtt-port", mqtt_port)
-	print("http-port", http_port)
-	print("document", document_root)
-	print("http-username", http_username)
-	print("http-password", http_password)
-	print("ssl-cert", ssl_cert)
-	print("ssl-key", ssl_key)
+	print("mqtt-port:", mqtt_port)
+	print("http-port:", http_port)
+	print("document:", document_root)
+	print("ssl-cert:", ssl_cert)
+	print("ssl-key:", ssl_key)
+	for _, v in ipairs(http_auth) do
+		print("http-auth:", v)
+	end
 	os.exit()
+end
+
+local function verify_http_auth(username, password)
+	local auth = username .. ":" .. password 
+	for _, v in ipairs(http_auth) do
+		if v == auth then return true end
+	end
+	return false
 end
 
 local function generate_sid()
@@ -253,9 +254,10 @@ local function ev_handle(nc, event, msg)
 		if uri == "/login.html" then
 			if msg.method ~= "POST" then return end
 			
-			local username = mgr:get_http_var(msg.hm, "username")
-			local password = mgr:get_http_var(msg.hm, "password")
-			if username and username == http_username and password and password == http_password then
+			local username = mgr:get_http_var(msg.hm, "username") or ""
+			local password = mgr:get_http_var(msg.hm, "password") or ""
+			
+			if verify_http_auth(username, password) then
 				local sid = generate_sid()
 				http_sessions[#http_sessions + 1] = {sid = sid, alive = 120}
 				mgr:http_send_redirect(nc, 302, "/", "Set-Cookie: mgs=" .. sid .. "; path=/");
@@ -353,6 +355,7 @@ math.randomseed(tostring(os.time()):reverse():sub(1, 6))
 
 parse_commandline()
 parse_config()
+if #http_auth == 0 then http_auth[1] = "xterminal:xterminal" end
 if show then show_conf() end
 
 mgr:connect(mqtt_port, ev_handle)
