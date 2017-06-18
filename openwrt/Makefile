@@ -6,7 +6,7 @@ PKG_RELEASE:=$(PKG_SOURCE_VERSION)
 
 PKG_SOURCE_PROTO:=git
 PKG_SOURCE_URL:=https://github.com/zhaojh329/xterminal.git
-PKG_SOURCE_VERSION:=a289ff597a4933c3ac5f3158463a2ca9b0558d71
+PKG_SOURCE_VERSION:=447124c9c17834c9738d0de66db963d8d126672c
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 
 include $(INCLUDE_DIR)/package.mk
@@ -16,7 +16,7 @@ define Package/xterminal
   CATEGORY:=Utilities
   TITLE:=multi device remote web shell tool 
   URL:=https://github.com/zhaojh329/xterminal
-  DEPENDS:=+lua-cjson +evmongoose +luaposix +lsyslog
+  DEPENDS:=+lua-cjson +evmongoose +luaposix +lsyslog +uclient-fetch +libustream-mbedtls
   SUBMENU:=Terminal
 endef
 
