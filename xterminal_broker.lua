@@ -298,11 +298,14 @@ local function ev_handle(nc, event, msg)
 		mgr:http_send_redirect(nc, 301, "/xterminal.html")
 	
 	elseif event == evmg.MG_EV_WEBSOCKET_HANDSHAKE_REQUEST then
-		local mac = msg.query_string and msg.query_string:match("mac=([%x,:]+)")
+		local mac = msg.query_string and msg.query_string:match("mac=([%x,:]+)") or ""
+		mac = mac:gsub(":", ""):upper()
 		session[generate_sid()] = {
 			websocket_nc = nc,
-			mac = mac and mac:gsub(":", ""):upper()
+			mac = mac
 		}
+		
+		logger("LOG_INFO", "connect '" .. mac .. "' by " .. msg.headers["Host"])
 	elseif event == evmg.MG_EV_WEBSOCKET_HANDSHAKE_DONE then
 		local sid = find_sid_by_websocket(nc)
 		local s = session[sid]
