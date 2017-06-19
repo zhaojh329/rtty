@@ -199,6 +199,7 @@ end
 
 local upfile_name
 local function upload_fname(fname)
+	if fname:match("%s+") then return "" end
 	upfile_name = fname
 	return "/tmp/" .. fname
 end
@@ -258,7 +259,7 @@ local function ev_handle(nc, event, msg)
 			local s = session[sid]
 			local cmd = string.format("rm -f /tmp/%s %s/%s", upfile_name, document_root, upfile_name)
 			os.execute(cmd)
-			local rsp = {mt = "upfile", info = msg.payload}
+			local rsp = {mt = "upfile"}
 			mgr:send_websocket_frame(session[sid].websocket_nc, cjson.encode(rsp), evmg.WEBSOCKET_OP_TEXT)
 		end
 		
@@ -315,7 +316,7 @@ local function ev_handle(nc, event, msg)
 		
 		mgr:http_send_redirect(nc, 301, "/xterminal.html")
 	
-	elseif event == evmg.MG_EV_HTTP_MULTIPART_REQUEST_END then
+	elseif event == evmg.MG_EV_HTTP_MULTIPART_REQUEST_END and upfile_name then
 		local cmd = string.format("rm -f %s/%s; ln -s /tmp/%s %s/%s", document_root, upfile_name, upfile_name, document_root, upfile_name)
 		os.execute(cmd)
 	elseif event == evmg.MG_EV_WEBSOCKET_HANDSHAKE_REQUEST then
@@ -362,8 +363,8 @@ local function ev_handle(nc, event, msg)
 			if msg.data and msg.data:match("upfile ") then
 				local url = msg.data:match("upfile (http[s]?://[%w%.:]+)")
 				if url then
-					url = string.format("%s/%s", url, upfile_name)
-					mgr:mqtt_publish(device[s.mac].mqtt_nc, "xterminal/uploadfile/" .. sid, url)
+					local data = string.format("%s %s", url, upfile_name)
+					mgr:mqtt_publish(device[s.mac].mqtt_nc, "xterminal/uploadfile/" .. sid, data)
 				else
 					logger("LOG_ERR", "upfile invalid url:" .. msg.data)
 				end

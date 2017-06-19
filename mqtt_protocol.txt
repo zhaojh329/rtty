@@ -30,4 +30,4 @@ broker publish:	xterminal/uploadfile/sid cmd
 
 6.notify upload file finish
 broker subscribe:	xterminal/uploadfilefinish/sid
-device publish:		xterminal/uploadfilefinish/sid info
+device publish:		xterminal/uploadfilefinish/sid

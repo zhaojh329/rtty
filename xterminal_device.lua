@@ -149,10 +149,11 @@ local function ev_handle(nc, event, msg)
 			end
 		elseif topic:match("xterminal/uploadfile/%w+") then
 			local id = topic:match("xterminal/uploadfile/(%w+)")
-			local r = os.execute(string.format("wget -q -P /tmp -T 5 %s", msg.payload))
-			local info = "ok"
-			if r ~= 0 then info = "failed" end
-			mgr:mqtt_publish(nc, "xterminal/uploadfilefinish/" .. id, info);
+			local url, file = msg.payload:match("(%S+) (%S+)")
+			local cmd = string.format("rm -f /tmp/%s;wget -q -P /tmp -T 5 %s/%s", file, url, file) 
+			print(cmd)
+			os.execute(cmd)
+			mgr:mqtt_publish(nc, "xterminal/uploadfilefinish/" .. id, "");
 		end
 	elseif event == evmg.MG_EV_MQTT_PINGRESP then
 		keepalive = 3
