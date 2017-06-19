@@ -128,6 +128,8 @@ local function ev_handle(nc, event, msg)
 			mgr:mqtt_ping(nc)
 		end, 1, 10):start(loop)
 		
+		logger("LOG_INFO", "connect " .. mqtt_host .. ":" .. mqtt_port .. " ok")
+		
 	elseif event == evmg.MG_EV_MQTT_PUBLISH then
 		local topic = msg.topic
 		if topic:match("xterminal/connect/%w+") then
