@@ -91,6 +91,7 @@ local function new_connect(nc, id)
 	
 	mgr:mqtt_subscribe(nc, "xterminal/todev/data/" .. id);
 	mgr:mqtt_subscribe(nc, "xterminal/todev/disconnect/" .. id);
+	mgr:mqtt_subscribe(nc, "xterminal/uploadfile/" .. id);
 	
 	session[id].rio = ev.IO.new(function(loop, w, revents)
 		local d, err = posix.read(w:getfd(), 1024)
@@ -146,6 +147,12 @@ local function ev_handle(nc, event, msg)
 				posix.kill(session[id].pid)
 				session[id].rio:stop(loop)
 			end
+		elseif topic:match("xterminal/uploadfile/%w+") then
+			local id = topic:match("xterminal/uploadfile/(%w+)")
+			local r = os.execute(string.format("wget -q -P /tmp -T 5 %s", msg.payload))
+			local info = "ok"
+			if r ~= 0 then info = "failed" end
+			mgr:mqtt_publish(nc, "xterminal/uploadfilefinish/" .. id, info);
 		end
 	elseif event == evmg.MG_EV_MQTT_PINGRESP then
 		keepalive = 3

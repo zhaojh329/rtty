@@ -23,3 +23,11 @@ broker publish:		xterminal/todev/disconnect/sid
 device->user
 broker subscribe:	xterminal/touser/disconnect/sid
 device publish:		xterminal/touser/disconnect/sid
+
+5.upload file to device
+device subscribe:	xterminal/uploadfile/sid
+broker publish:	xterminal/uploadfile/sid cmd
+
+6.notify upload file finish
+broker subscribe:	xterminal/uploadfilefinish/sid
+device publish:		xterminal/uploadfilefinish/sid info

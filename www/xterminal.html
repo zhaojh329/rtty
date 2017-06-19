@@ -75,11 +75,15 @@
 					} else {
 						var resp = JSON.parse(evt.data);
 						
-						if (resp.status == "ok") {
-							term.open($("#terminal-container")[0], true);
-						} else {
-							ws.close();
-							$("#msg").html(resp.reason).show();
+						if (resp.mt == "connect") {
+							if (resp.status == "ok") {
+								term.open($("#terminal-container")[0], true);
+							} else {
+								ws.close();
+								$("#msg").html(resp.reason).show();
+							}
+						} else if (resp.mt == "upfile") {
+							$("#uploadmsg").text("upfile " + resp.info);
 						}
 					}
 				};
@@ -113,12 +117,8 @@
 			var body = $(window.frames['ajaxUpload'].document.body);   // body in iframe
 			$("#uploadmsg").text(body.context.textContent);
 			
-			var file = body.context.textContent.split(' ')[1];
-			var url = location.protocol + "//" + location.host + "/" + file
-			
-			ws.send(str2ab("wget " + url + " -O /tmp/" + file));
-			ws.send(str2ab("\n"));
-			ws.send("delfile");
+			var url = location.protocol + "//" + location.host
+			ws.send("upfile " + url);
 		});
 
 		$("#fileName").change(function() {

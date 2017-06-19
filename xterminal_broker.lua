@@ -252,6 +252,14 @@ local function ev_handle(nc, event, msg)
 			
 			mgr:send_websocket_frame(session[sid].websocket_nc, "", evmg.WEBSOCKET_OP_CLOSE)
 			logger("LOG_INFO", "device close:" .. s.mac)
+		elseif topic:match("xterminal/uploadfilefinish/%w+") then
+			local sid = topic:match("xterminal/uploadfilefinish/(%w+)")
+			if not session[sid] then return end
+			local s = session[sid]
+			local cmd = string.format("rm -f /tmp/%s %s/%s", upfile_name, document_root, upfile_name)
+			os.execute(cmd)
+			local rsp = {mt = "upfile", info = msg.payload}
+			mgr:send_websocket_frame(session[sid].websocket_nc, cjson.encode(rsp), evmg.WEBSOCKET_OP_TEXT)
 		end
 		
 	elseif event == evmg.MG_EV_HTTP_REQUEST then
@@ -323,22 +331,26 @@ local function ev_handle(nc, event, msg)
 		local sid = find_sid_by_websocket(nc)
 		local s = session[sid]
 		local mac = s.mac
+		local rsp = {mt = "connect", status = "ok"}
+		
 		if not validate_macaddr(mac) then
 			session[sid] = nil
-			mgr:send_websocket_frame(nc, cjson.encode({status = "error", reason = "invalid macaddress"}), evmg.WEBSOCKET_OP_TEXT)
-			return
-		end
+			rsp.status = "error"
+			rsp.reason = "invalid macaddress"
 		
-		if not device[mac] then
+		elseif not device[mac] then
 			session[sid] = nil
-			mgr:send_websocket_frame(nc, cjson.encode({status = "error", reason = "device not online"}), evmg.WEBSOCKET_OP_TEXT)
-			return
+			rsp.status = "error"
+			rsp.reason = "device is offline"
 		end
 		
-		mgr:send_websocket_frame(nc, cjson.encode({status = "ok"}), evmg.WEBSOCKET_OP_TEXT)
-			
+		mgr:send_websocket_frame(nc, cjson.encode(rsp), evmg.WEBSOCKET_OP_TEXT)
+		if rsp.status == "error" then return end
+		
 		mgr:mqtt_subscribe(device[mac].mqtt_nc, "xterminal/touser/data/" .. sid);
 		mgr:mqtt_subscribe(device[mac].mqtt_nc, "xterminal/touser/disconnect/" .. sid);
+		mgr:mqtt_subscribe(device[mac].mqtt_nc, "xterminal/uploadfilefinish/" .. sid);
+		
 		mgr:mqtt_publish(device[mac].mqtt_nc, "xterminal/connect/" .. mac .. "/" .. sid, "");
 			
 	elseif event == evmg.MG_EV_WEBSOCKET_FRAME then
@@ -347,11 +359,14 @@ local function ev_handle(nc, event, msg)
 		if msg.op == evmg.WEBSOCKET_OP_BINARY then
 			mgr:mqtt_publish(device[s.mac].mqtt_nc, "xterminal/todev/data/" .. sid, msg.data);
 		elseif msg.op == evmg.WEBSOCKET_OP_TEXT then
-			if msg.data == "delfile" then
-				ev.Timer.new(function(loop, timer, revents)
-					local cmd = string.format("rm -f /tmp/%s %s/%s", upfile_name, document_root, upfile_name)
-					os.execute(cmd)
-				end, 5):start(loop)	
+			if msg.data and msg.data:match("upfile ") then
+				local url = msg.data:match("upfile (http[s]?://[%w%.:]+)")
+				if url then
+					url = string.format("%s/%s", url, upfile_name)
+					mgr:mqtt_publish(device[s.mac].mqtt_nc, "xterminal/uploadfile/" .. sid, url)
+				else
+					logger("LOG_ERR", "upfile invalid url:" .. msg.data)
+				end
 			end
 		end
 	elseif event == evmg.MG_EV_CLOSE then
