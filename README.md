@@ -6,6 +6,8 @@ XTerminal is a remote web shell tool for multi terminal devices. With it, you ca
 browser on any device that can access the Internet. XTerminal is based on [evmongoose](https://github.com/zhaojh329/evmongoose) implementation, It consists of 
 two parts, server and client.
 
+![](https://github.com/zhaojh329/image/blob/master/xterminal.png)
+
 # [Online experience](https://jianhuizhao.f3322.net:8443)
 	username: xterminal
 	password: xterminal
