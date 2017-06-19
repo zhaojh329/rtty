@@ -209,8 +209,8 @@ local function ev_handle(nc, event, msg)
 		mgr:send_mqtt_handshake_opt(nc, {clean_session = true})
 		
 	elseif event == evmg.MG_EV_MQTT_CONNACK then
-		if msg.connack_ret_code ~= evmg.MG_EV_MQTT_CONNACK_ACCEPTED then
-			logger("LOG_ERR", "Got mqtt connection error: " .. msg.connack_ret_code)
+		if msg.code ~= evmg.MG_EV_MQTT_CONNACK_ACCEPTED then
+			logger("LOG_ERR", string.format("Got mqtt connection error: %d (%s)", msg.code, msg.reason))
 			return
 		end
 		
