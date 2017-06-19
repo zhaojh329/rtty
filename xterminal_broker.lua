@@ -265,8 +265,8 @@ local function ev_handle(nc, event, msg)
 			
 			if verify_http_auth(username, password) then
 				local sid = generate_sid()
-				http_sessions[#http_sessions + 1] = {sid = sid, alive = 120}
-				mgr:http_send_redirect(nc, 302, "/", "Set-Cookie: mgs=" .. sid .. "; path=/");
+				http_sessions[#http_sessions + 1] = {sid = sid, username = username, alive = 120}
+				mgr:http_send_redirect(nc, 302, "/", string.format("Set-Cookie: mgs=%s;path=/", sid));
 				
 				logger("LOG_INFO", "login:" .. username .. ":" .. msg.remote_addr)
 			else
