@@ -4,6 +4,7 @@ local ev = require("ev")
 local evmg = require("evmongoose")
 local cjson = require("cjson")
 local syslog = require("syslog")
+local posix = require('posix')
 
 local loop = ev.Loop.default
 
@@ -13,6 +14,7 @@ local device = {}
 local session = {}
 local http_sessions = {}
 
+local ARGV = arg
 local show = false
 local log_to_stderr = false
 local conf = "/etc/xterminal/xterminal.conf"
@@ -35,17 +37,18 @@ local function logger(...)
 end
 
 local function usage()
-	print(arg[0], "options")
-	print("       -c 	             default /etc/xterminal/xterminal.conf")
-	print("       -s                 Only show config")
-	print("       -d                 Log to stderr")
-	print("       --mqtt-port 	     default is 1883")
-	print("       --http-port 	     default is 8000")
-	print("       --document         default is ./www")
-	print("       --http-auth        set http auth(username:password), default is xterminal:xterminal")
-	print("       --ssl-cert 	     default is ./server.pem")
-	print("       --ssl-key 	     default is ./server.key")
-	
+	print("Usage:", ARGV[0], "options")
+	print([[
+        -c 	             default /etc/xterminal/xterminal.conf
+        -s               Only show config
+        -d               Log to stderr
+        --mqtt-port 	 default is 1883
+        --http-port 	 default is 8000
+        --document       default is ./www
+        --http-auth      set http auth(username:password), default is xterminal:xterminal
+        --ssl-cert       default is ./server.pem
+        --ssl-key        default is ./server.key
+	]])
 	os.exit()
 end
 
@@ -78,46 +81,46 @@ local function parse_config()
 end
 
 local function parse_commandline()
-	local i = 1
-	repeat
-		if arg[i] == "-c" then
-			if not arg[i + 1] then usage() end
-			conf = arg[i + 1]
-			i = i + 2
-		elseif arg[i] == "--mqtt-port" then
-			if not arg[i + 1] then usage() end
-			mqtt_port = arg[i + 1]
-			i = i + 2
-		elseif arg[i] == "--http-port" then
-			if not arg[i + 1] then usage() end
-			http_port = arg[i + 1]
-			i = i + 2
-		elseif arg[i] == "--document" then
-			if not arg[i + 1] then usage() end
-			document_root = arg[i + 1]
-			i = i + 2
-		elseif arg[i] == "--http-auth" then
-			if not arg[i + 1] then usage() end
-			http_auth[#http_auth + 1] = arg[i + 1]
-			i = i + 2
-		elseif arg[i] == "--ssl-cert" then
-			if not arg[i + 1] then usage() end
-			ssl_cert = arg[i + 1]
-			i = i + 2
-		elseif arg[i] == "--ssl-key" then
-			if not arg[i + 1] then usage() end
-			ssl_key = arg[i + 1]
-			i = i + 2
-		elseif arg[i] == "-s" then
-			show = true
-			i = i + 1
-		elseif arg[i] == "-d" then
-			log_to_stderr = true
-			i = i + 1
-		else
-			i = i + 1
+	local long = {
+		{"help",  "none", 'h'},
+		{"mqtt-port", "required", "0"},
+		{"http-port", "required", "0"},
+		{"document", "required", "0"},
+		{"http-auth", "required", "0"},
+		{"ssl-cert", "required", "0"},
+		{"ssl-key", "required", "0"}
+	}
+	
+	for r, optarg, optind, longindex in posix.getopt(ARGV, "hsdc:", long) do
+		if r == '?' or r == "h" then
+			usage()
 		end
-	until(not arg[i])
+		
+		if r == "d" then
+			log_to_stderr = true
+		elseif r == "c" then
+			conf = optarg
+		elseif r == "s" then
+			show = true
+		elseif r == "0" then
+			local name = long[longindex + 1][1]
+			if name == "mqtt-port" then
+				mqtt_port = optarg
+			elseif name == "http-port" then
+				http_port = optarg
+			elseif name == "document" then
+				document_root = optarg
+			elseif name == "http-auth" then
+				http_auth[#http_auth + 1] = optarg
+			elseif name == "ssl-cert" then
+				ssl_cert = optarg
+			elseif name == "ssl-key" then
+				ssl_key = optarg
+			end
+		else
+			usage()
+		end
+	end
 end
 
 local function show_conf()

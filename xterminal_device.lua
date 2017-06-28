@@ -2,13 +2,14 @@
 
 local ev = require("ev")
 local evmg = require("evmongoose")
-local posix = require 'posix'
+local posix = require('posix')
 local cjson = require("cjson")
 local syslog = require("syslog")
 
 local loop = ev.Loop.default
 local mgr = evmg.init()
 
+local ARGV = arg
 local show = false
 local log_to_stderr = false
 local ifname = "eth0"
@@ -29,43 +30,50 @@ local function logger(...)
 end
 
 local function usage()
-	print(arg[0], "options")
-	print("       -s              Only show config")
-	print("       -d              Log to stderr")
-	print("       -i 	          default is eth0")
-	print("       --mqtt-port 	  default is 1883")
-	print("       --mqtt-host 	  default is localhost")
+	print("Usage:", ARGV[0], "options")
+	print([[
+        -s              Only show config
+        -d              Log to stderr
+        -i              default is eth0
+        --mqtt-port     default is 1883
+        --mqtt-host 	default is localhost
+	]])
 	os.exit()
 end
 
 local function parse_commandline()
-	local i = 1
-	repeat
-		if arg[i] == "--mqtt-port" then
-			if not arg[i + 1] then usage() end
-			mqtt_port = arg[i + 1]
-			i = i + 2
-		elseif arg[i] == "--mqtt-host" then
-			if not arg[i + 1] then usage() end
-			mqtt_host = arg[i + 1]
-			i = i + 2
-		elseif arg[i] == "-i" then
-			if not arg[i + 1] then usage() end
-			ifname = arg[i + 1]
-			i = i + 2
-		elseif arg[i] == "-s" then
-			show = true
-			i = i + 1
-		elseif arg[i] == "-d" then
-			log_to_stderr = true
-			i = i + 1
-		else
-			i = i + 1
+	local long = {
+		{"help",  "none", 'h'},
+		{"mqtt-port", "required", "0"},
+		{"mqtt-host", "required", "0"}
+	}
+	
+	for r, optarg, optind, longindex in posix.getopt(ARGV, "hsdi:", long) do
+		if r == '?' or r == "h" then
+			usage()
 		end
-	until(not arg[i])
+		
+		if r == "d" then
+			log_to_stderr = true
+		elseif r == "i" then
+			ifname = optarg
+		elseif r == "s" then
+			show = true
+		elseif r == "0" then
+			local name = long[longindex + 1][1]
+			if name == "mqtt-port" then
+				mqtt_port = optarg
+			elseif name == "mqtt-host" then
+				mqtt_host = optarg
+			end
+		else
+			usage()
+		end
+	end
 end
 
 local function show_conf()
+	print("log_to_stderr", log_to_stderr)
 	print("mqtt-port", mqtt_port)
 	print("mqtt-host", mqtt_host)
 	print("ifname", ifname)
