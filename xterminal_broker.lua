@@ -307,7 +307,11 @@ local function ev_handle(nc, event, msg)
 				devs[#devs + 1] = k
 			end
 			
-			mgr:print_http_chunk(nc, cjson.encode(devs))
+			if #devs > 0 then
+				mgr:print_http_chunk(nc, cjson.encode(devs))
+			else
+				mgr:print_http_chunk(nc, "[]")
+			end
 			mgr:print_http_chunk(nc, "")
 			return true
 		end
