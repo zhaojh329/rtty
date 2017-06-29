@@ -41,8 +41,16 @@
 			return buf;
 		}
 		
+		function checkOnlineDev() {
+			$.getJSON("/list", function(r) {
+				$("#online").text("Online Devices: " + r.length);
+			});
+		}
+		
 		var ws;
 		var term;
+		var checkOnlineDevInterval;
+		
 		function new_session(mac) {
 			ws = new WebSocket("wss://" + location.host + "?mac=" + mac);
 			ws.onopen = function() {
@@ -78,6 +86,7 @@
 						if (resp.mt == "connect") {
 							if (resp.status == "ok") {
 								term.open($("#terminal-container")[0], true);
+								window.clearInterval(checkOnlineDevInterval);
 							} else {
 								ws.close();
 								$("#msg").html(resp.reason).show();
@@ -92,6 +101,7 @@
 					$("#login").show();
 					$("#fileForm").hide();
 					term.destroy();
+					checkOnlineDevInterval = window.setInterval(checkOnlineDev, 3000);
 				};
 			};
 		}
@@ -101,12 +111,6 @@
 			$("#login, #msg").hide();
 			new_session($("#macaddr").val());
 		});
-		
-		window.setInterval(function() {
-			$.getJSON("/list", function(r) {
-				$("#online").text("Online Devices: " + r.length);
-			});
-		}, 1000);
 		
 		var lastFileName;
 		$("#ajaxUpload").load(function() {
@@ -133,6 +137,9 @@
 				$("#fileName").val("");
 			}
 		});
+		
+		checkOnlineDev();
+		checkOnlineDevInterval = window.setInterval(checkOnlineDev, 3000);
 	</script>
 </body>
 </html>
