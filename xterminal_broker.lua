@@ -3,8 +3,8 @@
 local ev = require("ev")
 local evmg = require("evmongoose")
 local cjson = require("cjson")
-local syslog = require("syslog")
 local posix = require('posix')
+local syslog = evmg.syslog
 
 local loop = ev.Loop.default
 
@@ -25,15 +25,16 @@ local ssl_cert = "server.pem"
 local ssl_key = "server.key"
 local http_auth = {}
 
-local function logger(...)
+local function log_init()
 	local opt = syslog.LOG_ODELAY
 	if log_to_stderr then
 		opt = opt + syslog.LOG_PERROR 
 	end
-	syslog.openlog("xterminal broker", opt, "LOG_USER")
+	syslog.openlog("xterminal device", opt, syslog.LOG_USER)
+end
 
-	syslog.syslog(...)
-	syslog.closelog()
+local function logger(level, ...)
+	syslog.syslog(level, table.concat({...}, "\t"))
 end
 
 local function usage()
@@ -214,7 +215,7 @@ local function ev_handle(nc, event, msg)
 		
 	elseif event == evmg.MG_EV_MQTT_CONNACK then
 		if msg.code ~= evmg.MG_EV_MQTT_CONNACK_ACCEPTED then
-			logger("LOG_ERR", string.format("Got mqtt connection error: %d (%s)", msg.code, msg.reason))
+			logger(syslog.LOG_ERR, "Got mqtt connection error:", msg.code, msg.reason)
 			return
 		end
 		
@@ -225,7 +226,7 @@ local function ev_handle(nc, event, msg)
 				v.alive = v.alive - 1
 				if v.alive == 0 then
 					device[k] = nil
-					logger("LOG_INFO", "timeout: " .. k)
+					logger(syslog.LOG_INFO, "timeout:", k)
 				end
 			end
 		end, 1, 3):start(loop)
@@ -234,7 +235,7 @@ local function ev_handle(nc, event, msg)
 			mgr:mqtt_ping(nc)
 		end, 10, 10):start(loop)
 		
-		logger("LOG_INFO", "connect mqtt on *:" ..  mqtt_port .. " ok")
+		logger(syslog.LOG_INFO, "connect mqtt on *:", mqtt_port, "ok")
 		
 	elseif event == evmg.MG_EV_MQTT_PUBLISH then
 		local topic = msg.topic
@@ -242,7 +243,7 @@ local function ev_handle(nc, event, msg)
 			local mac = topic:match("xterminal/heartbeat/(%x+)")
 			if not device[mac] then
 				device[mac] = {mqtt_nc = nc}
-				logger("LOG_INFO", "new dev:" .. mac)
+				logger(syslog.LOG_INFO, "new dev:", mac)
 			end
 			device[mac].alive = 5
 		elseif topic:match("xterminal/touser/data/%w+") then
@@ -255,7 +256,7 @@ local function ev_handle(nc, event, msg)
 			local s = session[sid]
 			
 			mgr:send_websocket_frame(session[sid].websocket_nc, "", evmg.WEBSOCKET_OP_CLOSE)
-			logger("LOG_INFO", "device close:" .. s.mac)
+			logger(syslog.LOG_INFO, "device close:", s.mac)
 		elseif topic:match("xterminal/uploadfilefinish/%w+") then
 			local sid = topic:match("xterminal/uploadfilefinish/(%w+)")
 			if not session[sid] then return end
@@ -282,7 +283,7 @@ local function ev_handle(nc, event, msg)
 				http_sessions[#http_sessions + 1] = {sid = sid, username = username, alive = 120}
 				mgr:http_send_redirect(nc, 302, "/", string.format("Set-Cookie: mgs=%s;path=/", sid));
 				
-				logger("LOG_INFO", "login:" .. username .. ":" .. msg.remote_addr)
+				logger(syslog.LOG_INFO, "login:", username, msg.remote_addr)
 			else
 				mgr:http_send_redirect(nc, 302, "/login.html")
 			end
@@ -334,7 +335,7 @@ local function ev_handle(nc, event, msg)
 			mac = mac
 		}
 		
-		logger("LOG_INFO", "connect '" .. mac .. "' by " .. msg.remote_addr)
+		logger(syslog.LOG_INFO, "connect", mac, "by", msg.remote_addr)
 	elseif event == evmg.MG_EV_WEBSOCKET_HANDSHAKE_DONE then
 		local sid = find_sid_by_websocket(nc)
 		local s = session[sid]
@@ -373,7 +374,7 @@ local function ev_handle(nc, event, msg)
 					local data = string.format("%s %s", url, upfile_name)
 					mgr:mqtt_publish(device[s.mac].mqtt_nc, "xterminal/uploadfile/" .. sid, data)
 				else
-					logger("LOG_ERR", "upfile invalid url:" .. msg.data)
+					logger(syslog.LOG_ERR, "upfile invalid url:", msg.data)
 				end
 			end
 		end
@@ -383,7 +384,7 @@ local function ev_handle(nc, event, msg)
 		
 		if s then
 			session[sid] = nil
-			logger("LOG_INFO", "session close: " .. sid)
+			logger(syslog.LOG_INFO, "session close:", sid)
 			
 			if device[s.mac] then
 				mgr:mqtt_publish(device[s.mac].mqtt_nc, "xterminal/todev/disconnect/" .. sid, "");
@@ -408,21 +409,25 @@ parse_config()
 if #http_auth == 0 then http_auth[1] = "xterminal:xterminal" end
 if show then show_conf() end
 
+log_init()
+
 mgr:connect(mqtt_port, ev_handle)
-logger("LOG_INFO", "Connect to mqtt broker " .. mqtt_port .. "....")
+logger(syslog.LOG_INFO, "Connect to mqtt broker", mqtt_port)
 
 local nc = mgr:bind(http_port, ev_handle, {proto = "http", document_root = document_root, ssl_cert = ssl_cert, ssl_key = ssl_key})
 mgr:set_fu_fname_fn(nc, upload_fname)
-logger("LOG_INFO", "Listen on http " .. http_port .. "....")
+logger(syslog.LOG_INFO, "Listen on http", http_port)
 
 ev.Signal.new(function(loop, sig, revents)
 	loop:unloop()
 end, ev.SIGINT):start(loop)
 
-logger("LOG_INFO", "start...")
+logger(syslog.LOG_INFO, "start...")
 
 loop:loop()
 
 mgr:destroy()
 
-logger("LOG_INFO", "exit...")
+logger(syslog.LOG_INFO, "exit...")
+
+syslog.closelog()

@@ -26,13 +26,6 @@ two parts, server and client.
 * lua-cjson lua-posix mosquitto
 
 		sudo apt install lua-cjson lua-posix mosquitto
-    
-* lsyslog
-	
-	git clone https://github.com/zhaojh329/lsyslog.git
-    cd lsyslog/src
-	cmake .
-	make && sudo make install
 
 ### Install xTerminal Server
     git clone https://github.com/zhaojh329/xterminal.git
@@ -55,9 +48,6 @@ two parts, server and client.
 ### Download/Compile
 	git clone https://github.com/zhaojh329/evmongoose.git
 	cp -r evmongoose/openwrt openwrt_dir/package/evmongoose
-	
-	git clone https://github.com/zhaojh329/lsyslog.git
-	cp -r lsyslog openwrt_dir/package/lsyslog
 	
 	git clone https://github.com/zhaojh329/xterminal.git
 	cp -r xterminal/openwrt openwrt_dir/package/xterminal

@@ -4,7 +4,7 @@ local ev = require("ev")
 local evmg = require("evmongoose")
 local posix = require('posix')
 local cjson = require("cjson")
-local syslog = require("syslog")
+local syslog = evmg.syslog
 
 local loop = ev.Loop.default
 local mgr = evmg.init()
@@ -19,14 +19,16 @@ local keepalive = 0
 local devid = nil
 local session = {}
 
-local function logger(...)
+local function log_init()
 	local opt = syslog.LOG_ODELAY
 	if log_to_stderr then
 		opt = opt + syslog.LOG_PERROR 
 	end
-	syslog.openlog("xterminal device", opt, "LOG_USER")
-	syslog.syslog(...)
-	syslog.closelog()
+	syslog.openlog("xterminal device", opt, syslog.LOG_USER)
+end
+
+local function logger(level, ...)
+	syslog.syslog(level, table.concat({...}, "\t"))
 end
 
 local function usage()
@@ -123,7 +125,7 @@ local function ev_handle(nc, event, msg)
 		
 	elseif event == evmg.MG_EV_MQTT_CONNACK then
 		if msg.code ~= evmg.MG_EV_MQTT_CONNACK_ACCEPTED then
-			logger("LOG_ERR", string.format("Got mqtt connection error: %d (%s)", msg.code, msg.reason))
+			logger(syslog.LOG_ERR, "Got mqtt connection error:", msg.code, msg.reason)
 			return
 		end
 		
@@ -137,13 +139,13 @@ local function ev_handle(nc, event, msg)
 			mgr:mqtt_ping(nc)
 		end, 1, 10):start(loop)
 		
-		logger("LOG_INFO", "connect " .. mqtt_host .. ":" .. mqtt_port .. " ok")
+		logger(syslog.LOG_INFO, "connect", mqtt_host, mqtt_port, "ok")
 		
 	elseif event == evmg.MG_EV_MQTT_PUBLISH then
 		local topic = msg.topic
 		if topic:match("xterminal/connect/%w+") then
 			local id = topic:match("xterminal/connect/" .. devid .. "/(%w+)")
-			logger("LOG_INFO", "New connection: " .. id)
+			logger(syslog.LOG_INFO, "New connection:", id)
 			new_connect(nc, id)
 		elseif topic:match("xterminal/todev/data/%w+") then
 			local id = topic:match("xterminal/todev/data/(%w+)")
@@ -151,7 +153,7 @@ local function ev_handle(nc, event, msg)
 		elseif topic:match("xterminal/todev/disconnect/%w+") then
 			local id = topic:match("xterminal/todev/disconnect/(%w+)")
 			if session[id] then
-				logger("LOG_INFO", "connection close: " .. id)
+				logger(syslog.LOG_INFO, "connection close:", id)
 				posix.kill(session[id].pid)
 				session[id].rio:stop(loop)
 			end
@@ -171,14 +173,15 @@ end
 parse_commandline()
 if show then show_conf() end
 
+log_init()
+
 devid = get_dev_id(ifname)
 if not devid then
-	print("get dev id failed for", ifname)
-	logger("LOG_ERR", "get dev id failed for " .. ifname)
+	logger(syslog.LOG_ERR, "get dev id failed for", ifname)
 	os.exit()
 end
 
-logger("LOG_INFO", "devid: " .. devid)
+logger(syslog.LOG_INFO, "devid:", devid)
 
 mgr:connect(mqtt_host .. ":" .. mqtt_port, ev_handle)
 
@@ -186,11 +189,11 @@ ev.Signal.new(function(loop, sig, revents)
 	loop:unloop()
 end, ev.SIGINT):start(loop)
 
-logger("LOG_INFO", "start...")
+logger(syslog.LOG_INFO, "start...")
 
 ev.Timer.new(function(loop, timer, revents)
 	if keepalive == 0 then
-		logger("LOG_INFO", "re connect......")
+		logger(syslog.LOG_INFO, "re connect......")
 		mgr:connect(mqtt_host .. ":" .. mqtt_port, ev_handle)
 	else
 		keepalive = keepalive - 1
@@ -201,4 +204,6 @@ loop:loop()
 
 mgr:destroy()
 
-logger("LOG_INFO", "exit...")
+logger(syslog.LOG_INFO, "exit...")
+
+syslog.closelog()
