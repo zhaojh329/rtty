@@ -166,10 +166,6 @@ local function parse_commandline()
 	}
 	
 	for o, optarg, lo in getopt(ARGV, "hsdc:", longopt) do
-		if o == '?' or o == "h" then
-			usage()
-		end
-		
 		if o == "d" then
 			log_to_stderr = true
 		elseif o == "c" then
