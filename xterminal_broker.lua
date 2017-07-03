@@ -208,6 +208,9 @@ local function upload_fname(fname)
 	return "/tmp/" .. fname
 end
 
+local mqtt_con
+local mqtt_ping_timer
+
 local function ev_handle(nc, event, msg)
 	if event == evmg.MG_EV_CONNECT then
 		mgr:set_protocol_mqtt(nc)
@@ -231,9 +234,8 @@ local function ev_handle(nc, event, msg)
 			end
 		end, 1, 3):start(loop)
 		
-		ev.Timer.new(function(loop, timer, revents)
-			mgr:mqtt_ping(nc)
-		end, 10, 10):start(loop)
+		mqtt_ping_timer = ev.Timer.new(function(loop, timer, revents) mgr:mqtt_ping(nc) end, 10, 30)
+		mqtt_ping_timer:start(loop)
 		
 		logger(syslog.LOG_INFO, "connect mqtt on *:", mqtt_port, "ok")
 		
@@ -379,6 +381,19 @@ local function ev_handle(nc, event, msg)
 			end
 		end
 	elseif event == evmg.MG_EV_CLOSE then
+		if nc == mqtt_con then
+			if mqtt_ping_timer then
+				mqtt_ping_timer:stop(loop)
+				mqtt_ping_timer = nil
+			end
+			
+			ev.Timer.new(function()
+				logger(syslog.LOG_ERR, "Try MQTT Reconnect...")
+				mqtt_con = mgr:connect(mqtt_port, ev_handle)
+			end, 10):start(loop)
+			return
+		end
+	
 		local sid = find_sid_by_websocket(nc)
 		local s = session[sid]
 		
@@ -411,7 +426,7 @@ if show then show_conf() end
 
 log_init()
 
-mgr:connect(mqtt_port, ev_handle)
+mqtt_con = mgr:connect(mqtt_port, ev_handle)
 logger(syslog.LOG_INFO, "Connect to mqtt broker", mqtt_port)
 
 local nc = mgr:bind(http_port, ev_handle, {proto = "http", document_root = document_root, ssl_cert = ssl_cert, ssl_key = ssl_key})

@@ -15,7 +15,6 @@ local log_to_stderr = false
 local ifname = "eth0"
 local mqtt_host = "localhost"
 local mqtt_port = "1883"
-local keepalive = 0
 local devid = nil
 local session = {}
 
@@ -118,6 +117,8 @@ local function new_connect(nc, id)
 	session[id].rio:start(loop)
 end
 
+local mqtt_ping_timer
+
 local function ev_handle(nc, event, msg)
 	if event == evmg.MG_EV_CONNECT then
 		mgr:set_protocol_mqtt(nc)
@@ -135,9 +136,8 @@ local function ev_handle(nc, event, msg)
 			mgr:mqtt_publish(nc, "xterminal/heartbeat/" .. devid, "")
 		end, 0.1, 3):start(loop)
 		
-		ev.Timer.new(function(loop, timer, revents)
-			mgr:mqtt_ping(nc)
-		end, 1, 10):start(loop)
+		mqtt_ping_timer = ev.Timer.new(function(loop, timer, revents) mgr:mqtt_ping(nc) end, 10, 30)
+		mqtt_ping_timer:start(loop)
 		
 		logger(syslog.LOG_INFO, "connect", mqtt_host, mqtt_port, "ok")
 		
@@ -165,8 +165,17 @@ local function ev_handle(nc, event, msg)
 			os.execute(cmd)
 			mgr:mqtt_publish(nc, "xterminal/uploadfilefinish/" .. id, "");
 		end
-	elseif event == evmg.MG_EV_MQTT_PINGRESP then
-		keepalive = 3
+		
+	elseif event == evmg.MG_EV_CLOSE then
+		if mqtt_ping_timer then
+			mqtt_ping_timer:stop(loop)
+			mqtt_ping_timer = nil
+		end
+		
+		ev.Timer.new(function()
+			logger(syslog.LOG_ERR, "Try Reconnect...")
+			mgr:connect(mqtt_host .. ":" .. mqtt_port, ev_handle)
+		end, 10):start(loop)
 	end
 end
 
@@ -190,15 +199,6 @@ ev.Signal.new(function(loop, sig, revents)
 end, ev.SIGINT):start(loop)
 
 logger(syslog.LOG_INFO, "start...")
-
-ev.Timer.new(function(loop, timer, revents)
-	if keepalive == 0 then
-		logger(syslog.LOG_INFO, "re connect......")
-		mgr:connect(mqtt_host .. ":" .. mqtt_port, ev_handle)
-	else
-		keepalive = keepalive - 1
-	end
-end, 10, 10):start(loop)
 		
 loop:loop()
 
