@@ -3,7 +3,6 @@
 local ev = require("ev")
 local evmg = require("evmongoose")
 local cjson = require("cjson")
-local posix = require('posix')
 local syslog = evmg.syslog
 
 local loop = ev.Loop.default
@@ -35,6 +34,77 @@ end
 
 local function logger(level, ...)
 	syslog.syslog(level, table.concat({...}, "\t"))
+end
+
+local function getopt(args, optstring, longopts)
+	
+	local program = args[0]
+	local i = 1
+	
+	return function()
+		local a = args[i]
+		if not a then return nil end
+		
+		if a:sub(1, 2) == "--" then
+			local name = a:sub(3)
+			
+			if not name or #name == 0 then
+				i = i + 1
+				return "?"
+			end
+			
+			for _, v in ipairs(longopts) do
+				if v[1] == name then
+					local optarg = v[2] and args[i + 1] or nil
+					
+					if v[2] then
+						if not optarg then
+							print(program .. ":", "option requires an argument -- '" .. name .. "'")
+							os.exit()
+						end
+						
+						i = i + 1
+					end
+					
+					i = i + 1
+					return v[3], optarg, v[1]
+				end
+			end
+			
+			print(program .. ":", "invalid option -- '" .. name .. "'")
+			
+		elseif a:sub(1, 1) == "-" then
+			local o = a:sub(2, 2)
+			
+			if not o or #o == 0 then
+				i = i + 1
+				return "?" 
+			end
+			
+			if not optstring:match(o) then
+				print(program .. ":", "invalid option -- '" .. o .. "'")
+				os.exit()
+			end
+			
+			local optarg
+			if optstring:match(o .. ":") then
+				if #a > 2 then
+					optarg = a:sub(3)
+				else
+					optarg = args[i + 1]
+					i = i + 1
+				end
+				
+				if not optarg then
+					print(program .. ":", "option requires an argument -- '" .. o .. "'")
+					os.exit()
+				end
+			end
+			
+			i = i + 1
+			return o, optarg
+		end
+	end
 end
 
 local function usage()
@@ -82,40 +152,39 @@ local function parse_config()
 end
 
 local function parse_commandline()
-	local long = {
-		{"help",  "none", 'h'},
-		{"mqtt-port", "required", "0"},
-		{"http-port", "required", "0"},
-		{"document", "required", "0"},
-		{"http-auth", "required", "0"},
-		{"ssl-cert", "required", "0"},
-		{"ssl-key", "required", "0"}
+	local longopt = {
+		{"help",  nil, 'h'},
+		{"mqtt-port", true, 0},
+		{"http-port", true, 0},
+		{"document", true, 0},
+		{"http-auth", true, 0},
+		{"ssl-cert", true, 0},
+		{"ssl-key", true, 0}
 	}
 	
-	for r, optarg, optind, longindex in posix.getopt(ARGV, "hsdc:", long) do
-		if r == '?' or r == "h" then
+	for o, optarg, lo in getopt(ARGV, "hsdc:", longopt) do
+		if o == '?' or o == "h" then
 			usage()
 		end
 		
-		if r == "d" then
+		if o == "d" then
 			log_to_stderr = true
-		elseif r == "c" then
+		elseif o == "c" then
 			conf = optarg
-		elseif r == "s" then
+		elseif o == "s" then
 			show = true
-		elseif r == "0" then
-			local name = long[longindex + 1][1]
-			if name == "mqtt-port" then
+		elseif o == "0" then
+			if lo == "mqtt-port" then
 				mqtt_port = optarg
-			elseif name == "http-port" then
+			elseif lo == "http-port" then
 				http_port = optarg
-			elseif name == "document" then
+			elseif lo == "document" then
 				document_root = optarg
-			elseif name == "http-auth" then
+			elseif lo == "http-auth" then
 				http_auth[#http_auth + 1] = optarg
-			elseif name == "ssl-cert" then
+			elseif lo == "ssl-cert" then
 				ssl_cert = optarg
-			elseif name == "ssl-key" then
+			elseif lo == "ssl-key" then
 				ssl_key = optarg
 			end
 		else

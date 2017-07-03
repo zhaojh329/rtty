@@ -23,9 +23,9 @@ two parts, server and client.
 ### Install dependency
 * [evmongoose](https://github.com/zhaojh329/evmongoose/blob/master/README.md)
 
-* lua-cjson lua-posix mosquitto
+* lua-cjson mosquitto
 
-		sudo apt install lua-cjson lua-posix mosquitto
+		sudo apt install lua-cjson mosquitto
 
 ### Install xTerminal Server
     git clone https://github.com/zhaojh329/xterminal.git

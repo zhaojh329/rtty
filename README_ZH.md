@@ -22,9 +22,9 @@ xTerminal是一个多终端的远程Web Shell工具。有了它，你可以在�
 ### 安装依赖
 * [evmongoose](https://github.com/zhaojh329/evmongoose/blob/master/README_ZH.md)
 
-* lua-cjson lua-posix mosquitto
+* lua-cjson mosquitto
 
-		sudo apt install lua-cjson lua-posix mosquitto
+		sudo apt install lua-cjson mosquitto
 	
 ### 安装 xTerminal Server
     git clone https://github.com/zhaojh329/xterminal.git
