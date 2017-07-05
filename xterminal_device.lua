@@ -117,12 +117,22 @@ local function new_connect(nc, id)
 	session[id].rio:start(loop)
 end
 
-local mqtt_ping_timer
+local keep_alive = 3
+local alive_timer = ev.Timer.new(function(loop, w, event)
+	keep_alive = keep_alive - 1
+	if keep_alive == 0 then w:stop(loop) end
+end, 5, 5)
+
+local heartbeat_timer
 
 local function ev_handle(nc, event, msg)
 	if event == evmg.MG_EV_CONNECT then
-		mgr:set_protocol_mqtt(nc)
-		mgr:send_mqtt_handshake_opt(nc, {clean_session = true})
+		if not msg.connected then
+			logger(syslog.LOG_ERR, "connect failed:", msg.err)
+		else
+			mgr:set_protocol_mqtt(nc)
+			mgr:send_mqtt_handshake_opt(nc, {clean_session = true})
+		end
 		
 	elseif event == evmg.MG_EV_MQTT_CONNACK then
 		if msg.code ~= evmg.MG_EV_MQTT_CONNACK_ACCEPTED then
@@ -131,13 +141,9 @@ local function ev_handle(nc, event, msg)
 		end
 		
 		mgr:mqtt_subscribe(nc, "xterminal/connect/" .. devid ..  "/+");
-		
-		ev.Timer.new(function(loop, timer, revents)
-			mgr:mqtt_publish(nc, "xterminal/heartbeat/" .. devid, "")
-		end, 0.1, 3):start(loop)
-		
-		mqtt_ping_timer = ev.Timer.new(function(loop, timer, revents) mgr:mqtt_ping(nc) end, 10, 30)
-		mqtt_ping_timer:start(loop)
+		heartbeat_timer = ev.Timer.new(function(loop, timer, revents) mgr:mqtt_publish(nc, "xterminal/heartbeat/" .. devid, "") end, 0.1, 3)
+		heartbeat_timer:start(loop)
+		alive_timer:start(loop)
 		
 		logger(syslog.LOG_INFO, "connect", mqtt_host, mqtt_port, "ok")
 		
@@ -165,17 +171,24 @@ local function ev_handle(nc, event, msg)
 			os.execute(cmd)
 			mgr:mqtt_publish(nc, "xterminal/uploadfilefinish/" .. id, "");
 		end
+	
+	elseif event == evmg.MG_EV_MQTT_PINGRESP then
+		keep_alive = 3
 		
-	elseif event == evmg.MG_EV_CLOSE then
-		if mqtt_ping_timer then
-			mqtt_ping_timer:stop(loop)
-			mqtt_ping_timer = nil
+	elseif event == evmg.MG_EV_POLL then
+		if keep_alive == 0 then
+			-- Disconnect and reconnection
+			logger(syslog.LOG_ERR, "keep_alive timeout")
+			mgr:set_connection_flags(nc, evmg.MG_F_CLOSE_IMMEDIATELY)
+			heartbeat_timer:stop(loop)
+			keep_alive = 3
 		end
 		
+	elseif event == evmg.MG_EV_CLOSE then
 		ev.Timer.new(function()
 			logger(syslog.LOG_ERR, "Try Reconnect...")
 			mgr:connect(mqtt_host .. ":" .. mqtt_port, ev_handle)
-		end, 10):start(loop)
+		end, 5):start(loop)
 	end
 end
 

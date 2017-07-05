@@ -276,68 +276,8 @@ local function upload_fname(fname)
 	return "/tmp/" .. fname
 end
 
-local mqtt_con
-local mqtt_ping_timer
-
-local function ev_handle(nc, event, msg)
-	if event == evmg.MG_EV_CONNECT then
-		mgr:set_protocol_mqtt(nc)
-		mgr:send_mqtt_handshake_opt(nc, {clean_session = true})
-		
-	elseif event == evmg.MG_EV_MQTT_CONNACK then
-		if msg.code ~= evmg.MG_EV_MQTT_CONNACK_ACCEPTED then
-			logger(syslog.LOG_ERR, "Got mqtt connection error:", msg.code, msg.reason)
-			return
-		end
-		
-		mgr:mqtt_subscribe(nc, "xterminal/heartbeat/+");
-		
-		ev.Timer.new(function(loop, timer, revents)
-			for k, v in pairs(device) do
-				v.alive = v.alive - 1
-				if v.alive == 0 then
-					device[k] = nil
-					logger(syslog.LOG_INFO, "timeout:", k)
-				end
-			end
-		end, 1, 3):start(loop)
-		
-		mqtt_ping_timer = ev.Timer.new(function(loop, timer, revents) mgr:mqtt_ping(nc) end, 10, 30)
-		mqtt_ping_timer:start(loop)
-		
-		logger(syslog.LOG_INFO, "connect mqtt on *:", mqtt_port, "ok")
-		
-	elseif event == evmg.MG_EV_MQTT_PUBLISH then
-		local topic = msg.topic
-		if topic:match("xterminal/heartbeat/%x+") then
-			local mac = topic:match("xterminal/heartbeat/(%x+)")
-			if not device[mac] then
-				device[mac] = {mqtt_nc = nc}
-				logger(syslog.LOG_INFO, "new dev:", mac)
-			end
-			device[mac].alive = 5
-		elseif topic:match("xterminal/touser/data/%w+") then
-			local sid = topic:match("xterminal/touser/data/(%w+)")
-			if not session[sid] then return end
-			mgr:send_websocket_frame(session[sid].websocket_nc, msg.payload, evmg.WEBSOCKET_OP_BINARY)
-		elseif topic:match("xterminal/touser/disconnect/%w+") then
-			local sid = topic:match("xterminal/touser/disconnect/(%w+)")
-			if not session[sid] then return end
-			local s = session[sid]
-			
-			mgr:send_websocket_frame(session[sid].websocket_nc, "", evmg.WEBSOCKET_OP_CLOSE)
-			logger(syslog.LOG_INFO, "device close:", s.mac)
-		elseif topic:match("xterminal/uploadfilefinish/%w+") then
-			local sid = topic:match("xterminal/uploadfilefinish/(%w+)")
-			if not session[sid] then return end
-			local s = session[sid]
-			local cmd = string.format("rm -f /tmp/%s %s/%s", upfile_name, document_root, upfile_name)
-			os.execute(cmd)
-			local rsp = {mt = "upfile"}
-			mgr:send_websocket_frame(session[sid].websocket_nc, cjson.encode(rsp), evmg.WEBSOCKET_OP_TEXT)
-		end
-		
-	elseif event == evmg.MG_EV_HTTP_REQUEST then
+local function http_ev_handle(nc, event, msg)
+	if event == evmg.MG_EV_HTTP_REQUEST then
 		local uri = msg.uri
 		
 		if uri:match("/%w+%.js") or uri:match("/%w+%.css") then return false end
@@ -364,8 +304,8 @@ local function ev_handle(nc, event, msg)
 		
 		local cookie = msg.headers["Cookie"] or ""
 		local sid = cookie:match("mgs=(%w+)")
-
-		if not find_http_session(sid) then
+		local s = find_http_session(sid)
+		if not s then
 			mgr:http_send_redirect(nc, 302, "/login.html")
 			return true
 		end
@@ -449,19 +389,6 @@ local function ev_handle(nc, event, msg)
 			end
 		end
 	elseif event == evmg.MG_EV_CLOSE then
-		if nc == mqtt_con then
-			if mqtt_ping_timer then
-				mqtt_ping_timer:stop(loop)
-				mqtt_ping_timer = nil
-			end
-			
-			ev.Timer.new(function()
-				logger(syslog.LOG_ERR, "Try MQTT Reconnect...")
-				mqtt_con = mgr:connect(mqtt_port, ev_handle)
-			end, 10):start(loop)
-			return
-		end
-	
 		local sid = find_sid_by_websocket(nc)
 		local s = session[sid]
 		
@@ -476,6 +403,76 @@ local function ev_handle(nc, event, msg)
 	end
 end
 
+
+local mqtt_keep_alive = 3
+local mqtt_alive_timer = ev.Timer.new(function(loop, w, event)
+	mqtt_keep_alive = mqtt_keep_alive - 1
+	if mqtt_keep_alive == 0 then w:stop(loop) end
+end, 5, 5)
+
+local function mqtt_ev_handle(nc, event, msg)
+	if event == evmg.MG_EV_CONNECT then
+		mgr:set_protocol_mqtt(nc)
+		mgr:send_mqtt_handshake_opt(nc, {clean_session = true})
+		
+	elseif event == evmg.MG_EV_MQTT_CONNACK then
+		if msg.code ~= evmg.MG_EV_MQTT_CONNACK_ACCEPTED then
+			logger(syslog.LOG_ERR, "Got mqtt connection error:", msg.code, msg.reason)
+			return
+		end
+		
+		mgr:mqtt_subscribe(nc, "xterminal/heartbeat/+");
+		mqtt_alive_timer:start(loop)
+		logger(syslog.LOG_INFO, "connect mqtt on *:", mqtt_port, "ok")
+		
+	elseif event == evmg.MG_EV_MQTT_PUBLISH then
+		local topic = msg.topic
+		if topic:match("xterminal/heartbeat/%x+") then
+			local mac = topic:match("xterminal/heartbeat/(%x+)")
+			if not device[mac] then
+				device[mac] = {mqtt_nc = nc}
+				logger(syslog.LOG_INFO, "new dev:", mac)
+			end
+			device[mac].alive = 5
+		elseif topic:match("xterminal/touser/data/%w+") then
+			local sid = topic:match("xterminal/touser/data/(%w+)")
+			if not session[sid] then return end
+			mgr:send_websocket_frame(session[sid].websocket_nc, msg.payload, evmg.WEBSOCKET_OP_BINARY)
+		elseif topic:match("xterminal/touser/disconnect/%w+") then
+			local sid = topic:match("xterminal/touser/disconnect/(%w+)")
+			if not session[sid] then return end
+			local s = session[sid]
+			
+			mgr:send_websocket_frame(session[sid].websocket_nc, "", evmg.WEBSOCKET_OP_CLOSE)
+			logger(syslog.LOG_INFO, "device close:", s.mac)
+		elseif topic:match("xterminal/uploadfilefinish/%w+") then
+			local sid = topic:match("xterminal/uploadfilefinish/(%w+)")
+			if not session[sid] then return end
+			local s = session[sid]
+			local cmd = string.format("rm -f /tmp/%s %s/%s", upfile_name, document_root, upfile_name)
+			os.execute(cmd)
+			local rsp = {mt = "upfile"}
+			mgr:send_websocket_frame(session[sid].websocket_nc, cjson.encode(rsp), evmg.WEBSOCKET_OP_TEXT)
+		end
+		
+	elseif event == evmg.MG_EV_MQTT_PINGRESP then
+		mqtt_keep_alive = 3
+		
+	elseif event == evmg.MG_EV_POLL then
+		if mqtt_keep_alive == 0 then
+			-- Disconnect and reconnection
+			logger(syslog.LOG_ERR, "mqtt_keep_alive timeout")
+			mgr:set_connection_flags(nc, evmg.MG_F_CLOSE_IMMEDIATELY)
+			mqtt_keep_alive = 3
+		end
+	elseif event == evmg.MG_EV_CLOSE then
+		ev.Timer.new(function()
+			logger(syslog.LOG_ERR, "Try MQTT Reconnect...")
+			mgr:connect(mqtt_port, mqtt_ev_handle)
+		end, 10):start(loop)
+	end
+end
+
 ev.Timer.new(function(loop, timer, revents)
 	for i, s in ipairs(http_sessions) do
 		s.alive = s.alive - 1
@@ -485,6 +482,16 @@ ev.Timer.new(function(loop, timer, revents)
 	end
 end, 5, 5):start(loop)
 
+ev.Timer.new(function(loop, timer, revents)
+	for k, v in pairs(device) do
+		v.alive = v.alive - 1
+		if v.alive == 0 then
+			device[k] = nil
+			logger(syslog.LOG_INFO, "timeout:", k)
+		end
+	end
+end, 1, 3):start(loop)
+		
 math.randomseed(tostring(os.time()):reverse():sub(1, 6))
 
 parse_commandline()
@@ -494,10 +501,10 @@ if show then show_conf() end
 
 log_init()
 
-mqtt_con = mgr:connect(mqtt_port, ev_handle)
+mgr:connect(mqtt_port, mqtt_ev_handle)
 logger(syslog.LOG_INFO, "Connect to mqtt broker", mqtt_port)
 
-local nc = mgr:bind(http_port, ev_handle, {proto = "http", document_root = document_root, ssl_cert = ssl_cert, ssl_key = ssl_key})
+local nc = mgr:bind(http_port, http_ev_handle, {proto = "http", document_root = document_root, ssl_cert = ssl_cert, ssl_key = ssl_key})
 mgr:set_fu_fname_fn(nc, upload_fname)
 logger(syslog.LOG_INFO, "Listen on http", http_port)
 
