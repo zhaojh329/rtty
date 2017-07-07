@@ -26,7 +26,7 @@
 		</form>
 	</div>
 	<div id="terminal-container"></div>
-	<h1 class="copyright"><font color="white">Copyright © 2017 </font><a href="https://github.com/zhaojh329/xterminal" target="_black">zhaojh329 Github</a></h1>
+	<h1 id="copyright" class="copyright"><font color="white">Copyright © 2017 </font><a href="https://github.com/zhaojh329/xterminal" target="_black">zhaojh329 Github</a></h1>
 	<script>
 		function ab2str(buf) {
 			return decodeURIComponent(escape(String.fromCharCode.apply(null, new Uint8Array(buf))));
@@ -73,6 +73,8 @@
 					term.fit();
 					
 					$("#fileForm").show();
+					window.clearInterval(checkOnlineDevInterval);
+					$("#copyright").removeClass("copyright").addClass("copyright2");
 				});
 				
 				ws.binaryType = "arraybuffer";
@@ -86,7 +88,7 @@
 						if (resp.mt == "connect") {
 							if (resp.status == "ok") {
 								term.open($("#terminal-container")[0], true);
-								window.clearInterval(checkOnlineDevInterval);
+								
 							} else {
 								ws.close();
 								$("#msg").html(resp.reason).show();
@@ -102,6 +104,7 @@
 					$("#fileForm").hide();
 					term.destroy();
 					checkOnlineDevInterval = window.setInterval(checkOnlineDev, 3000);
+					$("#copyright").removeClass("copyright2").addClass("copyright");
 				};
 			};
 		}

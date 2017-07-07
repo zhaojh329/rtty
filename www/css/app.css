@@ -63,6 +63,15 @@ body {
 	text-align: center;
 }
 
+.copyright2 {
+	left:80%;
+	margin: -300px 0 10px -300px;
+    width: 600px;
+	position: fixed;
+	bottom: 40px;
+	text-align: center;
+}
+
 a:hover {
 	color: #fff;
     text-shadow:0 0 10px;
