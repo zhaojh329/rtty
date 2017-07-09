@@ -22,7 +22,7 @@
 		<iframe id="ajaxUpload" name="ajaxUpload"></iframe>
 		<form id="fileForm" method="POST" enctype="multipart/form-data" target="ajaxUpload">
 			<input type="file" id="fileName" name="fileName"/>
-			<span id="uploadmsg">Upload file to Device</span>
+			<span id="uploadmsg">Upload file to Device, and will be saved to the device's /tmp directory</span>
 		</form>
 	</div>
 	<div id="terminal-container"></div>
@@ -93,8 +93,6 @@
 								ws.close();
 								$("#msg").html(resp.reason).show();
 							}
-						} else if (resp.mt == "upfile") {
-							$("#uploadmsg").text("Upfile finish. Please check /tmp");
 						}
 					}
 				};

@@ -92,15 +92,15 @@ local function get_dev_id(ifname)
 	return d:gsub(":", ""):upper()
 end
 
-local function new_connect(nc, id)
+local function new_connect(con, id)
 	local pid, pty = evmg.forkpty()
 	if pid == 0 then posix.exec ("/bin/login", {}) end
 	
 	session[id] = {pid = pid, pty = pty}
 	
-	mgr:mqtt_subscribe(nc, "xterminal/todev/data/" .. id);
-	mgr:mqtt_subscribe(nc, "xterminal/todev/disconnect/" .. id);
-	mgr:mqtt_subscribe(nc, "xterminal/uploadfile/" .. id);
+	con:mqtt_subscribe("xterminal/todev/data/" .. id);
+	con:mqtt_subscribe("xterminal/todev/disconnect/" .. id);
+	con:mqtt_subscribe("xterminal/uploadfile/" .. id);
 	
 	session[id].rio = ev.IO.new(function(loop, w, revents)
 		local d, err = posix.read(w:getfd(), 1024)
@@ -108,10 +108,10 @@ local function new_connect(nc, id)
 			w:stop(loop)
 			posix.wait(pid)
 			session[id] = nil
-			mgr:mqtt_publish(nc, "xterminal/touser/disconnect/" .. id, "");
+			con:mqtt_publish("xterminal/touser/disconnect/" .. id, "");
 			return
 		end
-		mgr:mqtt_publish(nc, "xterminal/touser/data/" .. id, d);
+		con:mqtt_publish("xterminal/touser/data/" .. id, d);
 	end, pty, ev.READ)
 	
 	session[id].rio:start(loop)
@@ -125,37 +125,38 @@ end, 5, 5)
 
 local heartbeat_timer
 
-local function ev_handle(nc, event, msg)
+local function ev_handle(con, event)
 	if event == evmg.MG_EV_CONNECT then
-		if not msg.connected then
-			logger(syslog.LOG_ERR, "connect failed:", msg.err)
+		local s, err = con:connected()
+		if not s then
+			logger(syslog.LOG_ERR, "connect failed:", err)
 		else
-			mgr:set_protocol_mqtt(nc)
-			mgr:send_mqtt_handshake_opt(nc, {clean_session = true})
+			con:mqtt_handshake({clean_session = true})
 		end
 		
 	elseif event == evmg.MG_EV_MQTT_CONNACK then
-		if msg.code ~= evmg.MG_EV_MQTT_CONNACK_ACCEPTED then
-			logger(syslog.LOG_ERR, "Got mqtt connection error:", msg.code, msg.reason)
+		local code, err = con:mqtt_conack()
+		if code ~= evmg.MG_EV_MQTT_CONNACK_ACCEPTED then
+			logger(syslog.LOG_ERR, "Got mqtt connection error:", code, err)
 			return
 		end
 		
-		mgr:mqtt_subscribe(nc, "xterminal/connect/" .. devid ..  "/+");
-		heartbeat_timer = ev.Timer.new(function(loop, timer, revents) mgr:mqtt_publish(nc, "xterminal/heartbeat/" .. devid, "") end, 0.1, 3)
+		con:mqtt_subscribe("xterminal/connect/" .. devid ..  "/+");
+		heartbeat_timer = ev.Timer.new(function(loop, timer, revents) con:mqtt_publish("xterminal/heartbeat/" .. devid, "") end, 0.1, 3)
 		heartbeat_timer:start(loop)
 		alive_timer:start(loop)
 		
 		logger(syslog.LOG_INFO, "connect", mqtt_host, mqtt_port, "ok")
 		
 	elseif event == evmg.MG_EV_MQTT_PUBLISH then
-		local topic = msg.topic
+		local topic, payload = con:mqtt_recv()
 		if topic:match("xterminal/connect/%w+") then
 			local id = topic:match("xterminal/connect/" .. devid .. "/(%w+)")
 			logger(syslog.LOG_INFO, "New connection:", id)
-			new_connect(nc, id)
+			new_connect(con, id)
 		elseif topic:match("xterminal/todev/data/%w+") then
 			local id = topic:match("xterminal/todev/data/(%w+)")
-			posix.write(session[id].pty, msg.payload)
+			posix.write(session[id].pty, payload)
 		elseif topic:match("xterminal/todev/disconnect/%w+") then
 			local id = topic:match("xterminal/todev/disconnect/(%w+)")
 			if session[id] then
@@ -164,12 +165,13 @@ local function ev_handle(nc, event, msg)
 				session[id].rio:stop(loop)
 			end
 		elseif topic:match("xterminal/uploadfile/%w+") then
+			local topic, payload = con:mqtt_recv()
 			local id = topic:match("xterminal/uploadfile/(%w+)")
-			local url, file = msg.payload:match("(%S+) (%S+)")
+			local url, file = payload:match("(%S+) (%S+)")
 			local cmd = string.format("rm -f /tmp/%s;wget -q -P /tmp -T 5 %s/%s", file, url, file) 
 			print(cmd)
 			os.execute(cmd)
-			mgr:mqtt_publish(nc, "xterminal/uploadfilefinish/" .. id, "");
+			con:mqtt_publish("xterminal/uploadfilefinish/" .. id, "");
 		end
 	
 	elseif event == evmg.MG_EV_MQTT_PINGRESP then
@@ -179,7 +181,7 @@ local function ev_handle(nc, event, msg)
 		if keep_alive == 0 then
 			-- Disconnect and reconnection
 			logger(syslog.LOG_ERR, "keep_alive timeout")
-			mgr:set_connection_flags(nc, evmg.MG_F_CLOSE_IMMEDIATELY)
+			con:set_flags(evmg.MG_F_CLOSE_IMMEDIATELY)
 			heartbeat_timer:stop(loop)
 			keep_alive = 3
 		end
@@ -187,7 +189,7 @@ local function ev_handle(nc, event, msg)
 	elseif event == evmg.MG_EV_CLOSE then
 		ev.Timer.new(function()
 			logger(syslog.LOG_ERR, "Try Reconnect...")
-			mgr:connect(mqtt_host .. ":" .. mqtt_port, ev_handle)
+			mgr:connect(ev_handle, mqtt_host .. ":" .. mqtt_port)
 		end, 5):start(loop)
 	end
 end
@@ -205,7 +207,7 @@ end
 
 logger(syslog.LOG_INFO, "devid:", devid)
 
-mgr:connect(mqtt_host .. ":" .. mqtt_port, ev_handle)
+mgr:connect(ev_handle, mqtt_host .. ":" .. mqtt_port)
 
 ev.Signal.new(function(loop, sig, revents)
 	loop:unloop()
@@ -214,8 +216,6 @@ end, ev.SIGINT):start(loop)
 logger(syslog.LOG_INFO, "start...")
 		
 loop:loop()
-
-mgr:destroy()
 
 logger(syslog.LOG_INFO, "exit...")
 

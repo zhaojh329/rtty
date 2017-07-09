@@ -29,7 +29,7 @@ local function log_init()
 	if log_to_stderr then
 		opt = opt + syslog.LOG_PERROR 
 	end
-	syslog.openlog("xterminal device", opt, syslog.LOG_USER)
+	syslog.openlog("xterminal broker", opt, syslog.LOG_USER)
 end
 
 local function logger(level, ...)
@@ -260,58 +260,71 @@ function validate_macaddr(val)
 	return false
 end
 
-local function find_sid_by_websocket(nc)
-	for k, v in pairs(session) do
-		if v.websocket_nc == nc then
-			return k
+local function del_session(s)
+	for k, v in ipairs(session) do
+		if v.sid == s.sid then
+			table.remove(session, k)
+			break
+		end
+	end
+end
+
+local function find_session_by_websocket(con)
+	for _, v in ipairs(session) do
+		if v.con == con then
+			return v
 		end
 	end
 	return nil
 end
 
-local upfile_name
-local function upload_fname(fname)
-	if fname:match("%s+") then return "" end
-	upfile_name = fname
-	return "/tmp/" .. fname
+local function find_session_by_sid(sid)
+	for _, v in ipairs(session) do
+		if v.sid == sid then
+			return v
+		end
+	end
+	return nil
 end
 
-local function http_ev_handle(nc, event, msg)
+local uploadfile_name
+
+local function http_ev_handle(con, event)
 	if event == evmg.MG_EV_HTTP_REQUEST then
-		local uri = msg.uri
+		local uri = con:uri()
 		
 		if uri:match("/%w+%.js") or uri:match("/%w+%.css") then return false end
 		
 		if uri == "/login.html" then
-			if msg.method ~= "POST" then return end
+			if con:method() ~= "POST" then return end
 			
-			local username = mgr:get_http_var(msg.hm, "username") or ""
-			local password = mgr:get_http_var(msg.hm, "password") or ""
+			local username = con:get_http_var("username") or ""
+			local password = con:get_http_var("password") or ""
 			
 			if verify_http_auth(username, password) then
 				local sid = generate_sid()
 				http_sessions[#http_sessions + 1] = {sid = sid, username = username, alive = 120}
-				mgr:http_send_redirect(nc, 302, "/", string.format("Set-Cookie: mgs=%s;path=/", sid));
+				con:send_http_redirect(302, "/", string.format("Set-Cookie: mgs=%s;path=/", sid));
 				
-				logger(syslog.LOG_INFO, "login:", username, msg.remote_addr)
+				logger(syslog.LOG_INFO, "login:", username, con:remote_addr())
 			else
-				mgr:http_send_redirect(nc, 302, "/login.html")
+				con:send_http_redirect(302, "/login.html")
 			end
 			return true
 		end
 		
-		if upfile_name and uri:gsub("/", "") == upfile_name then return false end
+		if uploadfile_name and uri:gsub("/", "") == uploadfile_name then return false end
 		
-		local cookie = msg.headers["Cookie"] or ""
+		local cookie = con:headers()["Cookie"] or ""
 		local sid = cookie:match("mgs=(%w+)")
 		local s = find_http_session(sid)
 		if not s then
-			mgr:http_send_redirect(nc, 302, "/login.html")
+			con:send_http_redirect(302, "/login.html")
 			return true
 		end
 		
 		if uri == "/list" then
-			mgr:send_head(nc, 200, -1)
+			con:send_http_head(200, -1)
 			
 			local devs = {}
 			for k, v in pairs(device) do
@@ -319,85 +332,108 @@ local function http_ev_handle(nc, event, msg)
 			end
 			
 			if #devs > 0 then
-				mgr:print_http_chunk(nc, cjson.encode(devs))
+				con:send_http_chunk(cjson.encode(devs))
 			else
-				mgr:print_http_chunk(nc, "[]")
+				con:send_http_chunk("[]")
 			end
-			mgr:print_http_chunk(nc, "")
+			con:send_http_chunk("")
 			return true
 		end
 		
-		local referer = msg.headers["Referer"]
+		local referer = con:headers()["Referer"]
 		if referer and referer:match("/xterminal.html") or uri == "/xterminal.html" then
 			return false
 		end
 		
-		mgr:http_send_redirect(nc, 301, "/xterminal.html")
+		con:send_http_redirect(301, "/xterminal.html")
 	
-	elseif event == evmg.MG_EV_HTTP_MULTIPART_REQUEST_END and upfile_name then
-		local cmd = string.format("rm -f %s/%s; ln -s /tmp/%s %s/%s", document_root, upfile_name, upfile_name, document_root, upfile_name)
-		os.execute(cmd)
+	elseif event == evmg.MG_EV_HTTP_PART_BEGIN then
+		local part = con:get_http_partinfo()
+		local file_name = part.file_name
+		if not file_name or #file_name == 0 or file_name:match("[^%w%-%._]+") then
+			con:send("HTTP/1.1 500 Internal Server Error\r\nContent-Type: text/plain\r\nConnection: close\r\n\r\nInvalid filename");
+			-- If the false is returned, it continues to be processed by the underlying layer, otherwise finish end processing
+			return true
+		end
+		
+	elseif event == evmg.MG_EV_HTTP_PART_END then
+		local part = con:get_http_partinfo()
+		if part.lfn then
+			os.rename(part.lfn, document_root .. "/" .. part.file_name)
+			uploadfile_name = part.file_name
+		end
+		
 	elseif event == evmg.MG_EV_WEBSOCKET_HANDSHAKE_REQUEST then
-		local mac = msg.query_string and msg.query_string:match("mac=([%x,:]+)") or ""
+		local query_string = con:query_string()
+		local mac = query_string and query_string:match("mac=([%x,:]+)") or ""
 		mac = mac:gsub(":", ""):upper()
-		session[generate_sid()] = {
-			websocket_nc = nc,
-			mac = mac
+		local sid = generate_sid()
+		session[#session + 1] = {
+			con = con,
+			mac = mac,
+			sid = sid
 		}
 		
-		logger(syslog.LOG_INFO, "connect", mac, "by", msg.remote_addr)
+		logger(syslog.LOG_INFO, "connect", mac, "by", con:remote_addr(), "new session:", sid)
 	elseif event == evmg.MG_EV_WEBSOCKET_HANDSHAKE_DONE then
-		local sid = find_sid_by_websocket(nc)
-		local s = session[sid]
+		local s = find_session_by_websocket(con)
 		local mac = s.mac
 		local rsp = {mt = "connect", status = "ok"}
 		
 		if not validate_macaddr(mac) then
-			session[sid] = nil
+			del_session(s)
 			rsp.status = "error"
 			rsp.reason = "invalid macaddress"
 		
 		elseif not device[mac] then
-			session[sid] = nil
+			del_session(s)
 			rsp.status = "error"
 			rsp.reason = "device is offline"
 		end
 		
-		mgr:send_websocket_frame(nc, cjson.encode(rsp), evmg.WEBSOCKET_OP_TEXT)
+		con:send_websocket_frame(cjson.encode(rsp), evmg.WEBSOCKET_OP_TEXT)
 		if rsp.status == "error" then return end
 		
-		mgr:mqtt_subscribe(device[mac].mqtt_nc, "xterminal/touser/data/" .. sid);
-		mgr:mqtt_subscribe(device[mac].mqtt_nc, "xterminal/touser/disconnect/" .. sid);
-		mgr:mqtt_subscribe(device[mac].mqtt_nc, "xterminal/uploadfilefinish/" .. sid);
-		
-		mgr:mqtt_publish(device[mac].mqtt_nc, "xterminal/connect/" .. mac .. "/" .. sid, "");
+		local dev_con = device[mac].con
+		dev_con:mqtt_subscribe("xterminal/touser/data/" .. s.sid);
+		dev_con:mqtt_subscribe("xterminal/touser/disconnect/" .. s.sid);
+		dev_con:mqtt_subscribe("xterminal/uploadfilefinish/" .. s.sid);
+		dev_con:mqtt_publish("xterminal/connect/" .. mac .. "/" .. s.sid, "");
 			
 	elseif event == evmg.MG_EV_WEBSOCKET_FRAME then
-		local sid = find_sid_by_websocket(nc)
-		local s = session[sid]
-		if msg.op == evmg.WEBSOCKET_OP_BINARY then
-			mgr:mqtt_publish(device[s.mac].mqtt_nc, "xterminal/todev/data/" .. sid, msg.data);
-		elseif msg.op == evmg.WEBSOCKET_OP_TEXT then
-			if msg.data and msg.data:match("upfile ") then
-				local url = msg.data:match("upfile (http[s]?://[%w%.:]+)")
-				if url then
-					local data = string.format("%s %s", url, upfile_name)
-					mgr:mqtt_publish(device[s.mac].mqtt_nc, "xterminal/uploadfile/" .. sid, data)
+		local s = find_session_by_websocket(con)
+		if not s then
+			con:send_websocket_frame("", evmg.WEBSOCKET_OP_CLOSE)
+			return
+		end
+		
+		local op = con:websocket_op()
+		local data = con:websocket_frame()
+		local dev_con = device[s.mac].con
+		
+		if op == evmg.WEBSOCKET_OP_BINARY then
+			dev_con:mqtt_publish("xterminal/todev/data/" .. s.sid, data);
+		elseif op == evmg.WEBSOCKET_OP_TEXT then
+			if data and data:match("upfile ") then
+				local url = data:match("upfile (http[s]?://[%w%.:]+)")
+				if url and uploadfile_name then
+					local data = string.format("%s %s", url, uploadfile_name)
+					dev_con:mqtt_publish("xterminal/uploadfile/" .. s.sid, data)
 				else
-					logger(syslog.LOG_ERR, "upfile invalid url:", msg.data)
+					logger(syslog.LOG_ERR, "upfile invalid url:", data)
 				end
 			end
 		end
 	elseif event == evmg.MG_EV_CLOSE then
-		local sid = find_sid_by_websocket(nc)
-		local s = session[sid]
-		
-		if s then
-			session[sid] = nil
-			logger(syslog.LOG_INFO, "session close:", sid)
-			
-			if device[s.mac] then
-				mgr:mqtt_publish(device[s.mac].mqtt_nc, "xterminal/todev/disconnect/" .. sid, "");
+		if con:is_websocket() then
+			local s = find_session_by_websocket(con)
+			if s then
+				del_session(s)
+				logger(syslog.LOG_INFO, "session close:", s.sid)
+				
+				if device[s.mac] then
+					device[s.mac].con:mqtt_publish("xterminal/todev/disconnect/" .. s.sid, "");
+				end
 			end
 		end
 	end
@@ -410,49 +446,51 @@ local mqtt_alive_timer = ev.Timer.new(function(loop, w, event)
 	if mqtt_keep_alive == 0 then w:stop(loop) end
 end, 5, 5)
 
-local function mqtt_ev_handle(nc, event, msg)
+local function mqtt_ev_handle(con, event)
 	if event == evmg.MG_EV_CONNECT then
-		mgr:set_protocol_mqtt(nc)
-		mgr:send_mqtt_handshake_opt(nc, {clean_session = true})
+		local s, err = con:connected()
+		if not s then
+			logger(syslog.LOG_ERR, "connect failed:", err)
+		else
+			con:mqtt_handshake({clean_session = true})
+		end
 		
 	elseif event == evmg.MG_EV_MQTT_CONNACK then
-		if msg.code ~= evmg.MG_EV_MQTT_CONNACK_ACCEPTED then
-			logger(syslog.LOG_ERR, "Got mqtt connection error:", msg.code, msg.reason)
+		local code, err = con:mqtt_conack()
+		if code ~= evmg.MG_EV_MQTT_CONNACK_ACCEPTED then
+			logger(syslog.LOG_ERR, "Got mqtt connection error:", code, err)
 			return
 		end
 		
-		mgr:mqtt_subscribe(nc, "xterminal/heartbeat/+");
+		con:mqtt_subscribe("xterminal/heartbeat/+");
 		mqtt_alive_timer:start(loop)
 		logger(syslog.LOG_INFO, "connect mqtt on *:", mqtt_port, "ok")
 		
 	elseif event == evmg.MG_EV_MQTT_PUBLISH then
-		local topic = msg.topic
+		local topic, payload = con:mqtt_recv()
 		if topic:match("xterminal/heartbeat/%x+") then
 			local mac = topic:match("xterminal/heartbeat/(%x+)")
 			if not device[mac] then
-				device[mac] = {mqtt_nc = nc}
+				device[mac] = {con = con}
 				logger(syslog.LOG_INFO, "new dev:", mac)
 			end
 			device[mac].alive = 5
 		elseif topic:match("xterminal/touser/data/%w+") then
 			local sid = topic:match("xterminal/touser/data/(%w+)")
-			if not session[sid] then return end
-			mgr:send_websocket_frame(session[sid].websocket_nc, msg.payload, evmg.WEBSOCKET_OP_BINARY)
+			local s = find_session_by_sid(sid)
+			if not s then return end
+			s.con:send_websocket_frame(payload, evmg.WEBSOCKET_OP_BINARY)
 		elseif topic:match("xterminal/touser/disconnect/%w+") then
 			local sid = topic:match("xterminal/touser/disconnect/(%w+)")
-			if not session[sid] then return end
-			local s = session[sid]
+			local s = find_session_by_sid(sid)
+			if not s then return end
 			
-			mgr:send_websocket_frame(session[sid].websocket_nc, "", evmg.WEBSOCKET_OP_CLOSE)
+			s.con:send_websocket_frame("", evmg.WEBSOCKET_OP_CLOSE)
 			logger(syslog.LOG_INFO, "device close:", s.mac)
 		elseif topic:match("xterminal/uploadfilefinish/%w+") then
-			local sid = topic:match("xterminal/uploadfilefinish/(%w+)")
-			if not session[sid] then return end
-			local s = session[sid]
-			local cmd = string.format("rm -f /tmp/%s %s/%s", upfile_name, document_root, upfile_name)
-			os.execute(cmd)
-			local rsp = {mt = "upfile"}
-			mgr:send_websocket_frame(session[sid].websocket_nc, cjson.encode(rsp), evmg.WEBSOCKET_OP_TEXT)
+			if uploadfile_name then
+				os.execute("rm -f " .. document_root .. "/" .. uploadfile_name)
+			end
 		end
 		
 	elseif event == evmg.MG_EV_MQTT_PINGRESP then
@@ -462,13 +500,13 @@ local function mqtt_ev_handle(nc, event, msg)
 		if mqtt_keep_alive == 0 then
 			-- Disconnect and reconnection
 			logger(syslog.LOG_ERR, "mqtt_keep_alive timeout")
-			mgr:set_connection_flags(nc, evmg.MG_F_CLOSE_IMMEDIATELY)
+			con:set_flags(evmg.MG_F_CLOSE_IMMEDIATELY)
 			mqtt_keep_alive = 3
 		end
 	elseif event == evmg.MG_EV_CLOSE then
 		ev.Timer.new(function()
 			logger(syslog.LOG_ERR, "Try MQTT Reconnect...")
-			mgr:connect(mqtt_port, mqtt_ev_handle)
+			mgr:connect(mqtt_ev_handle, mqtt_port)
 		end, 10):start(loop)
 	end
 end
@@ -501,11 +539,10 @@ if show then show_conf() end
 
 log_init()
 
-mgr:connect(mqtt_port, mqtt_ev_handle)
+mgr:connect(mqtt_ev_handle, mqtt_port)
 logger(syslog.LOG_INFO, "Connect to mqtt broker", mqtt_port)
 
-local nc = mgr:bind(http_port, http_ev_handle, {proto = "http", document_root = document_root, ssl_cert = ssl_cert, ssl_key = ssl_key})
-mgr:set_fu_fname_fn(nc, upload_fname)
+mgr:listen(http_ev_handle, http_port, {proto = "http", document_root = document_root, ssl_cert = ssl_cert, ssl_key = ssl_key})
 logger(syslog.LOG_INFO, "Listen on http", http_port)
 
 ev.Signal.new(function(loop, sig, revents)
@@ -515,8 +552,6 @@ end, ev.SIGINT):start(loop)
 logger(syslog.LOG_INFO, "start...")
 
 loop:loop()
-
-mgr:destroy()
 
 logger(syslog.LOG_INFO, "exit...")
 
