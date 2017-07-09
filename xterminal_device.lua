@@ -27,7 +27,7 @@ local function log_init()
 end
 
 local function logger(level, ...)
-	syslog.syslog(level, table.concat({...}, "\t"))
+	syslog.syslog(level, table.concat({...}, "  "))
 end
 
 local function usage()
