@@ -43,17 +43,13 @@ local function usage()
 end
 
 local function parse_commandline()
-	local long = {
-		{"help",  "none", 'h'},
-		{"mqtt-port", "required", "0"},
-		{"mqtt-host", "required", "0"}
+	local longopt = {
+		{"help",  false, 'h'},
+		{"mqtt-port", true, "0"},
+		{"mqtt-host", true, "0"}
 	}
 	
-	for r, optarg, optind, longindex in posix.getopt(ARGV, "hsdi:", long) do
-		if r == '?' or r == "h" then
-			usage()
-		end
-		
+	for r, optarg, longindex in evmg.getopt(ARGV, "hsdi:", longopt) do
 		if r == "d" then
 			log_to_stderr = true
 		elseif r == "i" then
@@ -61,7 +57,7 @@ local function parse_commandline()
 		elseif r == "s" then
 			show = true
 		elseif r == "0" then
-			local name = long[longindex + 1][1]
+			local name = longopt[longindex][1]
 			if name == "mqtt-port" then
 				mqtt_port = optarg
 			elseif name == "mqtt-host" then

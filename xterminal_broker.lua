@@ -36,80 +36,6 @@ local function logger(level, ...)
 	syslog.syslog(level, table.concat({...}, "  "))
 end
 
-local function getopt(args, optstring, longopts)
-	
-	local program = args[0]
-	local i = 1
-	
-	return function()
-		local a = args[i]
-		if not a then return nil end
-		
-		if a:sub(1, 2) == "--" then
-			local name = a:sub(3)
-			
-			if not name or #name == 0 then
-				i = i + 1
-				return "?"
-			end
-			
-			for _, v in ipairs(longopts) do
-				if v[1] == name then
-					local optarg = v[2] and args[i + 1] or nil
-					
-					if v[2] then
-						if not optarg then
-							print(program .. ":", "option requires an argument -- '" .. name .. "'")
-							os.exit()
-						end
-						
-						i = i + 1
-					end
-					
-					i = i + 1
-					return v[3], optarg, v[1]
-				end
-			end
-			
-			print(program .. ":", "invalid option -- '" .. name .. "'")
-			
-		elseif a:sub(1, 1) == "-" then
-			local o = a:sub(2, 2)
-			
-			if not o or #o == 0 then
-				i = i + 1
-				return "?" 
-			end
-			
-			if not optstring:match(o) then
-				print(program .. ":", "invalid option -- '" .. o .. "'")
-				os.exit()
-			end
-			
-			local optarg
-			if optstring:match(o .. ":") then
-				if #a > 2 then
-					optarg = a:sub(3)
-				else
-					optarg = args[i + 1]
-					i = i + 1
-				end
-				
-				if not optarg then
-					print(program .. ":", "option requires an argument -- '" .. o .. "'")
-					os.exit()
-				end
-			end
-			
-			i = i + 1
-			return o, optarg
-		else
-			i = i + 1
-			return "?"
-		end
-	end
-end
-
 local function usage()
 	print("Usage:", ARGV[0], "options")
 	print([[
@@ -157,15 +83,15 @@ end
 local function parse_commandline()
 	local longopt = {
 		{"help",  nil, 'h'},
-		{"mqtt-port", true, 0},
-		{"http-port", true, 0},
-		{"document", true, 0},
-		{"http-auth", true, 0},
-		{"ssl-cert", true, 0},
-		{"ssl-key", true, 0}
+		{"mqtt-port", true, "0"},
+		{"http-port", true, "0"},
+		{"document", true, "0"},
+		{"http-auth", true, "0"},
+		{"ssl-cert", true, "0"},
+		{"ssl-key", true, "0"}
 	}
 	
-	for o, optarg, lo in getopt(ARGV, "hsdc:", longopt) do
+	for o, optarg, longindex in evmg.getopt(ARGV, "hsdc:", longopt) do
 		if o == "d" then
 			log_to_stderr = true
 		elseif o == "c" then
@@ -173,17 +99,18 @@ local function parse_commandline()
 		elseif o == "s" then
 			show = true
 		elseif o == "0" then
-			if lo == "mqtt-port" then
+			local name = longopt[longindex][1]
+			if name == "mqtt-port" then
 				mqtt_port = optarg
-			elseif lo == "http-port" then
+			elseif name == "http-port" then
 				http_port = optarg
-			elseif lo == "document" then
+			elseif name == "document" then
 				document_root = optarg
-			elseif lo == "http-auth" then
+			elseif name == "http-auth" then
 				http_auth[#http_auth + 1] = optarg
-			elseif lo == "ssl-cert" then
+			elseif name == "ssl-cert" then
 				ssl_cert = optarg
-			elseif lo == "ssl-key" then
+			elseif name == "ssl-key" then
 				ssl_key = optarg
 			end
 		else
