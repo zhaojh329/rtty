@@ -60,6 +60,13 @@ xTerminal是一个多终端的远程Web Shell工具。有了它，你可以在�
 		Terminal  --->
 			<*> xterminal
 	
+	# 上传文件到终端设备需要ssl支持
+	Libraries  --->
+		Networking  --->
+			*- evmongoose
+				Configuration  --->
+					Selected SSL library (OpenSSL)  --->
+					
 	make package/xterminal/compile V=s
 
 ### 修改配置(/etc/config/xterminal)

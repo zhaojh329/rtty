@@ -4,9 +4,7 @@ local ev = require("ev")
 local evmg = require("evmongoose")
 local cjson = require("cjson")
 local posix = evmg.posix
-
 local loop = ev.Loop.default
-local mgr = evmg.init()
 
 local ARGV = arg
 local show = false
@@ -122,6 +120,8 @@ end, 5, 5)
 local heartbeat_timer
 
 local function ev_handle(con, event)
+	local mgr = con:get_mgr()
+	
 	if event == evmg.MG_EV_CONNECT then
 		local s, err = con:connected()
 		if not s then
@@ -165,9 +165,19 @@ local function ev_handle(con, event)
 			local id = topic:match("xterminal/uploadfile/(%w+)")
 			local url, file = payload:match("(%S+) (%S+)")
 			local cmd = string.format("rm -f /tmp/%s;wget -q -P /tmp -T 5 %s/%s", file, url, file) 
-			print(cmd)
-			os.execute(cmd)
-			con:mqtt_publish("xterminal/uploadfilefinish/" .. id, "");
+			
+			mgr:connect_http(function(con2, event2)
+				if event2 == evmg.MG_EV_HTTP_REPLY then
+					con2:set_flags(evmg.MG_F_CLOSE_IMMEDIATELY)
+					local body = con2:body()
+					
+					local file = io.open("/tmp/" .. file, "w")
+					file:write(body)
+					file:close()
+					
+					con:mqtt_publish("xterminal/uploadfilefinish/" .. id, "");
+				end
+			end, string.format("%s/%s",url, file))
 		end
 	
 	elseif event == evmg.MG_EV_MQTT_PINGRESP then
@@ -190,29 +200,28 @@ local function ev_handle(con, event)
 	end
 end
 
-parse_commandline()
-if show then show_conf() end
+local function main()
+	parse_commandline()
+	if show then show_conf() end
+	log_init()
+	
+	ev.Signal.new(function(loop, sig, revents)
+		loop:unloop()
+	end, ev.SIGINT):start(loop)
 
-log_init()
-
-devid = get_dev_id(ifname)
-if not devid then
-	logger(posix.LOG_ERR, "get dev id failed for", ifname)
-	os.exit()
+	devid = get_dev_id(ifname)
+	if not devid then
+		logger(posix.LOG_ERR, "get dev id failed for", ifname)
+		os.exit()
+	end
+	logger(posix.LOG_INFO, "devid:", devid)
+	
+	local mgr = evmg.init()
+	mgr:connect(ev_handle, mqtt_host .. ":" .. mqtt_port)
+	
+	loop:loop()
+	logger(posix.LOG_INFO, "exit...")
+	posix.closelog()
 end
 
-logger(posix.LOG_INFO, "devid:", devid)
-
-mgr:connect(ev_handle, mqtt_host .. ":" .. mqtt_port)
-
-ev.Signal.new(function(loop, sig, revents)
-	loop:unloop()
-end, ev.SIGINT):start(loop)
-
-logger(posix.LOG_INFO, "start...")
-		
-loop:loop()
-
-logger(posix.LOG_INFO, "exit...")
-
-posix.closelog()
+main()

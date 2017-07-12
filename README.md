@@ -61,6 +61,13 @@ two parts, server and client.
 		Terminal  --->
 			<*> xterminal
 	
+	# to upload file to device, must be select ssl
+	Libraries  --->
+		Networking  --->
+			*- evmongoose
+				Configuration  --->
+					Selected SSL library (OpenSSL)  --->
+	
 	make package/xterminal/compile V=s
 
 ### Modify config(/etc/config/xterminal)
