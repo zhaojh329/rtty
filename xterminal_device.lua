@@ -87,7 +87,7 @@ end
 
 local function new_connect(con, id)
 	local pid, pty = posix.forkpty()
-	if pid == 0 then posix.exec("/bin/login", {"/bin/login"}) end
+	if pid == 0 then posix.exec("/bin/login") end
 	
 	session[id] = {pid = pid, pty = pty}
 	
