@@ -217,12 +217,13 @@ local uploadfile_name
 
 local function http_ev_handle(con, event)
 	if event == evmg.MG_EV_HTTP_REQUEST then
-		local uri = con:uri()
+		local hm = con:get_evdata()
+		local uri = hm.uri
 		
 		if uri:match("/%w+%.js") or uri:match("/%w+%.css") then return false end
 		
 		if uri == "/login.html" then
-			if con:method() ~= "POST" then return end
+			if hm.method ~= "POST" then return end
 			
 			local username = con:get_http_var("username") or ""
 			local password = con:get_http_var("password") or ""
@@ -232,7 +233,7 @@ local function http_ev_handle(con, event)
 				http_sessions[#http_sessions + 1] = {sid = sid, username = username, alive = 120}
 				con:send_http_redirect(302, "/", string.format("Set-Cookie: mgs=%s;path=/", sid));
 				
-				logger(posix.LOG_INFO, "login:", username, con:remote_addr())
+				logger(posix.LOG_INFO, "login:", username, hm.remote_addr)
 			else
 				con:send_http_redirect(302, "/login.html")
 			end
@@ -241,7 +242,8 @@ local function http_ev_handle(con, event)
 		
 		if uploadfile_name and uri:gsub("/", "") == uploadfile_name then return false end
 		
-		local cookie = con:headers()["Cookie"] or ""
+		local headers = con:get_http_headers()
+		local cookie = headers["Cookie"] or ""
 		local sid = cookie:match("mgs=(%w+)")
 		local s = find_http_session(sid)
 		if not s then
@@ -266,7 +268,7 @@ local function http_ev_handle(con, event)
 			return true
 		end
 		
-		local referer = con:headers()["Referer"]
+		local referer = headers["Referer"]
 		if referer and referer:match("/xterminal.html") or uri == "/xterminal.html" then
 			return false
 		end
@@ -274,7 +276,7 @@ local function http_ev_handle(con, event)
 		con:send_http_redirect(301, "/xterminal.html")
 	
 	elseif event == evmg.MG_EV_HTTP_PART_BEGIN then
-		local part = con:get_http_partinfo()
+		local part = con:get_evdata()
 		local file_name = part.file_name
 		if not file_name or #file_name == 0 or file_name:match("[^%w%-%._]+") then
 			con:send("HTTP/1.1 500 Internal Server Error\r\nContent-Type: text/plain\r\nConnection: close\r\n\r\nInvalid filename");
@@ -283,14 +285,15 @@ local function http_ev_handle(con, event)
 		end
 		
 	elseif event == evmg.MG_EV_HTTP_PART_END then
-		local part = con:get_http_partinfo()
+		local part = con:get_evdata()
 		if part.lfn then
 			os.rename(part.lfn, document_root .. "/" .. part.file_name)
 			uploadfile_name = part.file_name
 		end
 		
 	elseif event == evmg.MG_EV_WEBSOCKET_HANDSHAKE_REQUEST then
-		local query_string = con:query_string()
+		local hm = con:get_evdata()
+		local query_string = hm.query_string
 		local mac = query_string and query_string:match("mac=([%x,:]+)") or ""
 		mac = mac:gsub(":", ""):upper()
 		local sid = generate_sid()
@@ -300,7 +303,7 @@ local function http_ev_handle(con, event)
 			sid = sid
 		}
 		
-		logger(posix.LOG_INFO, "connect", mac, "by", con:remote_addr(), "new session:", sid)
+		logger(posix.LOG_INFO, "connect", mac, "by", hm.remote_addr, "new session:", sid)
 	elseif event == evmg.MG_EV_WEBSOCKET_HANDSHAKE_DONE then
 		local s = find_session_by_websocket(con)
 		local mac = s.mac
@@ -321,20 +324,25 @@ local function http_ev_handle(con, event)
 		if rsp.status == "error" then return end
 		
 		local dev_con = device[mac].con
-		dev_con:mqtt_subscribe("xterminal/touser/data/" .. s.sid);
-		dev_con:mqtt_subscribe("xterminal/touser/disconnect/" .. s.sid);
-		dev_con:mqtt_subscribe("xterminal/uploadfilefinish/" .. s.sid);
+		local topic = {
+			{name = "xterminal/touser/data/" .. s.sid},
+			{name = "xterminal/touser/disconnect/" .. s.sid},
+			{name = "xterminal/uploadfilefinish/" .. s.sid}
+		}
+		
+		dev_con:mqtt_subscribe(topic);
 		dev_con:mqtt_publish("xterminal/connect/" .. mac .. "/" .. s.sid, "");
 			
 	elseif event == evmg.MG_EV_WEBSOCKET_FRAME then
+		local msg = con:get_evdata()
 		local s = find_session_by_websocket(con)
 		if not s then
 			con:send_websocket_frame("", evmg.WEBSOCKET_OP_CLOSE)
 			return
 		end
 		
-		local op = con:websocket_op()
-		local data = con:websocket_frame()
+		local op = msg.op
+		local data = msg.frame
 		local dev_con = device[s.mac].con
 		
 		if op == evmg.WEBSOCKET_OP_BINARY then
@@ -374,26 +382,30 @@ end, 5, 5)
 
 local function mqtt_ev_handle(con, event)
 	if event == evmg.MG_EV_CONNECT then
-		local s, err = con:connected()
-		if not s then
-			logger(posix.LOG_ERR, "connect failed:", err)
+		local result = con:get_evdata()
+		if not result.connected then
+			logger(posix.LOG_ERR, "connect failed:", result.err)
 		else
 			con:mqtt_handshake({clean_session = true})
 		end
 		
 	elseif event == evmg.MG_EV_MQTT_CONNACK then
-		local code, err = con:mqtt_conack()
-		if code ~= evmg.MG_EV_MQTT_CONNACK_ACCEPTED then
-			logger(posix.LOG_ERR, "Got mqtt connection error:", code, err)
+		local msg = con:get_evdata()
+		if msg.code ~= evmg.MG_EV_MQTT_CONNACK_ACCEPTED then
+			logger(posix.LOG_ERR, "Got mqtt connection error:", msg.code, msg.err)
 			return
 		end
 		
-		con:mqtt_subscribe("xterminal/heartbeat/+");
+		local topic = {
+			{name = "xterminal/heartbeat/+"}
+		}
+		con:mqtt_subscribe(topic);
 		mqtt_alive_timer:start(loop)
 		logger(posix.LOG_INFO, "connect mqtt on *:", mqtt_port, "ok")
 		
 	elseif event == evmg.MG_EV_MQTT_PUBLISH then
-		local topic, payload = con:mqtt_recv()
+		local msg = con:get_evdata()
+		local topic, payload = msg.topic, msg.payload
 		if topic:match("xterminal/heartbeat/%x+") then
 			local mac = topic:match("xterminal/heartbeat/(%x+)")
 			if not device[mac] then

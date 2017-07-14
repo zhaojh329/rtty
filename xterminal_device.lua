@@ -91,9 +91,13 @@ local function new_connect(con, id)
 	
 	session[id] = {pid = pid, pty = pty}
 	
-	con:mqtt_subscribe("xterminal/todev/data/" .. id);
-	con:mqtt_subscribe("xterminal/todev/disconnect/" .. id);
-	con:mqtt_subscribe("xterminal/uploadfile/" .. id);
+	local topic = {
+		{name = "xterminal/todev/data/" .. id},
+		{name = "xterminal/todev/disconnect/" .. id},
+		{name = "xterminal/uploadfile/" .. id}
+	}
+		
+	con:mqtt_subscribe(topic);
 	
 	session[id].rio = ev.IO.new(function(loop, w, revents)
 		local d, err = posix.read(w:getfd(), 1024)
@@ -123,21 +127,24 @@ local function ev_handle(con, event)
 	local mgr = con:get_mgr()
 	
 	if event == evmg.MG_EV_CONNECT then
-		local s, err = con:connected()
-		if not s then
-			logger(posix.LOG_ERR, "connect failed:", err)
+		local result = con:get_evdata()
+		if not result.connected then
+			logger(posix.LOG_ERR, "connect failed:", result.err)
 		else
 			con:mqtt_handshake({clean_session = true})
 		end
 		
 	elseif event == evmg.MG_EV_MQTT_CONNACK then
-		local code, err = con:mqtt_conack()
-		if code ~= evmg.MG_EV_MQTT_CONNACK_ACCEPTED then
-			logger(posix.LOG_ERR, "Got mqtt connection error:", code, err)
+		local msg = con:get_evdata()
+		if msg.code ~= evmg.MG_EV_MQTT_CONNACK_ACCEPTED then
+			logger(posix.LOG_ERR, "Got mqtt connection error:", msg.code, msg.err)
 			return
 		end
 		
-		con:mqtt_subscribe("xterminal/connect/" .. devid ..  "/+");
+		local topic = {
+			{name = "xterminal/connect/" .. devid ..  "/+"}
+		}
+		con:mqtt_subscribe(topic);
 		heartbeat_timer = ev.Timer.new(function(loop, timer, revents) con:mqtt_publish("xterminal/heartbeat/" .. devid, "") end, 0.1, 3)
 		heartbeat_timer:start(loop)
 		alive_timer:start(loop)
@@ -145,7 +152,9 @@ local function ev_handle(con, event)
 		logger(posix.LOG_INFO, "connect", mqtt_host, mqtt_port, "ok")
 		
 	elseif event == evmg.MG_EV_MQTT_PUBLISH then
-		local topic, payload = con:mqtt_recv()
+		local msg = con:get_evdata()
+		local topic, payload = msg.topic, msg.payload
+		
 		if topic:match("xterminal/connect/%w+") then
 			local id = topic:match("xterminal/connect/" .. devid .. "/(%w+)")
 			logger(posix.LOG_INFO, "New connection:", id)
