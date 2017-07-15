@@ -166,7 +166,7 @@ local function ev_handle(con, event)
 			local id = topic:match("xterminal/todev/disconnect/(%w+)")
 			if session[id] then
 				logger(posix.LOG_INFO, "connection close:", id)
-				posix.kill(session[id].pid)
+				posix.kill(session[id].pid, posix.SIGKILL)
 				session[id].rio:stop(loop)
 			end
 		elseif topic:match("xterminal/uploadfile/%w+") then
