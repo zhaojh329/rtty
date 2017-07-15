@@ -170,7 +170,8 @@ local function ev_handle(con, event)
 				session[id].rio:stop(loop)
 			end
 		elseif topic:match("xterminal/uploadfile/%w+") then
-			local topic, payload = con:mqtt_recv()
+			local msg = con:get_evdata()
+			local topic, payload = msg.topic, msg.payload
 			local id = topic:match("xterminal/uploadfile/(%w+)")
 			local url, file = payload:match("(%S+) (%S+)")
 			local cmd = string.format("rm -f /tmp/%s;wget -q -P /tmp -T 5 %s/%s", file, url, file) 
@@ -178,7 +179,7 @@ local function ev_handle(con, event)
 			mgr:connect_http(function(con2, event2)
 				if event2 == evmg.MG_EV_HTTP_REPLY then
 					con2:set_flags(evmg.MG_F_CLOSE_IMMEDIATELY)
-					local body = con2:body()
+					local body = con2:get_http_body()
 					
 					local file = io.open("/tmp/" .. file, "w")
 					file:write(body)
