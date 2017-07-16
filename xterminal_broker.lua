@@ -138,17 +138,8 @@ local function verify_http_auth(username, password)
 	return false
 end
 
-local function generate_sid()
-	local t = {}
-	for i = 1, 5 do
-		t[#t + 1] = string.char(math.random(65, 90))
-	end
-	
-	for i = 1, 5 do
-		t[#t + 1] = string.char(math.random(48, 57))
-	end
-	
-	return table.concat(t)
+local function generate_sid(con)
+	return evmg.cs_md5(con:tostring(), string.format("%f", evmg.mg_time()))
 end
 
 local function find_http_session(sid)
@@ -229,7 +220,7 @@ local function http_ev_handle(con, event)
 			local password = con:get_http_var("password") or ""
 			
 			if verify_http_auth(username, password) then
-				local sid = generate_sid()
+				local sid = generate_sid(con)
 				http_sessions[#http_sessions + 1] = {sid = sid, username = username, alive = 120}
 				con:send_http_redirect(302, "/", string.format("Set-Cookie: mgs=%s;path=/", sid));
 				
@@ -296,7 +287,7 @@ local function http_ev_handle(con, event)
 		local query_string = hm.query_string
 		local mac = query_string and query_string:match("mac=([%x,:]+)") or ""
 		mac = mac:gsub(":", ""):upper()
-		local sid = generate_sid()
+		local sid = generate_sid(con)
 		session[#session + 1] = {
 			con = con,
 			mac = mac,
