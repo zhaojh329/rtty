@@ -1,4 +1,4 @@
-# xTerminal([C语言版本](https://github.com/zhaojh329/xterminal/tree/c)[github](https://github.com/zhaojh329/xterminal))
+# xTerminal([C语言版本](https://github.com/zhaojh329/xterminal/tree/c))([github](https://github.com/zhaojh329/xterminal))
 
 ![](https://img.shields.io/badge/license-GPLV3-brightgreen.svg?style=plastic "License")
 
