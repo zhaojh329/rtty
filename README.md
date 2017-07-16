@@ -1,5 +1,7 @@
 # xTerminal([中文](https://github.com/zhaojh329/xterminal/blob/master/README_ZH.md))([github](https://github.com/zhaojh329/xterminal))
 
+# [xTerminal of C language version](https://github.com/zhaojh329/xterminal/tree/c)
+
 ![](https://img.shields.io/badge/license-GPLV3-brightgreen.svg?style=plastic "License")
 
 XTerminal is a remote web shell tool for multi terminal devices. With it, you can access the Shell in any of your devices that can access the Internet via the 

@@ -1,5 +1,7 @@
 # xTerminal([github](https://github.com/zhaojh329/xterminal))
 
+# [C语言版本](https://github.com/zhaojh329/xterminal/tree/c)
+
 ![](https://img.shields.io/badge/license-GPLV3-brightgreen.svg?style=plastic "License")
 
 xTerminal是一个多终端的远程Web Shell工具。有了它，你可以在任何一台能上网的设备上通过浏览器访问你的任何一台能上网的设备的Shell。它非常适合公司
