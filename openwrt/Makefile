@@ -1,12 +1,12 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=xterminal
-PKG_VERSION:=2017-7-12
+PKG_VERSION:=2017-7-16
 PKG_RELEASE:=$(PKG_SOURCE_VERSION)
 
 PKG_SOURCE_PROTO:=git
 PKG_SOURCE_URL:=https://github.com/zhaojh329/xterminal.git
-PKG_SOURCE_VERSION:=5c9906340d35aac8f59462dc708fed7eeaf1f011
+PKG_SOURCE_VERSION:=1f02299472609cbe821fbc84d084ccc4c0eeef6e
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 
 include $(INCLUDE_DIR)/package.mk
