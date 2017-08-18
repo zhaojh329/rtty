@@ -59,7 +59,7 @@ local function parse_config()
 	local key, val
 	for line in io.lines(conf) do
 		if not line:match("^#") then
-			key, val = line:match("([%w%-]+)=([%w%.:/_]+)")
+			key, val = line:match("([%w%-]+)=([%w%.:/_@]+)")
 			if key and val then
 				if key == "mqtt-port" then
 					mqtt_port = val
