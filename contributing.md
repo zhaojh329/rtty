@@ -22,14 +22,12 @@ If you want to contribute to [xterminal](https://github.com/zhaojh329/xterminal)
 
 4. Make your changes
 
-5. Don't forget to add yourself in `contributors.md`.
-
-6. Commit and push your changes, then make a pull request from Github.
+5. Commit and push your changes, then make a pull request from Github.
 
     git commit --signoff  
     git push
     
-7. Awaiting review, if accepted, merged!
+6. Awaiting review, if accepted, merged!
 
 **IMPORTANT**
 
