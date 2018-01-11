@@ -213,20 +213,26 @@ static void uwsc_onclose(struct uwsc_client *cl)
 
 static void usage(const char *prog)
 {
-    fprintf(stderr, "Usage: %s -i ifname -p port\n", prog);
+    fprintf(stderr, "Usage: %s [option]\n"
+        "      -i ifname\n"
+        "      -h host      # Server host\n"
+        "      -p port      # Server port\n"
+        "      -s           # Whether use ssl\n", prog);
     exit(1);
 }
 
 int main(int argc, char **argv)
 {
     int opt;
-    int port = 8080;
+    const char *host = NULL;
+    int port = 0;
     char url[128] = "";
+    bool ssl = false;
     struct uloop_timeout keepalive_timer = {
         .cb = keepalive
     };
 
-    while ((opt = getopt(argc, argv, "i:p:")) != -1) {
+    while ((opt = getopt(argc, argv, "i:h:p:s")) != -1) {
         switch (opt)
         {
         case 'i':
@@ -234,21 +240,26 @@ int main(int argc, char **argv)
                 return -1;
             }
             break;
+        case 'h':
+            host = optarg;
+            break;
         case 'p':
             port = atoi(optarg);
+            break;
+        case 's':
+            ssl = true;
             break;
         default: /* '?' */
             usage(argv[0]);
         }
     }
 
-    if (!mac[0])
+    if (!mac[0] || !host || !port)
         usage(argv[0]);
 
     uloop_init();
 
-    snprintf(url, sizeof(url), "ws://127.0.0.1:%d/ws/device?mac=%s", port, mac);
-
+    snprintf(url, sizeof(url), "%s://%s:%d/ws/device?mac=%s", ssl ? "wss" : "ws", host, port, mac);
     cl = uwsc_new(url);
     if (!cl)
         return -1;
