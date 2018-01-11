@@ -5,7 +5,7 @@ find_package(Libubox REQUIRED)
 find_package(Libuwsc REQUIRED)
 
 include_directories(${LIBUWSC_INCLUDE_DIR} ${LIBUBOX_INCLUDE_DIR})
-set(EXTRA_LIBS ${LIBUWSC_LIBRARY} ${LIBUBOX_LIBRARY} uci blobmsg_json util)
+set(EXTRA_LIBS ${LIBUWSC_LIBRARY} ${LIBUBOX_LIBRARY} blobmsg_json util)
 
 add_executable(xttyd main.c utils.c)
 target_link_libraries(xttyd ${EXTRA_LIBS})
