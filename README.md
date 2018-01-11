@@ -44,7 +44,7 @@ Select package xttyd in menuconfig and compile new image.
 	sudo apt install python3 python3-pip
 	sudo pip3 install aiohttp uvloop
 	git clone https://github.com/zhaojh329/xttyd.git
-	cd xttyd/server && ./xttyd.py -p 8080
+	cd xttyd/server && ./xttyd.py -p 5912
 
 # Contributing
 If you would like to help making [xttyd](https://github.com/zhaojh329/xttyd) better,

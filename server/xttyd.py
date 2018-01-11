@@ -84,7 +84,7 @@ async def websocket_handler_browser(request):
 async def handle_list(request):
     return web.json_response(list(devices.devs.keys()))
 
-port = 8080
+port = 5912
 document = '.'
 opts, args = getopt.getopt(sys.argv[1:], "p:d:")
 for op, value in opts:
