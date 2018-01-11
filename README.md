@@ -40,11 +40,23 @@ Select package xttyd in menuconfig and compile new image.
             <*> xttyd................................... Share your terminal over the web
 
 # Deploying the server side
+## Install dependencies
 
 	sudo apt install python3 python3-pip
 	sudo pip3 install aiohttp uvloop
+
+##  clone code
+
 	git clone https://github.com/zhaojh329/xttyd.git
+
+## Manual run
+
 	cd xttyd/server && ./xttyd.py -p 5912
+
+## Install the automatic boot script
+
+    sudo ./install.sh
+    sudo /etc/init.d/xttyd start
 
 # Contributing
 If you would like to help making [xttyd](https://github.com/zhaojh329/xttyd) better,

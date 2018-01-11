@@ -40,11 +40,23 @@ Select package xttyd in menuconfig and compile new image.
             <*> xttyd................................... Share your terminal over the web
 
 # 部署服务端
+## 安装依赖
 
-	sudo apt install python3 python3-pip
-	sudo pip3 install aiohttp uvloop
-	git clone https://github.com/zhaojh329/xttyd.git
-	cd xttyd/server && ./xttyd.py -p 5912
+    sudo apt install python3 python3-pip
+    sudo pip3 install aiohttp uvloop
+
+##  克隆代码
+
+    git clone https://github.com/zhaojh329/xttyd.git
+
+## 手动运行
+
+    cd xttyd/server && ./xttyd.py -p 5912
+
+## 安装自启动脚本，后台运行
+
+    sudo ./install.sh
+    sudo /etc/init.d/xttyd start
 
 # 贡献代码
 如果你想帮助[xttyd](https://github.com/zhaojh329/xttyd)变得更好，请参考
