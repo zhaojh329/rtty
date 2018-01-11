@@ -4,10 +4,6 @@
 
 [ttyd]: https://github.com/tsl0922/ttyd
 [libubox]: https://git.openwrt.org/?p=project/libubox.git
-[ustream-ssl]: https://git.openwrt.org/?p=project/ustream-ssl.git
-[openssl]: https://github.com/openssl/openssl
-[mbedtls]: https://github.com/ARMmbed/mbedtls
-[CyaSSl(wolfssl)]: https://github.com/wolfSSL/wolfssl
 [libuwsc]: https://github.com/zhaojh329/libuwsc
 
 Share your terminal over the web. Unlike [ttyd], xTTYD consists of two parts of the client and the server.
@@ -25,10 +21,6 @@ xTTYD can share the shell of your device based on the MAC address you specify.
 # Dependencies for Client side
 * [libubox]
 * [libuwsc]
-* [ustream-ssl] - If you need to support SSL
-* [mbedtls] - If you choose mbedtls as your SSL backend
-* [CyaSSl(wolfssl)] - If you choose wolfssl as your SSL backend
-* [openssl] - If you choose openssl as your SSL backend
 
 # How to use on OpenWRT
 add new feed into "feeds.conf.default":
@@ -45,10 +37,7 @@ Select package xttyd in menuconfig and compile new image.
 
     Utilities  --->
         Terminal  --->
-            < > xttyd-mbedtls.................................... xttyd (mbedtls)
-            <*> xttyd-nossl....................................... xttyd (NO SSL)
-            < > xttyd-openssl.................................... xttyd (openssl)
-            < > xttyd-wolfssl.................................... xttyd (wolfssl)
+            <*> xttyd....................................... xTTYD
 
 # Deploying the server side
 

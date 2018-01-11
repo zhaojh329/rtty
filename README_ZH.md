@@ -4,10 +4,6 @@
 
 [ttyd]: https://github.com/tsl0922/ttyd
 [libubox]: https://git.openwrt.org/?p=project/libubox.git
-[ustream-ssl]: https://git.openwrt.org/?p=project/ustream-ssl.git
-[openssl]: https://github.com/openssl/openssl
-[mbedtls]: https://github.com/ARMmbed/mbedtls
-[CyaSSl(wolfssl)]: https://github.com/wolfSSL/wolfssl
 [libuwsc]: https://github.com/zhaojh329/libuwsc
 
 通过Web分享你的终端。与[ttyd]不同的是，xTTYD由服务端和客户端两部分组成。
@@ -25,10 +21,6 @@ xTTYD可以根据你指定的MAC地址分享你的设备的Shell。
 # 客户端依赖
 * [libubox]
 * [libuwsc]
-* [ustream-ssl] - 如果你需要支持SSL
-* [mbedtls] - 如果你选择mbedtls作为你的SSL后端
-* [CyaSSl(wolfssl)] - 如果你选择wolfssl作为你的SSL后端
-* [openssl] - 如果你选择openssl作为你的SSL后端
 
 # 如何在OpenWRT中使用
 add new feed into "feeds.conf.default":
@@ -45,10 +37,7 @@ Select package xttyd in menuconfig and compile new image.
 
     Utilities  --->
         Terminal  --->
-            < > xttyd-mbedtls.................................... xttyd (mbedtls)
-            <*> xttyd-nossl....................................... xttyd (NO SSL)
-            < > xttyd-openssl.................................... xttyd (openssl)
-            < > xttyd-wolfssl.................................... xttyd (wolfssl)
+            <*> xttyd....................................... xTTYD
 
 # 部署服务端
 
