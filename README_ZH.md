@@ -37,7 +37,7 @@ Select package xttyd in menuconfig and compile new image.
 
     Utilities  --->
         Terminal  --->
-            <*> xttyd....................................... xTTYD
+            <*> xttyd................................... Share your terminal over the web
 
 # 部署服务端
 
