@@ -65,6 +65,9 @@ Install the automatic boot script
     sudo ./install.sh
     sudo /etc/init.d/xttyd start
 
+# Use your browser to access your server
+http://your-server-host:5912
+
 # Contributing
 If you would like to help making [xttyd](https://github.com/zhaojh329/xttyd) better,
 see the [CONTRIBUTING.md](https://github.com/zhaojh329/xttyd/blob/master/CONTRIBUTING.md) file.

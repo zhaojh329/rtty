@@ -65,6 +65,9 @@ Select package xttyd in menuconfig and compile new image.
     sudo ./install.sh
     sudo /etc/init.d/xttyd start
 
+# 使用你的浏览器访问你的服务器
+http://your-server-host:5912
+
 # 贡献代码
 如果你想帮助[xttyd](https://github.com/zhaojh329/xttyd)变得更好，请参考
 [CONTRIBUTING_ZH.md](https://github.com/zhaojh329/xttyd/blob/master/CONTRIBUTING_ZH.md)。
