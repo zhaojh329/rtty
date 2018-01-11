@@ -8,7 +8,7 @@
 [openssl]: https://github.com/openssl/openssl
 [mbedtls]: https://github.com/ARMmbed/mbedtls
 [CyaSSl(wolfssl)]: https://github.com/wolfSSL/wolfssl
-[libuwsc]: https://github.com/zhaojh329/libuwsc.git
+[libuwsc]: https://github.com/zhaojh329/libuwsc
 
 Share your terminal over the web. Unlike [ttyd], xTTYD consists of two parts of the client and the server.
 xTTYD can share the shell of your device based on the MAC address you specify.

@@ -8,7 +8,7 @@
 [openssl]: https://github.com/openssl/openssl
 [mbedtls]: https://github.com/ARMmbed/mbedtls
 [CyaSSl(wolfssl)]: https://github.com/wolfSSL/wolfssl
-[libuwsc]: https://github.com/zhaojh329/libuwsc.git
+[libuwsc]: https://github.com/zhaojh329/libuwsc
 
 通过Web分享你的终端。与[ttyd]不同的是，xTTYD由服务端和客户端两部分组成。
 xTTYD可以根据你指定的MAC地址分享你的设备的Shell。
