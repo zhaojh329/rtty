@@ -84,8 +84,11 @@ async def websocket_handler_browser(request):
 async def handle_list(request):
     return web.json_response(list(devices.devs.keys()))
 
+async def handle_root(request):
+    return web.Response(status = 302, headers = {'location': '/xttyd.html'})
+
 port = 5912
-document = '.'
+document = './www'
 opts, args = getopt.getopt(sys.argv[1:], "p:d:")
 for op, value in opts:
     if op == '-p':
@@ -99,6 +102,7 @@ app = web.Application()
 app.router.add_get('/list', handle_list)
 app.router.add_get('/ws/device', websocket_handler_device)
 app.router.add_get('/ws/browser', websocket_handler_browser)
+app.router.add_get('/', handle_root)
 app.router.add_static('/', path = document, name = 'static')
 
 web.run_app(app, port = port)
