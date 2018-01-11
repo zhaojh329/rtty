@@ -1,8 +1,10 @@
 #!/usr/bin/python3
 
+import sys
 import json
 import random
 import syslog
+import getopt
 from hashlib import md5
 import asyncio
 import uvloop
@@ -82,12 +84,21 @@ async def websocket_handler_browser(request):
 async def handle_list(request):
     return web.json_response(list(devices.devs.keys()))
 
+port = 8080
+document = '.'
+opts, args = getopt.getopt(sys.argv[1:], "p:d:")
+for op, value in opts:
+    if op == '-p':
+        port = int(value)
+    elif op == '-d':
+        document = value
+
+
 app = web.Application()
 
 app.router.add_get('/list', handle_list)
 app.router.add_get('/ws/device', websocket_handler_device)
 app.router.add_get('/ws/browser', websocket_handler_browser)
-app.router.add_static('/', path = './www', name = 'static')
+app.router.add_static('/', path = document, name = 'static')
 
-port = 8080
 web.run_app(app, port = port)
