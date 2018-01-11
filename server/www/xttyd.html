@@ -75,7 +75,7 @@
 		}
 		
 		$("#connect").click(function() {
-			mac = $('#macaddr').val()
+			mac = $('#macaddr').val().replace(/:/g,'').toUpperCase();
 			if (mac == '') {
 				$('#msg').text('Please input macaddr');
 			} else {
