@@ -52,6 +52,7 @@ body {
     padding: 9px 14px;
     font-size: 20px;
     border-radius: 5px;
+    cursor: pointer;
 }
 
 .copyright {
@@ -68,7 +69,7 @@ body {
 	margin: -300px 0 10px -300px;
     width: 600px;
 	position: fixed;
-	bottom: 40px;
+	bottom: -2px;
 	text-align: center;
 }
 

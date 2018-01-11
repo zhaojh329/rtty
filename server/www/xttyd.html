@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>xTTYD</title>
+    <link rel="stylesheet" type="text/css" href="/css/app.css"/>
+	<link rel="stylesheet" href="/css/xterm.css" />
+	<script src="/js/jquery-1.12.4.min.js"></script>
+	<script src="/js/xterm.js"></script>
+	<script src="/js/fit.js"></script>
+	<script src="/js/base64.min.js"></script>
+</head>
+<body>
+    <div id="box">
+		<h1>xTTYD</h1>
+		<input id="macaddr" type="text" required="required" placeholder="Please input macaddr" name="macaddr"></input>
+		<span id="msg" style="display:none; color:red;"></span>
+		<button id="connect" class="btn" type="button">Connect</button>
+    </div>
+	<div id="terminal-container"></div>
+	<h1 id="copyright" class="copyright"><font color="white">Copyright © 2018 </font><a href="https://github.com/zhaojh329/xttyd" target="_black">zhaojh329 Github</a></h1>
+	<script>
+		var ws;
+		var term;
+		var sid;
+		var mac;
+		
+		function new_session(mac) {
+			ws = new WebSocket('ws://' + location.host + '/ws/browser?mac=' + mac);
+			ws.onopen = function() {
+				term = new Terminal({
+					focus: true,
+					cursorBlink: true,
+					screenKeys: true
+				});
+				
+				term.on('data', function(data) {
+					ws.send(JSON.stringify({type: 'data', mac: mac, sid: sid, data: Base64.encode(data)}));
+				});
+				
+				term.on('open', function() {
+					window.addEventListener("resize", function(event) {
+						term.fit();
+					});
+					
+					term.fit();
+					
+					$('#copyright').removeClass('copyright').addClass('copyright2');
+				});
+				
+				ws.onmessage = function(evt) {
+					var resp = JSON.parse(evt.data);
+					
+					var type = resp.type
+					if (type == 'login') {
+						if (resp.err) {
+							$('#msg').text(resp.err);
+							return;
+						}
+						sid = resp.sid;
+						term.open($('#terminal-container')[0], true);
+					} else if (type == 'data') {
+						term.write(Base64.decode(resp.data));
+					} else if (type == 'logout') {
+						ws.close();
+					}
+				};
+				
+				ws.onclose = function () {
+					$('#login').show();
+					term.destroy();
+					$('#copyright').removeClass('copyright2').addClass('copyright');
+				};
+			};
+		}
+		
+		$("#connect").click(function() {
+			mac = $('#macaddr').val()
+			if (mac == '') {
+				$('#msg').text('Please input macaddr');
+			} else {
+				$('#msg').text('');
+				new_session(mac);
+			}
+		});
+	</script>
+</body>
+</html>

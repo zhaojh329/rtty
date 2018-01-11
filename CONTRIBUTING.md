@@ -1,7 +1,7 @@
 Contributing
 ================================================================================
 
-If you want to contribute to [xterminal](https://github.com/zhaojh329/xterminal), please follow these simple rules:
+If you want to contribute to [xttyd](https://github.com/zhaojh329/xttyd), please follow these simple rules:
 
 1. Press the fork button:
 
@@ -10,13 +10,13 @@ If you want to contribute to [xterminal](https://github.com/zhaojh329/xterminal)
 2. Clone the repository from your account with:
 
     ```
-    git clone git@github.com:your_github_username/xterminal.git
+    git clone https://github.com/your_github_username/xttyd.git
     ```
 
 3. Create a new branch with:
 
     ```
-    git checkout -b "xterminal-1-fix"
+    git checkout -b "xttyd-1-fix"
     ```
     You can name it however you want.
 
@@ -24,9 +24,9 @@ If you want to contribute to [xterminal](https://github.com/zhaojh329/xterminal)
 
 5. Commit and push your changes, then make a pull request from Github.
 
-    git commit --signoff  
+    git commit --signoff
     git push
-    
+ 
 6. Awaiting review, if accepted, merged!
 
 **IMPORTANT**
