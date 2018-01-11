@@ -39,21 +39,28 @@ Select package xttyd in menuconfig and compile new image.
         Terminal  --->
             <*> xttyd................................... Share your terminal over the web
 
+配置服务器参数
+
+    uci set xttyd.@server[0].host='your server host'
+    uci set xttyd.@server[0].port='your server port'
+    uci commit
+    /etc/init.d/xttyd restart
+
 # 部署服务端
-## 安装依赖
+安装依赖
 
     sudo apt install python3 python3-pip
     sudo pip3 install aiohttp uvloop
 
-##  克隆代码
+克隆代码
 
     git clone https://github.com/zhaojh329/xttyd.git
 
-## 手动运行
+手动运行
 
     cd xttyd/server && ./xttyd.py -p 5912
 
-## 安装自启动脚本，后台运行
+安装自启动脚本，后台运行
 
     sudo ./install.sh
     sudo /etc/init.d/xttyd start
