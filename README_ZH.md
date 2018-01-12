@@ -6,9 +6,6 @@
 [libubox]: https://git.openwrt.org/?p=project/libubox.git
 [libuwsc]: https://github.com/zhaojh329/libuwsc
 
-通过Web分享你的终端。与[ttyd]不同的是，rtty由服务端和客户端两部分组成。
-rtty可以根据你指定的MAC地址分享你的设备的Shell。
-
 通过Web浏览器访问你的终端。项目名称里面的“r”是指“反向代理”或者“远程”。它由客户端和服务端组成。
 你可以根据MAC地址通过Web浏览器访问你的任意一台终端。
 
