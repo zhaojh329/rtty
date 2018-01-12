@@ -148,7 +148,7 @@ static void new_tty_session(struct blob_attr **tb)
 
     pid = forkpty(&pty, NULL, NULL, NULL);
     if (pid == 0)
-        execl("/bin/login", "/bin/login", NULL);
+        execl(login, login, NULL);
 
     s->pid = pid;
     s->pty = pty;
@@ -276,8 +276,6 @@ int main(int argc, char **argv)
         fprintf(stderr, "The program 'login' is not found\n");
         return -1;
     }
-
-    printf("[%s]\n", login);
 
     while ((opt = getopt(argc, argv, "i:h:p:")) != -1) {
         switch (opt)
