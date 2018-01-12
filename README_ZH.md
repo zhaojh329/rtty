@@ -68,7 +68,9 @@ Select package rtty in menuconfig and compile new image.
     sudo ./install.sh
     sudo /etc/init.d/rtty start
 
-# 使用你的Web浏览器访问你的服务器，然后输入你要访问的终端的MAC地址，然后点击连接按钮。
+# 如何使用
+使用你的Web浏览器访问你的服务器，然后输入你要访问的终端的MAC地址，然后点击连接按钮。
+
 http://your-server-host:5912
 
 # 贡献代码

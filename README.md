@@ -64,7 +64,9 @@ Install the automatic boot script
     sudo ./install.sh
     sudo /etc/init.d/rtty start
 
-# Use your web browser to access your server, then enter the MAC address of the terminal you want to access, and then click the connection button
+# Usage
+Use your web browser to access your server, then enter the MAC address of the terminal you want to access, and then click the connection button
+
 http://your-server-host:5912
 
 # Contributing
