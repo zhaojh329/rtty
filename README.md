@@ -1,4 +1,4 @@
-# rtty([中文](https://github.com/zhaojh329/rtty/blob/master/README_ZH.md))
+# rtty([中文](/README_ZH.md))
 
 ![](https://img.shields.io/badge/license-GPLV3-brightgreen.svg?style=plastic "License")
 
