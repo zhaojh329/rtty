@@ -75,6 +75,8 @@ static void keepalive(struct uloop_timeout *utm)
 {
     char *str;
 
+    return;
+
     blobmsg_buf_init(&b);
     blobmsg_add_string(&b, "type", "ping");
     blobmsg_add_string(&b, "mac", mac);
@@ -229,7 +231,6 @@ static void uwsc_onerror(struct uwsc_client *cl)
 static void uwsc_onclose(struct uwsc_client *cl)
 {
     uwsc_log_debug("onclose");
-    cl->free(cl);
     uloop_end();
 }
 
@@ -319,6 +320,7 @@ int main(int argc, char **argv)
     uloop_run();
 
     cl->send(cl, NULL, 0, WEBSOCKET_OP_CLOSE);
+    cl->free(cl);
 
     uloop_done();
     
