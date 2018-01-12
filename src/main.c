@@ -201,14 +201,13 @@ static void uwsc_onmessage(struct uwsc_client *cl, char *msg, uint64_t len, enum
 
 static void uwsc_onerror(struct uwsc_client *cl)
 {
-    printf("onerror:%d\n", cl->error);
+    uwsc_log_err("onerror:%d", cl->error);
 }
 
 static void uwsc_onclose(struct uwsc_client *cl)
 {
-    printf("onclose\n");
-
-    uloop_done();
+    uwsc_log_debug("onclose");
+    uloop_end();
 }
 
 static void usage(const char *prog)
