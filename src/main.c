@@ -75,8 +75,6 @@ static void keepalive(struct uloop_timeout *utm)
 {
     char *str;
 
-    return;
-
     blobmsg_buf_init(&b);
     blobmsg_add_string(&b, "type", "ping");
     blobmsg_add_string(&b, "mac", mac);
