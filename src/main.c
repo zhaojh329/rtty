@@ -42,8 +42,10 @@ static char buf[4096 * 10];
 static struct blob_buf b;
 static char mac[13];
 static char login[128];
+static char server_url[128] = "";
+static bool auto_reconnect;
 
-LIST_HEAD(tty_sessions);
+static LIST_HEAD(tty_sessions);
 
 enum {
     RTTYD_TYPE,
@@ -70,6 +72,16 @@ static const struct blobmsg_policy pol[] = {
         .type = BLOBMSG_TYPE_STRING,
     }
 };
+
+static void reconnect()
+{
+TRY:
+    cl = uwsc_new(server_url);
+    if (!cl) {
+        sleep(5);
+        goto TRY;
+    }
+}
 
 static void keepalive(struct uloop_timeout *utm)
 {
@@ -229,7 +241,11 @@ static void uwsc_onerror(struct uwsc_client *cl)
 static void uwsc_onclose(struct uwsc_client *cl)
 {
     uwsc_log_debug("onclose");
-    uloop_end();
+
+    if (auto_reconnect)
+        reconnect();
+    else
+        uloop_end();
 }
 
 static int find_login()
@@ -253,7 +269,9 @@ static void usage(const char *prog)
     fprintf(stderr, "Usage: %s [option]\n"
         "      -i ifname    # Network device name\n"
         "      -h host      # Server host\n"
-        "      -p port      # Server port\n", prog);
+        "      -p port      # Server port\n"
+        "      -a           # Auto reconnect to the server\n"
+        , prog);
     exit(1);
 }
 
@@ -262,7 +280,7 @@ int main(int argc, char **argv)
     int opt;
     const char *host = NULL;
     int port = 0;
-    char url[128] = "";
+
     struct uloop_timeout keepalive_timer = {
         .cb = keepalive
     };
@@ -277,7 +295,7 @@ int main(int argc, char **argv)
         return -1;
     }
 
-    while ((opt = getopt(argc, argv, "i:h:p:")) != -1) {
+    while ((opt = getopt(argc, argv, "i:h:p:a")) != -1) {
         switch (opt)
         {
         case 'i':
@@ -291,6 +309,9 @@ int main(int argc, char **argv)
         case 'p':
             port = atoi(optarg);
             break;
+        case 'a':
+            auto_reconnect = true;
+            break;
         default: /* '?' */
             usage(argv[0]);
         }
@@ -301,10 +322,21 @@ int main(int argc, char **argv)
 
     uloop_init();
 
-    snprintf(url, sizeof(url), "ws://%s:%d/ws/device?mac=%s", host, port, mac);
-    cl = uwsc_new(url);
-    if (!cl)
+    snprintf(server_url, sizeof(server_url), "ws://%s:%d/ws/device?mac=%s", host, port, mac);
+
+    /*
+    ** uwsc_new() will try to connect, and if more than 5 seconds have not been
+    ** connected to success, it will return
+    */
+TRY:
+    cl = uwsc_new(server_url);
+    if (!cl) {
+        if (auto_reconnect) {
+            sleep(5);
+            goto TRY;
+        }
         return -1;
+    }
    
     cl->onopen = uwsc_onopen;
     cl->onmessage = uwsc_onmessage;
