@@ -317,6 +317,9 @@ int main(int argc, char **argv)
     keepalive(&keepalive_timer);
 
     uloop_run();
+
+    cl->send(cl, NULL, 0, WEBSOCKET_OP_CLOSE);
+
     uloop_done();
     
     return 0;
