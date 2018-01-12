@@ -10,7 +10,7 @@ It is composed of the client and the server. You can access any of your terminal
 
 `Keep Watching for More Actions on This Space`
 
-![](https://github.com/zhaojh329/rtty/blob/master/rtty.svg)
+![](/rtty.svg)
 
 # Dependencies for Server side
 * [python3](https://www.python.org)

@@ -11,7 +11,7 @@
 
 `请保持关注以获取最新的项目动态`
 
-![](https://github.com/zhaojh329/rtty/blob/master/rtty.svg)
+![](/rtty.svg)
 
 # 服务端依赖
 * [python3](https://www.python.org)
