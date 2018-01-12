@@ -41,6 +41,7 @@ struct uwsc_client *cl;
 static char buf[4096 * 10];
 static struct blob_buf b;
 static char mac[13];
+static char login[128];
 
 LIST_HEAD(tty_sessions);
 
@@ -211,6 +212,22 @@ static void uwsc_onclose(struct uwsc_client *cl)
     uloop_end();
 }
 
+static int find_login()
+{
+    FILE *fp = popen("which login", "r");
+    if (fp) {
+        if (fgets(login, sizeof(login), fp))
+            login[strlen(login) - 1] = 0;
+        pclose(fp);
+
+        if (!login[0])
+            return -1;
+        return 0;
+    }
+
+    return -1;
+}
+
 static void usage(const char *prog)
 {
     fprintf(stderr, "Usage: %s [option]\n"
@@ -234,6 +251,13 @@ int main(int argc, char **argv)
         fprintf(stderr, "Operation not permitted\n");
         return -1;
     }
+
+    if (find_login() < 0) {
+        fprintf(stderr, "The program 'login' is not found\n");
+        return -1;
+    }
+
+    printf("[%s]\n", login);
 
     while ((opt = getopt(argc, argv, "i:h:p:")) != -1) {
         switch (opt)
