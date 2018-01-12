@@ -1,7 +1,7 @@
 Contributing
 ================================================================================
 
-If you want to contribute to [xttyd](https://github.com/zhaojh329/xttyd), please follow these simple rules:
+If you want to contribute to [rtty](https://github.com/zhaojh329/rtty), please follow these simple rules:
 
 1. Press the fork button:
 
@@ -10,13 +10,13 @@ If you want to contribute to [xttyd](https://github.com/zhaojh329/xttyd), please
 2. Clone the repository from your account with:
 
     ```
-    git clone https://github.com/your_github_username/xttyd.git
+    git clone https://github.com/your_github_username/rtty.git
     ```
 
 3. Create a new branch with:
 
     ```
-    git checkout -b "xttyd-1-fix"
+    git checkout -b "rtty-1-fix"
     ```
     You can name it however you want.
 

@@ -1,6 +1,6 @@
 #! /bin/sh
 ### BEGIN INIT INFO
-# Provides:			xttyd
+# Provides:			rtty
 # Required-Start:	$remote_fs $syslog
 # Required-Stop:	$remote_fs $syslog
 # Default-Start:	2 3 4 5
@@ -13,17 +13,17 @@ PATH=/sbin:/usr/sbin:/bin:/usr/bin
 
 . /lib/lsb/init-functions
 
-XTTYDPID=/var/run/xttyd.pid
+RTTYPID=/var/run/rtty.pid
 PORT=5912
 
 do_start () {
-	start-stop-daemon --start --make-pidfile --pidfile $XTTYDPID --background --exec /usr/sbin/xttyd.py -- -p $PORT -d /var/www/xttyd
+	start-stop-daemon --start --make-pidfile --pidfile $RTTYPID --background --exec /usr/sbin/rtty.py -- -p $PORT -d /var/www/rtty
 }
 
 do_stop () {
-	start-stop-daemon --stop --pidfile $XTTYDPID
+	start-stop-daemon --stop --pidfile $RTTYPID
 	sleep 1
-	rm -f $XTTYDPID
+	rm -f $RTTYPID
 }
 
 case "$1" in

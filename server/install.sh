@@ -1,10 +1,10 @@
 #!/bin/sh
 
-update-rc.d xttyd remove
-rm -rf /var/www/xttyd
+update-rc.d rtty remove
+rm -rf /var/www/rtty
 
-mkdir -p /var/www/xttyd
-cp -r www/* /var/www/xttyd
-cp xttyd.py /usr/sbin/
-cp xttyd.init /etc/init.d/xttyd
-update-rc.d xttyd defaults
+mkdir -p /var/www/rtty
+cp -r www/* /var/www/rtty
+cp rtty.py /usr/sbin/
+cp rtty.init /etc/init.d/rtty
+update-rc.d rtty defaults

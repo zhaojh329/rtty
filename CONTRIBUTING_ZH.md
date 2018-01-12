@@ -1,7 +1,7 @@
 贡献代码
 ================================================================================
 
-如果你想为[xttyd](https://github.com/zhaojh329/xttyd)贡献代码, 请按照如下步骤:
+如果你想为[rtty](https://github.com/zhaojh329/rtty)贡献代码, 请按照如下步骤:
 
 1. 点击fork按钮:
 
@@ -10,13 +10,13 @@
 2. 从你的github账户克隆仓库代码:
 
     ```
-    git clone https://github.com/你的github账户/xttyd.git
+    git clone https://github.com/你的github账户/rtty.git
     ```
 
 3. 创建一个新的分支:
 
     ```
-    git checkout -b "xttyd-1-fix"
+    git checkout -b "rtty-1-fix"
     ```
     你可以使用一个你想要的分支名称。
 
