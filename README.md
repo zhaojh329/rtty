@@ -12,6 +12,8 @@ It is composed of the client and the server. You can access any of your terminal
 
 ![](/rtty.svg)
 
+![](/rtty.gif)
+
 # Dependencies for Server side
 * [python3](https://www.python.org)
 * [uvloop](https://github.com/MagicStack/uvloop)

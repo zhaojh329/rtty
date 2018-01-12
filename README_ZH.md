@@ -13,6 +13,8 @@
 
 ![](/rtty.svg)
 
+![](/rtty.gif)
+
 # 服务端依赖
 * [python3](https://www.python.org)
 * [uvloop](https://github.com/MagicStack/uvloop)
