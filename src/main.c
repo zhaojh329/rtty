@@ -25,7 +25,7 @@
 
 #include "utils.h"
 
-#define KEEPALIVE_INTERVAL  30
+#define KEEPALIVE_INTERVAL  10
 
 struct tty_session {
     pid_t pid;
