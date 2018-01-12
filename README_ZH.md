@@ -14,7 +14,7 @@ rtty可以根据你指定的MAC地址分享你的设备的Shell。
 
 `请保持关注以获取最新的项目动态`
 
-![](https://github.com/zhaojh329/rtty/blob/master/rtty.png)
+![](https://github.com/zhaojh329/rtty/blob/master/rtty.svg)
 
 # 服务端依赖
 * [python3](https://www.python.org)
