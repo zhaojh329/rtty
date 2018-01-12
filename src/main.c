@@ -86,9 +86,19 @@ static void keepalive(struct uloop_timeout *utm)
     uloop_timeout_set(utm, KEEPALIVE_INTERVAL * 1000);
 }
 
+static void del_tty_session(struct tty_session *tty)
+{
+    list_del(&tty->node);
+    uloop_process_delete(&tty->up);
+    ustream_free(&tty->sfd.stream);
+    close(tty->pty);
+    kill(tty->pid, SIGTERM);
+    waitpid(tty->pid, NULL, 0);
+}
+
 static void pty_read_cb(struct ustream *s, int bytes)
 {
-    struct tty_session *ts = container_of(s, struct tty_session, sfd.stream);
+    struct tty_session *tty = container_of(s, struct tty_session, sfd.stream);
     char *str;
     int len;
 
@@ -97,7 +107,7 @@ static void pty_read_cb(struct ustream *s, int bytes)
     blobmsg_buf_init(&b);
     blobmsg_add_string(&b, "type", "data");
     blobmsg_add_string(&b, "mac", mac);
-    blobmsg_add_string(&b, "sid", ts->sid);
+    blobmsg_add_string(&b, "sid", tty->sid);
 
     b64_encode(str, len, buf, sizeof(buf));
     ustream_consume(s, len);
@@ -111,17 +121,19 @@ static void pty_read_cb(struct ustream *s, int bytes)
 
 static void pty_on_exit(struct uloop_process *p, int ret)
 {
-    struct tty_session *ts = container_of(p, struct tty_session, up);
+    struct tty_session *tty = container_of(p, struct tty_session, up);
     char *str;
 
     blobmsg_buf_init(&b);
     blobmsg_add_string(&b, "type", "logout");
     blobmsg_add_string(&b, "mac", mac);
-    blobmsg_add_string(&b, "sid", ts->sid);
+    blobmsg_add_string(&b, "sid", tty->sid);
 
     str = blobmsg_format_json(b.head, true);
     cl->send(cl, str, strlen(str), WEBSOCKET_OP_TEXT);
     free(str);
+
+    del_tty_session(tty);
 }
 
 static void new_tty_session(struct blob_attr **tb)
@@ -183,6 +195,15 @@ static void uwsc_onmessage(struct uwsc_client *cl, char *msg, uint64_t len, enum
     type = blobmsg_get_string(tb[RTTYD_TYPE]);
     if (!strcmp(type, "login")) {
         new_tty_session(tb);
+    } else if (!strcmp(type, "logout")) {
+        const char *sid = blobmsg_get_string(tb[RTTYD_SID]);
+        struct tty_session *tty, *tmp;
+
+        list_for_each_entry_safe(tty, tmp, &tty_sessions, node) {
+            if (!strcmp(tty->sid, sid)) {
+                del_tty_session(tty);
+            }
+        }
     } else if (!strcmp(type, "data")) {
         const char *sid = blobmsg_get_string(tb[RTTYD_SID]);
         const char *data = blobmsg_get_string(tb[RTTYD_DATA]);

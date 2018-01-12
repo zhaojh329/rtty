@@ -14,9 +14,15 @@ from aiohttp import web, WSMsgType
 class Devices:
     devs = {}
     def add(self, ws, mac):
-        self.devs[mac] = {'ws': ws, 'active': 1}
+        self.devs[mac] = {'ws': ws, 'active': 3}
     def active(self, mac):
-        self.devs[mac]['active'] += 1
+        self.devs[mac]['active'] = 3
+    def flush(self):
+        for mac in list(self.devs):
+            self.devs[mac]['active'] -= 1
+            if self.devs[mac]['active'] == 0:
+                self.devs[mac]['ws'].close()
+                del self.devs[mac]
     def login(self, ws, mac):
         sid = md5((mac + str(random.uniform(1, 100))).encode('utf8')).hexdigest()
         dev = self.devs.get(mac)
@@ -27,7 +33,11 @@ class Devices:
         dev[sid] = ws
         dev['ws'].send_str(json.dumps({'type': 'login', 'mac': mac, 'sid': sid}))
         syslog.syslog('new logged to ' + mac)
-        return True
+        return sid
+    def logout(self, mac, sid):
+        dev = self.devs.get(mac)
+        del dev[sid]
+        dev['ws'].send_str(json.dumps({'type': 'logout', 'mac': mac, 'sid': sid}))
     def send_data2user(self, msg):
         mac = msg['mac']
         sid = msg['sid']
@@ -67,7 +77,8 @@ async def websocket_handler_browser(request):
     await ws.prepare(request)
 
     mac = request.query['mac']
-    if not devices.login(ws, mac):
+    sid = devices.login(ws, mac)
+    if not sid:
         ws.close()
         return ws
 
@@ -79,6 +90,7 @@ async def websocket_handler_browser(request):
                 devices.send_data2device(msg)
         elif msg.type == WSMsgType.ERROR:
             syslog.syslog('browser connection closed with exception %s' % ws.exception())
+    devices.logout(mac, sid)
     return ws
 
 async def handle_list(request):
@@ -104,5 +116,12 @@ app.router.add_get('/ws/device', websocket_handler_device)
 app.router.add_get('/ws/browser', websocket_handler_browser)
 app.router.add_get('/', handle_root)
 app.router.add_static('/', path = document, name = 'static')
+
+def keepalive(loop):
+    devices.flush()
+    loop.call_later(5, keepalive, loop)
+
+loop = asyncio.get_event_loop()
+loop.call_later(5, keepalive, loop)
 
 web.run_app(app, port = port)
