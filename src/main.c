@@ -207,6 +207,7 @@ static void uwsc_onerror(struct uwsc_client *cl)
 static void uwsc_onclose(struct uwsc_client *cl)
 {
     uwsc_log_debug("onclose");
+    cl->free(cl);
     uloop_end();
 }
 
@@ -268,7 +269,5 @@ int main(int argc, char **argv)
     uloop_run();
     uloop_done();
     
-    cl->free(cl);
-
     return 0;
 }
