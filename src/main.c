@@ -230,6 +230,11 @@ int main(int argc, char **argv)
         .cb = keepalive
     };
 
+    if (setuid(0) < 0) {
+        fprintf(stderr, "Operation not permitted\n");
+        return -1;
+    }
+
     while ((opt = getopt(argc, argv, "i:h:p:")) != -1) {
         switch (opt)
         {
