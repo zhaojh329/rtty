@@ -361,8 +361,10 @@ int main(int argc, char **argv)
     
     uloop_run();
 
-    gcl->send(gcl, NULL, 0, WEBSOCKET_OP_CLOSE);
-    gcl->free(gcl);
+    if (gcl) {
+        gcl->send(gcl, NULL, 0, WEBSOCKET_OP_CLOSE);
+        gcl->free(gcl);
+    }
 
     uloop_done();
     
