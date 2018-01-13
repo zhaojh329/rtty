@@ -7,7 +7,7 @@ html {
 }
 
 body {
-	height: 98%;
+	height: 97%;
 }
 
 #box {
@@ -55,42 +55,11 @@ body {
     cursor: pointer;
 }
 
-.copyright {
-	left:50%;
-	margin: -300px 0 10px -300px;
-    width: 600px;
-	position: fixed;
-	bottom: 40px;
-	text-align: center;
-}
-
-.copyright2 {
-	left:80%;
-	margin: -300px 0 10px -300px;
-    width: 600px;
-	position: fixed;
-	bottom: -2px;
-	text-align: center;
-}
-
 a:hover {
 	color: #fff;
     text-shadow:0 0 10px;
 }
 
 #terminal-container {
-	height: 96%;
-	margin-top: 10px;
-}
-
-.upfile iframe {
-	display:none;
-}
-
-.upfile #fileForm {
-	display:none;
-}
-
-.upfile #uploadmsg {
-	color: white;
+	height: 100%;
 }
