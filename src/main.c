@@ -76,9 +76,9 @@ static const struct blobmsg_policy pol[] = {
 static void reconnect()
 {
 TRY:
+    sleep(5);
     cl = uwsc_new(server_url);
-    if (!cl) {
-        sleep(5);
+    if (!cl) {    
         goto TRY;
     }
 }
@@ -87,6 +87,11 @@ static void keepalive(struct uloop_timeout *utm)
 {
     char *str;
 
+    uloop_timeout_set(utm, KEEPALIVE_INTERVAL * 1000);
+
+    if (!cl)
+        return;
+
     blobmsg_buf_init(&b);
     blobmsg_add_string(&b, "type", "ping");
     blobmsg_add_string(&b, "mac", mac);
@@ -94,8 +99,6 @@ static void keepalive(struct uloop_timeout *utm)
     str = blobmsg_format_json(b.head, true);
     cl->send(cl, str, strlen(str), WEBSOCKET_OP_TEXT);
     free(str);
-
-    uloop_timeout_set(utm, KEEPALIVE_INTERVAL * 1000);
 }
 
 static void del_tty_session(struct tty_session *tty)
@@ -242,10 +245,13 @@ static void uwsc_onclose(struct uwsc_client *cl)
 {
     uwsc_log_debug("onclose");
 
-    if (auto_reconnect)
+    if (auto_reconnect) {
+        cl->free(cl);
+        cl = NULL;
         reconnect();
-    else
+    } else {
         uloop_end();
+    }
 }
 
 static int find_login()
