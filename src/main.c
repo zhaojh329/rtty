@@ -36,17 +36,6 @@ struct tty_session {
     struct list_head node;
 };
 
-struct uwsc_client *cl;
-
-static char buf[4096 * 10];
-static struct blob_buf b;
-static char mac[13];
-static char login[128];
-static char server_url[128] = "";
-static bool auto_reconnect;
-
-static LIST_HEAD(tty_sessions);
-
 enum {
     RTTYD_TYPE,
     RTTYD_MAC,
@@ -73,32 +62,43 @@ static const struct blobmsg_policy pol[] = {
     }
 };
 
-static void reconnect()
-{
-TRY:
-    sleep(5);
-    cl = uwsc_new(server_url);
-    if (!cl) {    
-        goto TRY;
-    }
-}
+static void do_connect();
+
+static char buf[4096 * 10];
+static struct blob_buf b;
+static char mac[13];
+static char login[128];
+static char server_url[128] = "";
+static int active;
+static bool auto_reconnect;
+struct uloop_timeout keepalive_timer;
+struct uwsc_client *gcl;
+
+static LIST_HEAD(tty_sessions);
+
 
 static void keepalive(struct uloop_timeout *utm)
 {
     char *str;
-
-    uloop_timeout_set(utm, KEEPALIVE_INTERVAL * 1000);
-
-    if (!cl)
-        return;
 
     blobmsg_buf_init(&b);
     blobmsg_add_string(&b, "type", "ping");
     blobmsg_add_string(&b, "mac", mac);
 
     str = blobmsg_format_json(b.head, true);
-    cl->send(cl, str, strlen(str), WEBSOCKET_OP_TEXT);
+    gcl->send(gcl, str, strlen(str), WEBSOCKET_OP_TEXT);
     free(str);
+
+    if (!active--) {
+        gcl->free(gcl);
+        gcl = NULL;
+
+        if (auto_reconnect)
+            do_connect();
+        return;
+    }
+
+    uloop_timeout_set(utm, KEEPALIVE_INTERVAL * 1000);
 }
 
 static void del_tty_session(struct tty_session *tty)
@@ -130,7 +130,7 @@ static void pty_read_cb(struct ustream *s, int bytes)
     blobmsg_add_string(&b, "data", buf);
 
     str = blobmsg_format_json(b.head, true);
-    cl->send(cl, str, strlen(str), WEBSOCKET_OP_TEXT);
+    gcl->send(gcl, str, strlen(str), WEBSOCKET_OP_TEXT);
     free(str);
 }
 
@@ -145,7 +145,7 @@ static void pty_on_exit(struct uloop_process *p, int ret)
     blobmsg_add_string(&b, "sid", tty->sid);
 
     str = blobmsg_format_json(b.head, true);
-    cl->send(cl, str, strlen(str), WEBSOCKET_OP_TEXT);
+    gcl->send(gcl, str, strlen(str), WEBSOCKET_OP_TEXT);
     free(str);
 
     del_tty_session(tty);
@@ -181,6 +181,9 @@ static void new_tty_session(struct blob_attr **tb)
 
 static void uwsc_onopen(struct uwsc_client *cl)
 {
+    active = 3;
+    keepalive_timer.cb = keepalive;
+    uloop_timeout_set(&keepalive_timer, KEEPALIVE_INTERVAL * 1000);
     uwsc_log_debug("onopen");
 }
 
@@ -194,25 +197,24 @@ static void uwsc_onmessage(struct uwsc_client *cl, char *msg, uint64_t len, enum
     blobmsg_add_json_from_string(&b, msg);
 
     if (blobmsg_parse(pol, ARRAY_SIZE(pol), tb, blob_data(b.head), blob_len(b.head)) != 0) {
-        fprintf(stderr, "Parse failed\n");
+        uwsc_log_err("Parse failed");
         return;
     }
 
     if (!tb[RTTYD_TYPE])
         return;
 
-    if (!tb[RTTYD_MAC])
-        return;
-
-    if (!tb[RTTYD_SID])
-        return;
-
     type = blobmsg_get_string(tb[RTTYD_TYPE]);
     if (!strcmp(type, "login")) {
         new_tty_session(tb);
     } else if (!strcmp(type, "logout")) {
-        const char *sid = blobmsg_get_string(tb[RTTYD_SID]);
         struct tty_session *tty, *tmp;
+        const char *sid;
+
+        if (!tb[RTTYD_SID])
+            return;
+
+        sid = blobmsg_get_string(tb[RTTYD_SID]);
 
         list_for_each_entry_safe(tty, tmp, &tty_sessions, node) {
             if (!strcmp(tty->sid, sid)) {
@@ -220,10 +222,15 @@ static void uwsc_onmessage(struct uwsc_client *cl, char *msg, uint64_t len, enum
             }
         }
     } else if (!strcmp(type, "data")) {
-        const char *sid = blobmsg_get_string(tb[RTTYD_SID]);
-        const char *data = blobmsg_get_string(tb[RTTYD_DATA]);
+        const char *sid, *data;
         struct tty_session *tty;
         int len;
+
+        if (!tb[RTTYD_SID] || !tb[RTTYD_DATA])
+            return;
+
+        sid = blobmsg_get_string(tb[RTTYD_SID]);
+        data = blobmsg_get_string(tb[RTTYD_DATA]);
 
         len = b64_decode(data, buf, sizeof(buf));
         list_for_each_entry(tty, &tty_sessions, node) {
@@ -233,6 +240,8 @@ static void uwsc_onmessage(struct uwsc_client *cl, char *msg, uint64_t len, enum
                 break;
             }
         }
+    } else if (!strcmp(type, "pong")) {
+        active = 3;
     }
 }
 
@@ -243,15 +252,37 @@ static void uwsc_onerror(struct uwsc_client *cl)
 
 static void uwsc_onclose(struct uwsc_client *cl)
 {
+    active = 0;
     uwsc_log_debug("onclose");
 
     if (auto_reconnect) {
         cl->free(cl);
         cl = NULL;
-        reconnect();
+        do_connect();
     } else {
         uloop_end();
     }
+}
+
+static void do_connect()
+{
+    uloop_timeout_cancel(&keepalive_timer);
+
+TRY:
+    gcl = uwsc_new(server_url);
+    if (!gcl) {
+        if (uloop_cancelled || !auto_reconnect) {
+            uloop_end();
+            return;
+        }
+        sleep(5);
+        goto TRY;
+    }
+
+    gcl->onopen = uwsc_onopen;
+    gcl->onmessage = uwsc_onmessage;
+    gcl->onerror = uwsc_onerror;
+    gcl->onclose = uwsc_onclose;
 }
 
 static int find_login()
@@ -286,10 +317,6 @@ int main(int argc, char **argv)
     int opt;
     const char *host = NULL;
     int port = 0;
-
-    struct uloop_timeout keepalive_timer = {
-        .cb = keepalive
-    };
 
     if (setuid(0) < 0) {
         fprintf(stderr, "Operation not permitted\n");
@@ -330,31 +357,12 @@ int main(int argc, char **argv)
 
     snprintf(server_url, sizeof(server_url), "ws://%s:%d/ws/device?mac=%s", host, port, mac);
 
-    /*
-    ** uwsc_new() will try to connect, and if more than 5 seconds have not been
-    ** connected to success, it will return
-    */
-TRY:
-    cl = uwsc_new(server_url);
-    if (!cl) {
-        if (auto_reconnect) {
-            sleep(5);
-            goto TRY;
-        }
-        return -1;
-    }
-   
-    cl->onopen = uwsc_onopen;
-    cl->onmessage = uwsc_onmessage;
-    cl->onerror = uwsc_onerror;
-    cl->onclose = uwsc_onclose;
+    do_connect();
     
-    keepalive(&keepalive_timer);
-
     uloop_run();
 
-    cl->send(cl, NULL, 0, WEBSOCKET_OP_CLOSE);
-    cl->free(cl);
+    gcl->send(gcl, NULL, 0, WEBSOCKET_OP_CLOSE);
+    gcl->free(gcl);
 
     uloop_done();
     

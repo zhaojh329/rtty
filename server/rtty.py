@@ -71,8 +71,8 @@ async def websocket_handler_device(request):
             msg = json.loads(msg.data)
             typ = msg['type']
             if typ == 'ping':
-                mac = msg['mac']
                 devices.active(mac)
+                ws.send_str(json.dumps({'type': 'pong'}))
             elif typ == 'data' or typ == 'logout':
                 devices.send_data2user(msg)
         elif msg.type == WSMsgType.ERROR:
