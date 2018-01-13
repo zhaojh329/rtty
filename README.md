@@ -8,6 +8,8 @@
 Access your terminal over the web browser. The 'r' in the name refers to the 'Reverse Proxy' or 'Remote'.
 It is composed of the client and the server. You can access any of your terminals through a web browser based on the MAC address.
 
+rtty is very suitable for remote maintenance of your or your company's thousands of Linux devices deployed around the world.
+
 `Keep Watching for More Actions on This Space`
 
 ![](/rtty.svg)
