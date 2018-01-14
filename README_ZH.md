@@ -32,6 +32,11 @@ add new feed into "feeds.conf.default":
     src-git libuwsc https://github.com/zhaojh329/libuwsc-feed.git
     src-git rtty https://github.com/zhaojh329/rtty-feed.git
 
+for chaos_calmer(15.05)
+
+    src-git libuwsc https://github.com/zhaojh329/libuwsc-feed.git;for-15.05
+    src-git rtty https://github.com/zhaojh329/rtty-feed.git;for-15.05
+
 Install rtty packages:
 
     ./scripts/feeds update libuwsc rtty
