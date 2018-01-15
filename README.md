@@ -6,7 +6,8 @@
 [libuwsc]: https://github.com/zhaojh329/libuwsc
 
 Access your terminal over the web browser. The 'r' in the name refers to the 'Reverse Proxy' or 'Remote'.
-It is composed of the client and the server. You can access any of your terminals through a web browser based on the MAC address.
+It is composed of the client and the server. You can access any of your terminals through a web browser based on the
+device ID you set.
 
 rtty is very suitable for remote maintenance your or your company's thousands of Linux devices deployed around the world.
 
