@@ -38,7 +38,7 @@ struct tty_session {
 
 enum {
     RTTYD_TYPE,
-    RTTYD_MAC,
+    RTTYD_DID,
     RTTYD_SID,
     RTTYD_DATA
 };
@@ -48,8 +48,8 @@ static const struct blobmsg_policy pol[] = {
         .name = "type",
         .type = BLOBMSG_TYPE_STRING,
     },
-    [RTTYD_MAC] = {
-        .name = "mac",
+    [RTTYD_DID] = {
+        .name = "did",
         .type = BLOBMSG_TYPE_STRING,
     },
     [RTTYD_SID] = {
@@ -66,8 +66,8 @@ static void do_connect();
 
 static char buf[4096 * 10];
 static struct blob_buf b;
-static char mac[13];
-static char login[128];
+static char did[64];          /* device id */
+static char login[128];       /* /bin/login */
 static char server_url[128] = "";
 static int active;
 static bool auto_reconnect;
@@ -83,7 +83,6 @@ static void keepalive(struct uloop_timeout *utm)
 
     blobmsg_buf_init(&b);
     blobmsg_add_string(&b, "type", "ping");
-    blobmsg_add_string(&b, "mac", mac);
 
     str = blobmsg_format_json(b.head, true);
     gcl->send(gcl, str, strlen(str), WEBSOCKET_OP_TEXT);
@@ -121,7 +120,6 @@ static void pty_read_cb(struct ustream *s, int bytes)
     
     blobmsg_buf_init(&b);
     blobmsg_add_string(&b, "type", "data");
-    blobmsg_add_string(&b, "mac", mac);
     blobmsg_add_string(&b, "sid", tty->sid);
 
     b64_encode(str, len, buf, sizeof(buf));
@@ -141,7 +139,7 @@ static void pty_on_exit(struct uloop_process *p, int ret)
 
     blobmsg_buf_init(&b);
     blobmsg_add_string(&b, "type", "logout");
-    blobmsg_add_string(&b, "mac", mac);
+    blobmsg_add_string(&b, "did", did);
     blobmsg_add_string(&b, "sid", tty->sid);
 
     str = blobmsg_format_json(b.head, true);
@@ -304,7 +302,10 @@ static int find_login()
 static void usage(const char *prog)
 {
     fprintf(stderr, "Usage: %s [option]\n"
-        "      -i ifname    # Network device name\n"
+        "      -i ifname    # Network interface name - Using the MAC address of\n"
+        "                          the interface as the device ID\n"
+        "      -I id        # Set an ID for the device(Maximum 63 bytes) - If set,\n"
+        "                          it will cover the MAC address(if you have specify the ifname)\n"
         "      -h host      # Server host\n"
         "      -p port      # Server port\n"
         "      -a           # Auto reconnect to the server\n"
@@ -315,6 +316,7 @@ static void usage(const char *prog)
 int main(int argc, char **argv)
 {
     int opt;
+    char mac[13] = "";
     const char *host = NULL;
     int port = 0;
 
@@ -328,7 +330,7 @@ int main(int argc, char **argv)
         return -1;
     }
 
-    while ((opt = getopt(argc, argv, "i:h:p:a")) != -1) {
+    while ((opt = getopt(argc, argv, "i:h:p:I:a")) != -1) {
         switch (opt)
         {
         case 'i':
@@ -342,6 +344,9 @@ int main(int argc, char **argv)
         case 'p':
             port = atoi(optarg);
             break;
+        case 'I':
+            strncpy(did, optarg, sizeof(did) - 1);
+            break;
         case 'a':
             auto_reconnect = true;
             break;
@@ -350,18 +355,28 @@ int main(int argc, char **argv)
         }
     }
 
-    if (!mac[0] || !host || !port)
+    if (!did[0]) {
+        if (!mac[0]) {
+            fprintf(stderr, "You must specify the ifname or id\n");
+            usage(argv[0]);
+        }
+        strcpy(did, mac);
+    }
+
+    if (!host || !port) {
+        fprintf(stderr, "You must specify the host and port\n");
         usage(argv[0]);
+    }
 
     uloop_init();
 
-    snprintf(server_url, sizeof(server_url), "ws://%s:%d/ws/device?mac=%s", host, port, mac);
+    snprintf(server_url, sizeof(server_url), "ws://%s:%d/ws/device?did=%s", host, port, did);
 
     do_connect();
-    
-    uloop_run();
 
     if (gcl) {
+        uloop_run();
+
         gcl->send(gcl, NULL, 0, WEBSOCKET_OP_CLOSE);
         gcl->free(gcl);
     }

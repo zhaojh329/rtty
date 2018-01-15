@@ -14,45 +14,45 @@ from aiohttp import web, WSMsgType
 class Devices:
     devs = {}
 
-    def add(self, ws, mac):
-        self.devs[mac] = {'ws': ws, 'active': 3}
+    def add(self, ws, did):
+        self.devs[did] = {'ws': ws, 'active': 3}
 
-    def active(self, mac):
-        self.devs[mac]['active'] = 3
+    def active(self, did):
+        self.devs[did]['active'] = 3
 
     def flush(self):
-        for mac in list(self.devs):
-            self.devs[mac]['active'] -= 1
-            if self.devs[mac]['active'] == 0:
-                self.devs[mac]['ws'].close()
-                del self.devs[mac]
+        for did in list(self.devs):
+            self.devs[did]['active'] -= 1
+            if self.devs[did]['active'] == 0:
+                self.devs[did]['ws'].close()
+                del self.devs[did]
 
-    def login(self, ws, mac):
-        sid = md5((mac + str(random.uniform(1, 100))).encode('utf8')).hexdigest()
-        dev = self.devs.get(mac)
+    def login(self, ws, did):
+        sid = md5((did + str(random.uniform(1, 100))).encode('utf8')).hexdigest()
+        dev = self.devs.get(did)
         if not dev:
             ws.send_str(json.dumps({'type':'login', 'err': 'Device off-line'}))
             return False
         ws.send_str(json.dumps({'type':'login', 'sid': sid}))
         dev[sid] = ws
-        dev['ws'].send_str(json.dumps({'type': 'login', 'mac': mac, 'sid': sid}))
-        syslog.syslog('new logged to ' + mac)
+        dev['ws'].send_str(json.dumps({'type': 'login', 'did': did, 'sid': sid}))
+        syslog.syslog('new logged to ' + did)
         return sid
 
-    def logout(self, mac, sid):
-        dev = self.devs.get(mac)
-        del dev[sid]
-        dev['ws'].send_str(json.dumps({'type': 'logout', 'mac': mac, 'sid': sid}))
+    def logout(self, did, sid):
+        dev = self.devs.get(did)
+        if dev and dev.get(sid):
+            del dev[sid]
+            dev['ws'].send_str(json.dumps({'type': 'logout', 'did': did, 'sid': sid}))
 
-    def send_data2user(self, msg):
-        mac = msg['mac']
+    def send_data2user(self, did, msg):
         sid = msg['sid']
-        self.devs[mac][sid].send_str(json.dumps(msg))
+        self.devs[did][sid].send_str(json.dumps(msg))
 
     def send_data2device(self, msg):
-        mac = msg['mac']
+        did = msg['did']
         sid = msg['sid']
-        self.devs[mac]['ws'].send_str(json.dumps(msg))
+        self.devs[did]['ws'].send_str(json.dumps(msg))
 
 devices = Devices()
 syslog.openlog('rttyd')
@@ -61,20 +61,20 @@ async def websocket_handler_device(request):
     ws = web.WebSocketResponse()
     await ws.prepare(request)
 
-    mac = request.query['mac']
-    devices.add(ws, mac)
+    did = request.query['did']
+    devices.add(ws, did)
 
-    syslog.syslog('New device ' + mac)
+    syslog.syslog('New device:' + did)
 
     async for msg in ws:
         if msg.type == WSMsgType.TEXT:
             msg = json.loads(msg.data)
             typ = msg['type']
             if typ == 'ping':
-                devices.active(mac)
+                devices.active(did)
                 ws.send_str(json.dumps({'type': 'pong'}))
             elif typ == 'data' or typ == 'logout':
-                devices.send_data2user(msg)
+                devices.send_data2user(did, msg)
         elif msg.type == WSMsgType.ERROR:
             syslog.syslog('device connection closed with exception %s' % ws.exception())
     return ws
@@ -83,8 +83,8 @@ async def websocket_handler_browser(request):
     ws = web.WebSocketResponse()
     await ws.prepare(request)
 
-    mac = request.query['mac']
-    sid = devices.login(ws, mac)
+    did = request.query['did']
+    sid = devices.login(ws, did)
     if not sid:
         ws.close()
         return ws
@@ -97,7 +97,7 @@ async def websocket_handler_browser(request):
                 devices.send_data2device(msg)
         elif msg.type == WSMsgType.ERROR:
             syslog.syslog('browser connection closed with exception %s' % ws.exception())
-    devices.logout(mac, sid)
+    devices.logout(id, sid)
     return ws
 
 async def handle_list(request):

@@ -52,6 +52,15 @@ Configuring the server parameter
 
     uci set rtty.@server[0].host='your server host'
     uci set rtty.@server[0].port='your server port'
+
+You can customize an ID for your device. If the ID is not configured, RTTY will use
+the MAC address of the specified network interface as the ID.
+The format of the MAC address as the ID is: 1A2A3A4A5A6A
+
+    uci set rtty.@device[0].id='your-device-id'
+
+Save configuration and apply
+
     uci commit
     /etc/init.d/rtty restart
 
@@ -75,7 +84,9 @@ Install the automatic boot script
     sudo /etc/init.d/rtty start
 
 # Usage
-Use your web browser to access your server, then enter the MAC address of the terminal you want to access, and then click the connection button
+Query online devices: http://your-server-host:5912/list
+
+Use your web browser to access your server, then enter the id of the terminal you want to access, and then click the connection button
 
 http://your-server-host:5912
 

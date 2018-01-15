@@ -13,7 +13,7 @@
 <body>
     <div id="box">
 		<h1>RTTY</h1>
-		<input id="macaddr" type="text" required="required" placeholder="Please input macaddr" name="macaddr"></input>
+		<input id="did" type="text" required="required" placeholder="Please input device id" name="did"></input>
 		<span id="msg" style="color:red;"></span>
 		<button id="connect" class="btn" type="button">Connect</button>
     </div>
@@ -22,10 +22,10 @@
 		var ws;
 		var term;
 		var sid;
-		var mac;
+		var did;
 		
-		function new_session(mac) {
-			ws = new WebSocket('ws://' + location.host + '/ws/browser?mac=' + mac);
+		function new_session(did) {
+			ws = new WebSocket('ws://' + location.host + '/ws/browser?did=' + did);
 			ws.onopen = function() {
 				term = new Terminal({
 					focus: true,
@@ -34,7 +34,7 @@
 				});
 				
 				term.on('data', function(data) {
-					ws.send(JSON.stringify({type: 'data', mac: mac, sid: sid, data: Base64.encode(data)}));
+					ws.send(JSON.stringify({type: 'data', did: did, sid: sid, data: Base64.encode(data)}));
 				});
 				
 				term.on('open', function() {
@@ -70,12 +70,12 @@
 		}
 		
 		$("#connect").click(function() {
-			mac = $('#macaddr').val().replace(/:/g,'').toUpperCase().trim();
-			if (mac == '') {
-				$('#msg').text('Please input macaddr');
+			did = $('#did').val().trim();
+			if (did == '') {
+				$('#msg').text('Please input device id');
 			} else {
 				$('#msg').text('');
-				new_session(mac);
+				new_session(did);
 			}
 		});
 	</script>

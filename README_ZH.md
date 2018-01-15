@@ -52,6 +52,14 @@ Select package rtty in menuconfig and compile new image.
 
     uci set rtty.@server[0].host='your server host'
     uci set rtty.@server[0].port='your server port'
+
+你可以给你的设备自定义一个ID。如果未指定，RTTY将使用指定的网络接口的MAC地址作为其ID，
+以MAC地址作为ID的格式为：1A2A3A4A5A6A
+
+    uci set rtty.@device[0].id='your-device-id'
+
+保存配置并应用
+
     uci commit
     /etc/init.d/rtty restart
 
@@ -75,7 +83,9 @@ Select package rtty in menuconfig and compile new image.
     sudo /etc/init.d/rtty start
 
 # 如何使用
-使用你的Web浏览器访问你的服务器，然后输入你要访问的终端的MAC地址，然后点击连接按钮。
+查询在线设备: http://your-server-host:5912/list
+
+使用你的Web浏览器访问你的服务器，然后输入你要访问的终端的ID，然后点击连接按钮。
 
 http://your-server-host:5912
 
