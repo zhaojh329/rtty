@@ -15,7 +15,10 @@ class Devices:
     devs = {}
 
     def add(self, ws, did):
+        if self.devs.get(did):
+            return False
         self.devs[did] = {'ws': ws, 'active': 3}
+        return True
 
     def active(self, did):
         self.devs[did]['active'] = 3
@@ -62,7 +65,10 @@ async def websocket_handler_device(request):
     await ws.prepare(request)
 
     did = request.query['did']
-    devices.add(ws, did)
+    if not devices.add(ws, did):
+        # Fix me
+        ws.send_str(json.dumps({'type': 'add', 'err': 'ID conflicts'}))
+        return ws
 
     syslog.syslog('New device:' + did)
 

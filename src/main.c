@@ -40,6 +40,7 @@ enum {
     RTTYD_TYPE,
     RTTYD_DID,
     RTTYD_SID,
+    RTTYD_ERR,
     RTTYD_DATA
 };
 
@@ -54,6 +55,10 @@ static const struct blobmsg_policy pol[] = {
     },
     [RTTYD_SID] = {
         .name = "sid",
+        .type = BLOBMSG_TYPE_STRING,
+    },
+    [RTTYD_ERR] = {
+        .name = "err",
         .type = BLOBMSG_TYPE_STRING,
     },
     [RTTYD_DATA] = {
@@ -240,6 +245,11 @@ static void uwsc_onmessage(struct uwsc_client *cl, char *msg, uint64_t len, enum
         }
     } else if (!strcmp(type, "pong")) {
         active = 3;
+    } else if (!strcmp(type, "add")) {
+        if (tb[RTTYD_ERR]) {
+            uwsc_log_err("add failed: %s", blobmsg_get_string(tb[RTTYD_ERR]));
+            uloop_end();
+        }
     }
 }
 
