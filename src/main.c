@@ -38,7 +38,6 @@ struct tty_session {
 
 enum {
     RTTYD_TYPE,
-    RTTYD_DID,
     RTTYD_SID,
     RTTYD_ERR,
     RTTYD_DATA
@@ -47,10 +46,6 @@ enum {
 static const struct blobmsg_policy pol[] = {
     [RTTYD_TYPE] = {
         .name = "type",
-        .type = BLOBMSG_TYPE_STRING,
-    },
-    [RTTYD_DID] = {
-        .name = "did",
         .type = BLOBMSG_TYPE_STRING,
     },
     [RTTYD_SID] = {
