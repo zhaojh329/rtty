@@ -23,7 +23,15 @@
 		var term;
 		var sid;
 		var did;
-		
+
+		function getQueryString(name) {
+			var reg = new RegExp("(^|&)" + name + "=([^&]*)(&|$)", "i");
+			var r = window.location.search.substr(1).match(reg);
+			if (r != null)
+				return unescape(r[2]);
+			return null;
+		}
+
 		function new_session(did) {
 			ws = new WebSocket('ws://' + location.host + '/ws/browser?did=' + did);
 			ws.onopen = function() {
@@ -68,14 +76,25 @@
 				};
 			};
 		}
-		
-		$("#connect").click(function() {
-			did = $('#did').val().trim();
+
+		function do_connect() {
 			if (did == '') {
 				$('#msg').text('Please input device id');
 			} else {
 				$('#msg').text('');
 				new_session(did);
+			}
+		}
+
+		$("#connect").click(function() {
+			did = $('#did').val().trim();
+			do_connect();
+		});
+
+		$(function() {
+			did = getQueryString('id');
+			if (did && did != '') {
+				do_connect();
 			}
 		});
 	</script>
