@@ -20,6 +20,7 @@
 #include <string.h>
 #include <sys/wait.h>
 #include <pty.h>
+#include <ctype.h>
 #include <uwsc/uwsc.h>
 #include <libubox/ulog.h>
 #include <libubox/blobmsg_json.h>
@@ -305,12 +306,24 @@ static int find_login()
     return -1;
 }
 
+static bool valid_id(const char *id)
+{
+    while (*id) {
+        if (!isalnum(*id) && *id != '-' && *id != '_')
+            return false;
+        id++;
+    }
+
+    return true;
+}
+
 static void usage(const char *prog)
 {
     fprintf(stderr, "Usage: %s [option]\n"
         "      -i ifname    # Network interface name - Using the MAC address of\n"
         "                          the interface as the device ID\n"
-        "      -I id        # Set an ID for the device(Maximum 63 bytes) - If set,\n"
+        "      -I id        # Set an ID for the device(Maximum 63 bytes, valid character:letters\n"
+        "                          and numbers and underlines and short lines) - If set,\n"
         "                          it will cover the MAC address(if you have specify the ifname)\n"
         "      -h host      # Server host\n"
         "      -p port      # Server port\n"
@@ -384,6 +397,11 @@ int main(int argc, char **argv)
             usage(argv[0]);
         }
         strcpy(did, mac);
+    }
+
+    if (!valid_id(did)) {
+        ULOG_ERR("Invalid device id\n");
+        usage(argv[0]);
     }
 
     if (!host || !port) {
