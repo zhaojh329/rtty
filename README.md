@@ -6,8 +6,8 @@
 [libuwsc]: https://github.com/zhaojh329/libuwsc
 
 Access your terminal over the web browser. The 'r' in the name refers to the 'Reverse Proxy' or 'Remote'.
-It is composed of the client and the server. You can access any of your terminals through a web browser based on the
-device ID you set.
+It is composed of the client and the [server](https://github.com/zhaojh329/rttys). The server is written
+in go language. You can access any of your terminals through a web browser based on the device ID you set.
 
 rtty is very suitable for remote maintenance your or your company's thousands of Linux devices deployed around the world.
 
@@ -16,11 +16,6 @@ rtty is very suitable for remote maintenance your or your company's thousands of
 ![](/rtty.svg)
 
 ![](/rtty.gif)
-
-# Dependencies for Server side
-* [python3](https://www.python.org)
-* [uvloop](https://github.com/MagicStack/uvloop)
-* [aiohttp](https://github.com/aio-libs/aiohttp)
 
 # Dependencies for Client side
 * [libubox]
@@ -65,24 +60,7 @@ Save configuration and apply
     uci commit
     /etc/init.d/rtty restart
 
-# Deploying the server side
-Install dependencies
-
-	sudo apt install python3 python3-pip
-	sudo pip3 install aiohttp uvloop
-
-clone code
-
-	git clone https://github.com/zhaojh329/rtty.git
-
-Manual run
-
-	cd rtty/server && ./rtty.py -p 5912
-
-Install the automatic boot script
-
-    sudo ./install.sh
-    sudo /etc/init.d/rtty start
+# [Deploying the server side](https://github.com/zhaojh329/rttys)
 
 # Usage
 Query online devices: http://your-server-host:5912/list

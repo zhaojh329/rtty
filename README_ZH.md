@@ -6,8 +6,9 @@
 [libubox]: https://git.openwrt.org/?p=project/libubox.git
 [libuwsc]: https://github.com/zhaojh329/libuwsc
 
-通过Web浏览器访问你的终端。项目名称里面的“r”是指“反向代理”或者“远程”。它由客户端和服务端组成。
-你可以基于你设置的设备ID通过Web浏览器访问你的任意一台终端。
+通过Web浏览器访问你的终端。项目名称里面的“r”是指“反向代理”或者“远程”。它由客户端和
+[服务端](https://github.com/zhaojh329/rttys)组成。服务端采用GO语言实现。你可以基
+于你设置的设备ID通过Web浏览器访问你的任意一台终端。
 
 rtty非常适合远程维护你的或者你公司的部署在全球各地的成千上万的Linux设备。
 
@@ -16,11 +17,6 @@ rtty非常适合远程维护你的或者你公司的部署在全球各地的成�
 ![](/rtty.svg)
 
 ![](/rtty.gif)
-
-# 服务端依赖
-* [python3](https://www.python.org)
-* [uvloop](https://github.com/MagicStack/uvloop)
-* [aiohttp](https://github.com/aio-libs/aiohttp)
 
 # 客户端依赖
 * [libubox]
@@ -63,24 +59,7 @@ Select package rtty in menuconfig and compile new image.
     uci commit
     /etc/init.d/rtty restart
 
-# 部署服务端
-安装依赖
-
-    sudo apt install python3 python3-pip
-    sudo pip3 install aiohttp uvloop
-
-克隆代码
-
-    git clone https://github.com/zhaojh329/rtty.git
-
-手动运行
-
-    cd rtty/server && ./rtty.py -p 5912
-
-安装自启动脚本，后台运行
-
-    sudo ./install.sh
-    sudo /etc/init.d/rtty start
+# [部署服务端](https://github.com/zhaojh329/rttys)
 
 # 如何使用
 查询在线设备: http://your-server-host:5912/list
