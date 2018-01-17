@@ -21,6 +21,7 @@
 #include <sys/wait.h>
 #include <pty.h>
 #include <uwsc/uwsc.h>
+#include <libubox/ulog.h>
 #include <libubox/blobmsg_json.h>
 
 #include "utils.h"
@@ -89,11 +90,11 @@ static void keepalive(struct uloop_timeout *utm)
     free(str);
 
     if (!active--) {
-        gcl->free(gcl);
-        gcl = NULL;
-
+        ULOG_ERR("keepalive timeout\n");
         if (auto_reconnect)
             do_connect();
+        else
+            uloop_end();
         return;
     }
 
@@ -182,7 +183,7 @@ static void uwsc_onopen(struct uwsc_client *cl)
     active = 3;
     keepalive_timer.cb = keepalive;
     uloop_timeout_set(&keepalive_timer, KEEPALIVE_INTERVAL * 1000);
-    uwsc_log_debug("onopen");
+    ULOG_INFO("onopen\n");
 }
 
 static void uwsc_onmessage(struct uwsc_client *cl, char *msg, uint64_t len, enum websocket_op op)
@@ -195,7 +196,7 @@ static void uwsc_onmessage(struct uwsc_client *cl, char *msg, uint64_t len, enum
     blobmsg_add_json_from_string(&b, msg);
 
     if (blobmsg_parse(pol, ARRAY_SIZE(pol), tb, blob_data(b.head), blob_len(b.head)) != 0) {
-        uwsc_log_err("Parse failed");
+        ULOG_ERR("Parse failed\n");
         return;
     }
 
@@ -242,7 +243,7 @@ static void uwsc_onmessage(struct uwsc_client *cl, char *msg, uint64_t len, enum
         active = 3;
     } else if (!strcmp(type, "add")) {
         if (tb[RTTYD_ERR]) {
-            uwsc_log_err("add failed: %s", blobmsg_get_string(tb[RTTYD_ERR]));
+            ULOG_ERR("add failed: %s\n", blobmsg_get_string(tb[RTTYD_ERR]));
             uloop_end();
         }
     }
@@ -250,13 +251,13 @@ static void uwsc_onmessage(struct uwsc_client *cl, char *msg, uint64_t len, enum
 
 static void uwsc_onerror(struct uwsc_client *cl)
 {
-    uwsc_log_err("onerror:%d", cl->error);
+    ULOG_ERR("onerror:%d\n", cl->error);
 }
 
 static void uwsc_onclose(struct uwsc_client *cl)
 {
     active = 0;
-    uwsc_log_debug("onclose");
+    ULOG_ERR("onclose\n");
 
     if (auto_reconnect) {
         cl->free(cl);
@@ -314,6 +315,7 @@ static void usage(const char *prog)
         "      -h host      # Server host\n"
         "      -p port      # Server port\n"
         "      -a           # Auto reconnect to the server\n"
+        "      -v           # verbose\n"
         , prog);
     exit(1);
 }
@@ -324,18 +326,19 @@ int main(int argc, char **argv)
     char mac[13] = "";
     const char *host = NULL;
     int port = 0;
+    bool verbose = false;
 
     if (setuid(0) < 0) {
-        fprintf(stderr, "Operation not permitted\n");
+        ULOG_ERR("Operation not permitted\n");
         return -1;
     }
 
     if (find_login() < 0) {
-        fprintf(stderr, "The program 'login' is not found\n");
+        ULOG_ERR("The program 'login' is not found\n");
         return -1;
     }
 
-    while ((opt = getopt(argc, argv, "i:h:p:I:a")) != -1) {
+    while ((opt = getopt(argc, argv, "i:h:p:I:av")) != -1) {
         switch (opt)
         {
         case 'i':
@@ -355,21 +358,27 @@ int main(int argc, char **argv)
         case 'a':
             auto_reconnect = true;
             break;
+        case 'v':
+            verbose = true;
+            break;
         default: /* '?' */
             usage(argv[0]);
         }
     }
 
+    if (!verbose)
+        ulog_threshold(LOG_ERR);
+
     if (!did[0]) {
         if (!mac[0]) {
-            fprintf(stderr, "You must specify the ifname or id\n");
+            ULOG_ERR("You must specify the ifname or id\n");
             usage(argv[0]);
         }
         strcpy(did, mac);
     }
 
     if (!host || !port) {
-        fprintf(stderr, "You must specify the host and port\n");
+        ULOG_ERR("You must specify the host and port\n");
         usage(argv[0]);
     }
 
