@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2017 Jianhui Zhao <jianhuizhao329@gmail.com>
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -69,7 +69,7 @@ static char buf[4096 * 10];
 static struct blob_buf b;
 static char did[64];          /* device id */
 static char login[128];       /* /bin/login */
-static char server_url[128] = "";
+static char server_url[512];
 static int active;
 static bool auto_reconnect;
 struct uloop_timeout keepalive_timer;
@@ -316,6 +316,7 @@ static void usage(const char *prog)
         "      -p port      # Server port\n"
         "      -a           # Auto reconnect to the server\n"
         "      -v           # verbose\n"
+        "      -d           # Adding a description to the device(Maximum 126 bytes)\n"
         , prog);
     exit(1);
 }
@@ -325,6 +326,7 @@ int main(int argc, char **argv)
     int opt;
     char mac[13] = "";
     const char *host = NULL;
+    const char *description = NULL;
     int port = 0;
     bool verbose = false;
 
@@ -338,7 +340,7 @@ int main(int argc, char **argv)
         return -1;
     }
 
-    while ((opt = getopt(argc, argv, "i:h:p:I:av")) != -1) {
+    while ((opt = getopt(argc, argv, "i:h:p:I:avd:")) != -1) {
         switch (opt)
         {
         case 'i':
@@ -360,6 +362,13 @@ int main(int argc, char **argv)
             break;
         case 'v':
             verbose = true;
+            break;
+        case 'd':
+            description = optarg;
+            if (strlen(description) > 126) {
+                ULOG_ERR("Description too long\n");
+                usage(argv[0]);
+            }
             break;
         default: /* '?' */
             usage(argv[0]);
@@ -384,7 +393,11 @@ int main(int argc, char **argv)
 
     uloop_init();
 
-    snprintf(server_url, sizeof(server_url), "ws://%s:%d/ws/device?did=%s", host, port, did);
+    memset(buf, 0, sizeof(buf));
+    if (description)
+        urlencode(buf, sizeof(buf), description, strlen(description));
+
+    snprintf(server_url, sizeof(server_url), "ws://%s:%d/ws/device?did=%s&des=%s", host, port, did, buf);
 
     do_connect();
 

@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2017 Jianhui Zhao <jianhuizhao329@gmail.com>
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -21,6 +21,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <errno.h>
+#include <ctype.h>
 #include <sys/ioctl.h>
 #include <net/if.h>
 #include <net/if_arp.h>
@@ -48,11 +49,43 @@ int get_iface_mac(const char *ifname, char *dst, int len)
         close(sock);
         return -1;
     }
-    
+
     close(sock);
 
     hw = (uint8_t *)ifr.ifr_hwaddr.sa_data;
     snprintf(dst, len, "%02X%02X%02X%02X%02X%02X", hw[0], hw[1], hw[2], hw[3], hw[4], hw[5]);
 
     return 0;
+}
+
+/* blen is the size of buf; slen is the length of src.  The input-string need
+** not be, and the output string will not be, null-terminated.  Returns the
+** length of the encoded string, or -1 on error (buffer overflow) */
+int urlencode(char *buf, int blen, const char *src, int slen)
+{
+    int i;
+    int len = 0;
+    static const char hex[] = "0123456789abcdef";
+
+    for (i = 0; (i < slen) && (len < blen); i++)
+    {
+        if( isalnum(src[i]) || (src[i] == '-') || (src[i] == '_') ||
+            (src[i] == '.') || (src[i] == '~') )
+        {
+            buf[len++] = src[i];
+        }
+        else if ((len+3) <= blen)
+        {
+            buf[len++] = '%';
+            buf[len++] = hex[(src[i] >> 4) & 15];
+            buf[len++] = hex[ src[i]       & 15];
+        }
+        else
+        {
+            len = -1;
+            break;
+        }
+    }
+
+    return (i == slen) ? len : -1;
 }
