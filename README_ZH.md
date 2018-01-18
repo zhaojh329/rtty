@@ -29,8 +29,7 @@ rtty非常适合远程维护你的或者你公司的部署在全球各地的成�
 
     sudo yum install golang         # For Centos
 
-设置环境变量GOPATH（如果您未设置）
-(从Go 1.8开始, 默认为$HOME/go)
+设置环境变量GOPATH（如果您未设置）(从Go 1.8开始, 默认为$HOME/go)
 
     export GOPATH=$HOME/go
 

@@ -28,8 +28,7 @@ Install the GO language environment (if you haven't installed it)
 
     sudo yum install golang         # For Centos
 
-Set GOPATH environment variable(if you haven't set it)
-(since Go 1.8, default is $HOME/go)
+Set GOPATH environment variable(if you haven't set it)(since Go 1.8, default is $HOME/go)
 
     export GOPATH=$HOME/go
 
