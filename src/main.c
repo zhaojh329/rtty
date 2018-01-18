@@ -344,16 +344,6 @@ int main(int argc, char **argv)
     int port = 0;
     bool verbose = false;
 
-    if (setuid(0) < 0) {
-        ULOG_ERR("Operation not permitted\n");
-        return -1;
-    }
-
-    if (find_login() < 0) {
-        ULOG_ERR("The program 'login' is not found\n");
-        return -1;
-    }
-
     while ((opt = getopt(argc, argv, "i:h:p:I:avd:")) != -1) {
         switch (opt)
         {
@@ -411,6 +401,15 @@ int main(int argc, char **argv)
     }
 
     ULOG_INFO("rtty version %s\n", RTTY_VERSION_STRING);
+
+    if (setuid(0) < 0) {
+        ULOG_ERR("Operation not permitted\n");
+        return -1;
+    }
+    if (find_login() < 0) {
+        ULOG_ERR("The program 'login' is not found\n");
+        return -1;
+    }
 
     uloop_init();
 
