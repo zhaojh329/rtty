@@ -6,8 +6,7 @@
 [libubox]: https://git.openwrt.org/?p=project/libubox.git
 [libuwsc]: https://github.com/zhaojh329/libuwsc
 
-通过Web浏览器访问你的终端。项目名称里面的“r”是指“反向代理”或者“远程”。它由客户端和
-[服务端](https://github.com/zhaojh329/rttys)组成。服务端采用GO语言实现。你可以基
+一个反向代理WebTTY。它由客户端和[服务端](https://github.com/zhaojh329/rttys)组成。服务端采用GO语言实现。你可以基
 于你设置的设备ID通过Web浏览器访问你的任意一台终端。
 
 rtty非常适合远程维护你的或者你公司的部署在全球各地的成千上万的Linux设备。

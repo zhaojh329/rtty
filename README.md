@@ -5,9 +5,9 @@
 [libubox]: https://git.openwrt.org/?p=project/libubox.git
 [libuwsc]: https://github.com/zhaojh329/libuwsc
 
-Access your terminal over the web browser. The 'r' in the name refers to the 'Reverse Proxy' or 'Remote'.
-It is composed of the client and the [server](https://github.com/zhaojh329/rttys). The server is written
-in go language. You can access any of your terminals through a web browser based on the device ID you set.
+A reverse proxy WebTTY. It is composed of the client and the server. It is composed of the client and the
+[server](https://github.com/zhaojh329/rttys). The server is written in go language. You can access any of
+your terminals through a web browser based on the device ID you set.
 
 rtty is very suitable for remote maintenance your or your company's thousands of Linux devices deployed around the world.
 
