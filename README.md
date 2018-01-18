@@ -21,7 +21,67 @@ rtty is very suitable for remote maintenance your or your company's thousands of
 * [libubox]
 * [libuwsc]
 
-# How to use on OpenWRT
+# Deploying the server side
+Install the GO language environment (if you haven't installed it)
+
+    sudo apt-get install golang     # For Ubuntu
+
+    sudo yum install golang         # For Centos
+
+Install dependent packages
+
+    go get github.com/gorilla/websocket
+    go get github.com/rakyll/statik
+
+Install rtty server
+
+    go get github.com/zhaojh329/rttys
+
+Manual run
+
+    $GOPATH/bin/rttys -port 5912
+
+Install the automatic boot script
+
+    cd $GOPATH/src/github.com/zhaojh329/rttys
+    sudo ./install.sh
+    sudo /etc/init.d/rttys start
+
+# How to build and install the Client - rtty
+## For Linux distribution, such as Ubuntu and Centos
+Install build tools
+
+    sudo apt install gcc cmake git      # For Ubuntu
+
+    yum install gcc cmake git           # For Centos
+
+Install dependent packages
+
+    git clone https://git.openwrt.org/project/libubox.git
+    cd libubox && cmake -DBUILD_LUA=OFF . && sudo make install
+
+    git clone https://github.com/zhaojh329/libuwsc.git
+    cd libuwsc && cmake -DUWSC_SSL_SUPPORT=OFF . && sudo make install
+
+Install RTTY
+    
+    git clone https://github.com/zhaojh329/rtty.git
+    cd rtty && cmake . && sudo make install
+
+Run RTTY
+Replace the following parameters with your own parameters
+
+    sudo rtty -I 'My-device-ID' -h 'jianhuizhao.f3322.net' -p 5912 -a -v -d 'My Device Description'
+
+Query online devices
+
+    curl http://jianhuizhao.f3322.net:5912/list
+    [{"id":"My-device-ID","description":"My device"}]
+
+## For Embedded Linux Platform
+You need to cross compiling by yourself
+
+## For OpenWRT
 add new feed into "feeds.conf.default":
 
     src-git libuwsc https://github.com/zhaojh329/libuwsc-feed.git
@@ -55,7 +115,6 @@ The format of the MAC address as the ID is: 1A2A3A4A5A6A
 
     uci set rtty.@device[0].id='your-device-id'
 
-
 You can add a description to your device
 
     uci set rtty.@device[0].description='My device'
@@ -64,30 +123,6 @@ Save configuration and apply
 
     uci commit
     /etc/init.d/rtty restart
-
-# Deploying the server side
-Install the GO language environment (if you haven't installed it)
-
-    sudo apt-get install golang
-
-Install dependent packages
-
-    go get github.com/gorilla/websocket
-    go get github.com/rakyll/statik
-
-Install rtty server
-
-    go get github.com/zhaojh329/rttys
-
-Manual run
-
-    $GOPATH/bin/rttys -port 5912
-
-Install the automatic boot script
-
-    cd $GOPATH/src/github.com/zhaojh329/rttys
-    sudo ./install.sh
-    sudo /etc/init.d/rttys start
 
 # Usage
 Query online devices: http://your-server-host:5912/list

@@ -22,7 +22,67 @@ rtty非常适合远程维护你的或者你公司的部署在全球各地的成�
 * [libubox]
 * [libuwsc]
 
-# 如何在OpenWRT中使用
+# 部署服务端
+安装GO语言环境（如果您还未安装）
+
+    sudo apt-get install golang     # For ubuntu
+
+    sudo yum install golang         # For Centos
+
+安装依赖包
+
+    go get github.com/gorilla/websocket
+    go get github.com/rakyll/statik
+
+安装rtty server
+
+    go get github.com/zhaojh329/rttys
+
+手动运行
+
+    $GOPATH/bin/rttys -port 5912
+
+安装自启动脚本，后台运行
+
+    cd $GOPATH/src/github.com/zhaojh329/rttys
+    sudo ./install.sh
+    sudo /etc/init.d/rttys start
+
+# 如何编译和安装 rtty客户端
+## 针对Linux发行版, 例如Ubuntu和Centos
+安装编译工具
+
+    sudo apt install gcc cmake git      # For Ubuntu
+
+    yum install gcc cmake git           # For Centos
+
+编译和安装依赖软件包
+
+    git clone https://git.openwrt.org/project/libubox.git
+    cd libubox && cmake -DBUILD_LUA=OFF . && sudo make install
+
+    git clone https://github.com/zhaojh329/libuwsc.git
+    cd libuwsc && cmake -DUWSC_SSL_SUPPORT=OFF . && sudo make install
+
+编译和安装RTTY
+    
+    git clone https://github.com/zhaojh329/rtty.git
+    cd rtty && cmake . && sudo make install
+
+运行RTTY
+将下面的参数替换为你自己的参数
+
+    sudo rtty -I 'My-device-ID' -h 'jianhuizhao.f3322.net' -p 5912 -a -v -d 'My Device Description'
+
+查询在线设备列表
+
+    curl http://jianhuizhao.f3322.net:5912/list
+    [{"id":"My-device-ID","description":"My device"}]
+
+## 嵌入式Linux平台
+你需要自行交叉编译
+
+## 如何在OpenWRT中使用
 add new feed into "feeds.conf.default":
 
     src-git libuwsc https://github.com/zhaojh329/libuwsc-feed.git
@@ -58,30 +118,6 @@ Select package rtty in menuconfig and compile new image.
 
     uci commit
     /etc/init.d/rtty restart
-
-# 部署服务端
-安装GO语言环境（如果您还未安装）
-
-    sudo apt-get install golang
-
-安装依赖包
-
-    go get github.com/gorilla/websocket
-    go get github.com/rakyll/statik
-
-安装rtty server
-
-    go get github.com/zhaojh329/rttys
-
-手动运行
-
-    $GOPATH/bin/rttys -port 5912
-
-安装自启动脚本，后台运行
-
-    cd $GOPATH/src/github.com/zhaojh329/rttys
-    sudo ./install.sh
-    sudo /etc/init.d/rttys start
 
 # 如何使用
 查询在线设备: http://your-server-host:5912/list
