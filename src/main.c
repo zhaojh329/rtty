@@ -275,7 +275,7 @@ static void do_connect()
     uloop_timeout_cancel(&keepalive_timer);
 
 TRY:
-    gcl = uwsc_new(server_url);
+    gcl = uwsc_new_ssl(server_url, NULL, false);
     if (!gcl) {
         if (uloop_cancelled || !auto_reconnect) {
             uloop_end();
@@ -331,6 +331,7 @@ static void usage(const char *prog)
         "      -a           # Auto reconnect to the server\n"
         "      -v           # verbose\n"
         "      -d           # Adding a description to the device(Maximum 126 bytes)\n"
+        "      -s           # SSL on"
         , prog);
     exit(1);
 }
@@ -343,8 +344,9 @@ int main(int argc, char **argv)
     const char *description = NULL;
     int port = 0;
     bool verbose = false;
+    bool ssl = false;
 
-    while ((opt = getopt(argc, argv, "i:h:p:I:avd:")) != -1) {
+    while ((opt = getopt(argc, argv, "i:h:p:I:avd:s")) != -1) {
         switch (opt)
         {
         case 'i':
@@ -373,6 +375,9 @@ int main(int argc, char **argv)
                 ULOG_ERR("Description too long\n");
                 usage(argv[0]);
             }
+            break;
+        case 's':
+            ssl = true;
             break;
         default: /* '?' */
             usage(argv[0]);
@@ -418,7 +423,7 @@ int main(int argc, char **argv)
     if (description)
         urlencode(buf, sizeof(buf), description, strlen(description));
 
-    snprintf(server_url, sizeof(server_url), "ws://%s:%d/ws/device?did=%s&des=%s", host, port, did, buf);
+    snprintf(server_url, sizeof(server_url), "ws%s://%s:%d/ws/device?did=%s&des=%s", ssl ? "s" : "", host, port, did, buf);
 
     do_connect();
 
