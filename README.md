@@ -55,6 +55,11 @@ The format of the MAC address as the ID is: 1A2A3A4A5A6A
 
     uci set rtty.@device[0].id='your-device-id'
 
+
+You can add a description to your device
+
+    uci set rtty.@device[0].description='My device'
+
 Save configuration and apply
 
     uci commit
@@ -87,9 +92,10 @@ Install the automatic boot script
 # Usage
 Query online devices: http://your-server-host:5912/list
 
-Use your web browser to access your server, then enter the id of the terminal you want to access, and then click the connection button
+Use your web browser to access your server: http://your-server-host:5912,
+then enter the id of the terminal you want to access, and then click the connection button
 
-http://your-server-host:5912
+You can easily embed RTTY into your existing platform: http://your-server-host:5912?id=your-id
 
 # Contributing
 If you would like to help making [rtty](https://github.com/zhaojh329/rtty) better,

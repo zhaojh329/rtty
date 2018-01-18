@@ -86,9 +86,9 @@ Select package rtty in menuconfig and compile new image.
 # 如何使用
 查询在线设备: http://your-server-host:5912/list
 
-使用你的Web浏览器访问你的服务器，然后输入你要访问的终端的ID，然后点击连接按钮。
+使用你的Web浏览器访问你的服务器: http://your-server-host:5912，然后输入你要访问的终端的ID，然后点击连接按钮。
 
-http://your-server-host:5912
+你可以非常方便的将RTTY嵌入到你现有的平台： http://your-server-host:5912?id=your-id
 
 # 贡献代码
 如果你想帮助[rtty](https://github.com/zhaojh329/rtty)变得更好，请参考
