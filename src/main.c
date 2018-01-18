@@ -406,6 +406,7 @@ int main(int argc, char **argv)
         ULOG_ERR("Operation not permitted\n");
         return -1;
     }
+
     if (find_login() < 0) {
         ULOG_ERR("The program 'login' is not found\n");
         return -1;
