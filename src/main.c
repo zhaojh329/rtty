@@ -25,6 +25,7 @@
 #include <libubox/ulog.h>
 #include <libubox/blobmsg_json.h>
 
+#include "config.h"
 #include "utils.h"
 
 #define KEEPALIVE_INTERVAL  10
@@ -408,6 +409,8 @@ int main(int argc, char **argv)
         ULOG_ERR("You must specify the host and port\n");
         usage(argv[0]);
     }
+
+    ULOG_INFO("rtty version %s\n", RTTY_VERSION_STRING);
 
     uloop_init();
 
