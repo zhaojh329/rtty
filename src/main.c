@@ -29,6 +29,7 @@
 #include "utils.h"
 
 #define KEEPALIVE_INTERVAL  10
+#define RECONNECT_INTERVAL  5
 
 struct tty_session {
     pid_t pid;
@@ -65,8 +66,6 @@ static const struct blobmsg_policy pol[] = {
     }
 };
 
-static void do_connect();
-
 static char buf[4096 * 10];
 static struct blob_buf b;
 static char did[64];          /* device id */
@@ -75,6 +74,7 @@ static char server_url[512];
 static int active;
 static bool auto_reconnect;
 struct uloop_timeout keepalive_timer;
+struct uloop_timeout reconnect_timer;
 struct uwsc_client *gcl;
 
 static LIST_HEAD(tty_sessions);
@@ -93,9 +93,9 @@ static void keepalive(struct uloop_timeout *utm)
 
     if (!active--) {
         ULOG_ERR("keepalive timeout\n");
-        if (auto_reconnect)
-            do_connect();
-        else
+        if (auto_reconnect) {
+            gcl->send(gcl, NULL, 0, WEBSOCKET_OP_CLOSE);
+        } else
             uloop_end();
         return;
     }
@@ -264,31 +264,27 @@ static void uwsc_onclose(struct uwsc_client *cl)
     if (auto_reconnect) {
         cl->free(cl);
         cl = NULL;
-        do_connect();
+        uloop_timeout_set(&reconnect_timer, RECONNECT_INTERVAL * 1000);
     } else {
         uloop_end();
     }
 }
 
-static void do_connect()
+static void do_connect(struct uloop_timeout *utm)
 {
     uloop_timeout_cancel(&keepalive_timer);
 
-TRY:
     gcl = uwsc_new_ssl(server_url, NULL, false);
-    if (!gcl) {
-        if (uloop_cancelled || !auto_reconnect) {
-            uloop_end();
-            return;
-        }
-        sleep(5);
-        goto TRY;
+    if (gcl) {
+        gcl->onopen = uwsc_onopen;
+        gcl->onmessage = uwsc_onmessage;
+        gcl->onerror = uwsc_onerror;
+        gcl->onclose = uwsc_onclose;
+        return;
     }
 
-    gcl->onopen = uwsc_onopen;
-    gcl->onmessage = uwsc_onmessage;
-    gcl->onerror = uwsc_onerror;
-    gcl->onclose = uwsc_onclose;
+    if (uloop_cancelled || !auto_reconnect)
+        uloop_end();
 }
 
 static int find_login()
@@ -425,7 +421,8 @@ int main(int argc, char **argv)
 
     snprintf(server_url, sizeof(server_url), "ws%s://%s:%d/ws/device?did=%s&des=%s", ssl ? "s" : "", host, port, did, buf);
 
-    do_connect();
+    reconnect_timer.cb = do_connect;
+    do_connect(&reconnect_timer);
 
     if (gcl) {
         uloop_run();
