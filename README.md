@@ -28,10 +28,10 @@ Install the GO language environment (if you haven't installed it)
 
     sudo yum install golang         # For Centos
 
-Install dependent packages
+Set GOPATH environment variable(if you haven't set it)
+(since Go 1.8, default is $HOME/go)
 
-    go get github.com/gorilla/websocket
-    go get github.com/rakyll/statik
+    export GOPATH=$HOME/go
 
 Install rtty server
 

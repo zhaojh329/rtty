@@ -29,10 +29,10 @@ rtty非常适合远程维护你的或者你公司的部署在全球各地的成�
 
     sudo yum install golang         # For Centos
 
-安装依赖包
+设置环境变量GOPATH（如果您未设置）
+(从Go 1.8开始, 默认为$HOME/go)
 
-    go get github.com/gorilla/websocket
-    go get github.com/rakyll/statik
+    export GOPATH=$HOME/go
 
 安装rtty server
 
