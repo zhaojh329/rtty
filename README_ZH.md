@@ -126,6 +126,8 @@ Select package rtty in menuconfig and compile new image.
 
 你可以非常方便的将RTTY嵌入到你现有的平台： http://your-server-host:5912?id=your-id
 
+自动登录: http://your-server:5912/?id=device-id&username=device-username&password=device-password
+
 # 贡献代码
 如果你想帮助[rtty](https://github.com/zhaojh329/rtty)变得更好，请参考
 [CONTRIBUTING_ZH.md](https://github.com/zhaojh329/rtty/blob/master/CONTRIBUTING_ZH.md)。

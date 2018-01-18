@@ -132,6 +132,8 @@ then enter the id of the terminal you want to access, and then click the connect
 
 You can easily embed RTTY into your existing platform: http://your-server-host:5912?id=your-id
 
+Automatic login: http://your-server:5912/?id=device-id&username=device-username&password=device-password
+
 # Contributing
 If you would like to help making [rtty](https://github.com/zhaojh329/rtty) better,
 see the [CONTRIBUTING.md](https://github.com/zhaojh329/rtty/blob/master/CONTRIBUTING.md) file.
