@@ -25,7 +25,7 @@ If you want to contribute to [rtty](https://github.com/zhaojh329/rtty), please f
 5. Commit and push your changes, then make a pull request from Github.
 
     git commit --signoff
-    git push
+    git push origin rtty-1-fix
  
 6. Awaiting review, if accepted, merged!
 

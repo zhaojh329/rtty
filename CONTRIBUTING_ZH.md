@@ -25,7 +25,7 @@
 5. 提交代码并推送到服务器，然后从Github提交pull request。
 
     git commit --signoff
-    git push
+    git push origin rtty-1-fix
 
 6. 等待审查，如果被接受，你的修改将会被合并到主分支。
 

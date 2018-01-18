@@ -60,7 +60,29 @@ Save configuration and apply
     uci commit
     /etc/init.d/rtty restart
 
-# [Deploying the server side](https://github.com/zhaojh329/rttys)
+# Deploying the server side
+Install the GO language environment (if you haven't installed it)
+
+    sudo apt-get install golang
+
+Install dependent packages
+
+    go get github.com/gorilla/websocket
+    go get github.com/rakyll/statik
+
+Install rtty server
+
+    go get github.com/zhaojh329/rttys
+
+Manual run
+
+    $GOPATH/bin/rttys -port 5912
+
+Install the automatic boot script
+
+    cd $GOPATH/src/github.com/zhaojh329/rttys
+    sudo ./install.sh
+    sudo /etc/init.d/rttys start
 
 # Usage
 Query online devices: http://your-server-host:5912/list
