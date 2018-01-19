@@ -22,7 +22,7 @@ rtty is very suitable for remote maintenance your or your company's thousands of
 ![](/rtty.gif)
 
 # Features
-* Simple to deployment and easy to use
+* Simple to deployment and easy to use
 * Reverse Proxy
 * Connect your device according to the ID you set up
 * Fully-featured terminal based on [Xterm.js]
