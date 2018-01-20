@@ -9,10 +9,12 @@
 [openssl]: https://github.com/openssl/openssl
 [mbedtls]: https://github.com/ARMmbed/mbedtls
 [CyaSSl(wolfssl)]: https://github.com/wolfSSL/wolfssl
+[vue]: https://github.com/vuejs/vue
+[iview]: https://github.com/iview/iview
 
 A reverse proxy WebTTY. It is composed of the client and the server. It is composed of the client and the
-[server](https://github.com/zhaojh329/rttys). The server is written in go language. You can access any of
-your terminals through a web browser based on the device ID you set.
+[server](https://github.com/zhaojh329/rttys). The server is written in go language and uses the [vue]+[iview].
+You can access any of your terminals through a web browser based on the device ID you set.
 
 rtty is very suitable for remote maintenance your or your company's thousands of Linux devices deployed around the world.
 
