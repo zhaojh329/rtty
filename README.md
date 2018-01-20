@@ -2,8 +2,13 @@
 
 ![](https://img.shields.io/badge/license-GPLV3-brightgreen.svg?style=plastic "License")
 
+[Xterm.js]: https://github.com/xtermjs/xterm.js
 [libubox]: https://git.openwrt.org/?p=project/libubox.git
 [libuwsc]: https://github.com/zhaojh329/libuwsc
+[ustream-ssl]: https://git.openwrt.org/?p=project/ustream-ssl.git
+[openssl]: https://github.com/openssl/openssl
+[mbedtls]: https://github.com/ARMmbed/mbedtls
+[CyaSSl(wolfssl)]: https://github.com/wolfSSL/wolfssl
 
 A reverse proxy WebTTY. It is composed of the client and the server. It is composed of the client and the
 [server](https://github.com/zhaojh329/rttys). The server is written in go language. You can access any of
@@ -11,17 +16,26 @@ your terminals through a web browser based on the device ID you set.
 
 rtty is very suitable for remote maintenance your or your company's thousands of Linux devices deployed around the world.
 
-SSL Support: openssl wolfssl mbedtls
-
 `Keep Watching for More Actions on This Space`
 
 ![](/rtty.svg)
-
 ![](/rtty.gif)
+
+# Features
+* Simple to deployment and easy to use
+* Reverse Proxy
+* Connect your device according to the ID you set up
+* Fully-featured terminal based on [Xterm.js]
+* SSL support: openssl, mbedtls, CyaSSl(wolfssl)
+* Cross platform: macOS, Linux, FreeBSD/OpenBSD, OpenWrt/LEDE
 
 # Dependencies for Client side
 * [libubox]
 * [libuwsc]
+* [ustream-ssl] - If you need to support SSL
+* [mbedtls] - If you choose mbedtls as your SSL backend
+* [CyaSSl(wolfssl)] - If you choose wolfssl as your SSL backend
+* [openssl] - If you choose openssl as your SSL backend
 
 # Deploying the server side
 Install the GO language environment (if you haven't installed it)
@@ -103,7 +117,10 @@ Select package rtty in menuconfig and compile new image.
 
     Utilities  --->
         Terminal  --->
-            <*> rtty................................... Share your terminal over the web
+            < > rtty-mbedtls............................ A reverse proxy WebTTY (mbedtls)
+            <*> rtty-nossl............................... A reverse proxy WebTTY (NO SSL)
+            < > rtty-openssl............................ A reverse proxy WebTTY (openssl)
+            < > rtty-wolfssl............................ A reverse proxy WebTTY (wolfssl)
 
 Configuring the server parameter
 

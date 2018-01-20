@@ -2,26 +2,38 @@
 
 ![](https://img.shields.io/badge/license-GPLV3-brightgreen.svg?style=plastic "License")
 
-[ttyd]: https://github.com/tsl0922/ttyd
 [libubox]: https://git.openwrt.org/?p=project/libubox.git
 [libuwsc]: https://github.com/zhaojh329/libuwsc
+[ustream-ssl]: https://git.openwrt.org/?p=project/ustream-ssl.git
+[openssl]: https://github.com/openssl/openssl
+[mbedtls]: https://github.com/ARMmbed/mbedtls
+[CyaSSl(wolfssl)]: https://github.com/wolfSSL/wolfssl
 
 一个反向代理WebTTY。它由客户端和[服务端](https://github.com/zhaojh329/rttys)组成。服务端采用GO语言实现。你可以基
 于你设置的设备ID通过Web浏览器访问你的任意一台终端。
 
 rtty非常适合远程维护你的或者你公司的部署在全球各地的成千上万的Linux设备。
 
-支持SSL: openssl wolfssl mbedtls
-
 `请保持关注以获取最新的项目动态`
 
 ![](/rtty.svg)
-
 ![](/rtty.gif)
+
+# 特性
+* 部署简单，使用方便
+* 反向代理
+* 根据你设置的ID连接你的设备
+* 基于[Xterm.js]的全功能终端
+* 支持SSL: openssl, mbedtls, CyaSSl(wolfssl)
+* 跨平台: macOS, Linux, FreeBSD/OpenBSD, OpenWrt/LEDE
 
 # 客户端依赖
 * [libubox]
 * [libuwsc]
+* [ustream-ssl] - 如果你需要支持SSL
+* [mbedtls] - 如果你选择mbedtls作为你的SSL后端
+* [CyaSSl(wolfssl)] - 如果你选择wolfssl作为你的SSL后端
+* [openssl] - 如果你选择openssl作为你的SSL后端
 
 # 部署服务端
 安装GO语言环境（如果您还未安装）
@@ -102,7 +114,10 @@ Select package rtty in menuconfig and compile new image.
 
     Utilities  --->
         Terminal  --->
-            <*> rtty................................... Share your terminal over the web
+            < > rtty-mbedtls............................ A reverse proxy WebTTY (mbedtls)
+            <*> rtty-nossl............................... A reverse proxy WebTTY (NO SSL)
+            < > rtty-openssl............................ A reverse proxy WebTTY (openssl)
+            < > rtty-wolfssl............................ A reverse proxy WebTTY (wolfssl)
 
 配置服务器参数
 
