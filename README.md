@@ -74,6 +74,10 @@ Install build tools
 
 Install dependent packages
 
+    sudo apt install libjson-c-dev      # For Ubuntu
+
+    sudo apt install json-c-devel       # For Centos
+
     git clone https://git.openwrt.org/project/libubox.git
     cd libubox && cmake -DBUILD_LUA=OFF . && sudo make install
 

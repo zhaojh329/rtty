@@ -73,6 +73,10 @@ rtty非常适合远程维护你的或者你公司的部署在全球各地的成�
 
 编译和安装依赖软件包
 
+    sudo apt install libjson-c-dev      # For Ubuntu
+
+    sudo apt install json-c-devel       # For Centos
+
     git clone https://git.openwrt.org/project/libubox.git
     cd libubox && cmake -DBUILD_LUA=OFF . && sudo make install
 
