@@ -58,7 +58,7 @@ Manual run
 
     $GOPATH/bin/rttys -port 5912
 
-Install the automatic boot script
+Install the automatic boot script(debian/ubuntu)
 
     cd $GOPATH/src/github.com/zhaojh329/rttys
     sudo ./install.sh

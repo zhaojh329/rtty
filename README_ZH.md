@@ -57,7 +57,7 @@ rtty非常适合远程维护你的或者你公司的部署在全球各地的成�
 
     $GOPATH/bin/rttys -port 5912
 
-安装自启动脚本，后台运行
+安装自启动脚本，后台运行(debian/ubuntu)
 
     cd $GOPATH/src/github.com/zhaojh329/rttys
     sudo ./install.sh
