@@ -8,11 +8,14 @@
 [6]: https://github.com/zhaojh329/rtty/issues/new
 [7]: https://img.shields.io/badge/release-2.1.0-blue.svg?style=plastic
 [8]: https://github.com/zhaojh329/rtty/releases
+[9]: https://travis-ci.org/zhaojh329/rtty.svg?branch=master
+[10]: https://travis-ci.org/zhaojh329/rtty
 
 [![license][1]][2]
 [![PRs Welcome][3]][4]
 [![Issue Welcome][5]][6]
 [![Release Version][7]][8]
+[![Build Status][9]][10]
 
 [Xterm.js]: https://github.com/xtermjs/xterm.js
 [libubox]: https://git.openwrt.org/?p=project/libubox.git
@@ -63,7 +66,7 @@ rtty非常适合远程维护你的或者你公司的部署在全球各地的成�
 
 安装rtty server
 
-    go get github.com/zhaojh329/rttys
+    go get -u github.com/zhaojh329/rttys
 
 手动运行
 
