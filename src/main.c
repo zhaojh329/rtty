@@ -20,6 +20,7 @@
 #include <string.h>
 #include <sys/wait.h>
 #include <pty.h>
+#include <fcntl.h>
 #include <ctype.h>
 #include <uwsc/uwsc.h>
 #include <libubox/ulog.h>
@@ -44,25 +45,35 @@ enum {
     RTTYD_TYPE,
     RTTYD_SID,
     RTTYD_ERR,
-    RTTYD_DATA
+    RTTYD_DATA,
+    RTTYD_NAME,
+    RTTYD_SIZE
 };
 
 static const struct blobmsg_policy pol[] = {
     [RTTYD_TYPE] = {
         .name = "type",
-        .type = BLOBMSG_TYPE_STRING,
+        .type = BLOBMSG_TYPE_STRING
     },
     [RTTYD_SID] = {
         .name = "sid",
-        .type = BLOBMSG_TYPE_STRING,
+        .type = BLOBMSG_TYPE_STRING
     },
     [RTTYD_ERR] = {
         .name = "err",
-        .type = BLOBMSG_TYPE_STRING,
+        .type = BLOBMSG_TYPE_STRING
     },
     [RTTYD_DATA] = {
         .name = "data",
-        .type = BLOBMSG_TYPE_STRING,
+        .type = BLOBMSG_TYPE_STRING
+    },
+    [RTTYD_NAME] = {
+        .name = "name",
+        .type = BLOBMSG_TYPE_STRING
+    },
+    [RTTYD_SIZE] = {
+        .name = "size",
+        .type = BLOBMSG_TYPE_INT32
     }
 };
 
@@ -72,6 +83,7 @@ static char did[64];          /* device id */
 static char login[128];       /* /bin/login */
 static char server_url[512];
 static int active;
+static int upfile = -1;       /* The file descriptor of file uploading */
 static bool auto_reconnect;
 struct uloop_timeout keepalive_timer;
 struct uloop_timeout reconnect_timer;
@@ -247,6 +259,38 @@ static void uwsc_onmessage(struct uwsc_client *cl, char *msg, uint64_t len, enum
         if (tb[RTTYD_ERR]) {
             ULOG_ERR("add failed: %s\n", blobmsg_get_string(tb[RTTYD_ERR]));
             uloop_end();
+        }
+    } else if (!strcmp(type, "upfile")) {
+        uint32_t size;
+        char *data;
+
+        if (!tb[RTTYD_NAME]) {
+            ULOG_ERR("upfile failed: Invalid param\n");
+            return;
+        }
+
+        if (upfile < 0) {
+            snprintf(buf, sizeof(buf) - 1, "/tmp/%s", blobmsg_get_string(tb[RTTYD_NAME]));
+            upfile = open(buf, O_CREAT | O_RDWR, 0644);
+            if (upfile < 0) {
+                ULOG_ERR("open upfile failed: %s\n", strerror(errno));
+                return;
+            }
+        }
+
+        data = blobmsg_get_string(tb[RTTYD_DATA]);
+        size = b64_decode(data, buf, sizeof(buf));
+
+        if (size > 0) {
+            if (write(upfile, buf, size) < 0) {
+                ULOG_ERR("write upfile failed: %s\n", strerror(errno));
+                close(upfile);
+                upfile = -1;
+                return;
+            }
+        } else {
+            close(upfile);
+            upfile = -1;
         }
     }
 }
