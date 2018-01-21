@@ -1,0 +1,16 @@
+language: c
+
+os:
+  - linux
+
+before_install:
+  - sudo apt-get install -y libjson-c-dev
+  - git clone https://git.openwrt.org/project/libubox.git
+  - cd libubox && cmake -DBUILD_LUA=OFF . && sudo make install && cd -
+  - git clone https://github.com/zhaojh329/libuwsc.git
+  - cd libuwsc && cmake -DUWSC_SSL_SUPPORT=OFF . && sudo make install && cd -
+
+script:
+  - mkdir build && cd build
+  - cmake ..
+  - make && sudo make install
