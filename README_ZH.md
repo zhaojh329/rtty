@@ -43,6 +43,8 @@ rtty非常适合远程维护你的或者你公司的部署在全球各地的成�
 * 根据你设置的ID连接你的设备
 * 基于[Xterm.js]的全功能终端
 * 支持SSL: openssl, mbedtls, CyaSSl(wolfssl)
+* 支持上传文件到设备
+* 支持从设备下载文件
 * 跨平台: macOS, Linux, FreeBSD/OpenBSD, OpenWrt/LEDE
 
 # 客户端依赖

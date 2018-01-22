@@ -44,6 +44,8 @@ rtty is very suitable for remote maintenance your or your company's thousands of
 * Connect your device according to the ID you set up
 * Fully-featured terminal based on [Xterm.js]
 * SSL support: openssl, mbedtls, CyaSSl(wolfssl)
+* Support upload file to device
+* Support download file from devices
 * Cross platform: macOS, Linux, FreeBSD/OpenBSD, OpenWrt/LEDE
 
 # Dependencies for Client side
