@@ -6,7 +6,7 @@
 [4]: https://github.com/zhaojh329/rtty/pulls
 [5]: https://img.shields.io/badge/Issues-welcome-brightgreen.svg?style=plastic
 [6]: https://github.com/zhaojh329/rtty/issues/new
-[7]: https://img.shields.io/badge/release-2.1.0-blue.svg?style=plastic
+[7]: https://img.shields.io/badge/release-2.2.0-blue.svg?style=plastic
 [8]: https://github.com/zhaojh329/rtty/releases
 [9]: https://travis-ci.org/zhaojh329/rtty.svg?branch=master
 [10]: https://travis-ci.org/zhaojh329/rtty
@@ -120,33 +120,17 @@ Query online devices
 You need to cross compiling by yourself
 
 ## For OpenWRT
-add new feed into "feeds.conf.default":
+Install
 
-    src-git libuwsc https://github.com/zhaojh329/libuwsc-feed.git
-    src-git rtty https://github.com/zhaojh329/rtty-feed.git
+    opkg update
+    opkg list | grep rtty
+    opkg install rtty-nossl
 
-
-for chaos_calmer(15.05)
-
-    src-git libuwsc https://github.com/zhaojh329/libuwsc-feed.git;for-15.05
-    src-git rtty https://github.com/zhaojh329/rtty-feed.git;for-15.05
-
-Install rtty packages:
-
-    ./scripts/feeds update libuwsc rtty
-    ./scripts/feeds install -a -p rtty
-
-Select package rtty in menuconfig and compile new image.
-
-    Utilities  --->
-        Terminal  --->
-            < > rtty-mbedtls............................ A reverse proxy WebTTY (mbedtls)
-            <*> rtty-nossl............................... A reverse proxy WebTTY (NO SSL)
-            < > rtty-openssl............................ A reverse proxy WebTTY (openssl)
-            < > rtty-wolfssl............................ A reverse proxy WebTTY (wolfssl)
+If the install command fails, you can [compile it yourself](/BUILDOPENWRT.md).
 
 Configuring the server parameter
 
+    uci add rtty rtty   # If it's the first configuration
     uci set rtty.@rtty[0].host='your server host'
     uci set rtty.@rtty[0].port='your server port'
 
