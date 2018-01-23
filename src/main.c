@@ -83,7 +83,9 @@ static char did[64];          /* device id */
 static char login[128];       /* /bin/login */
 static char server_url[512];
 static int active;
-static int upfile = -1;       /* The file descriptor of file uploading */
+static int upfile = -1;         /* The file descriptor of file uploading */
+static uint32_t upfile_size;    /* The file size of file uploading */
+static uint32_t uploaded;       /* uploaded size */
 static bool auto_reconnect;
 struct uloop_timeout keepalive_timer;
 struct uloop_timeout reconnect_timer;
@@ -200,10 +202,34 @@ static void uwsc_onopen(struct uwsc_client *cl)
     ULOG_INFO("onopen\n");
 }
 
+static void write_file(char *msg, uint64_t len)
+{
+    if (upfile) {
+        if (write(upfile, msg, len) < 0) {
+            ULOG_ERR("upfile failed:%s\n", strerror(errno));
+            close(upfile);
+            upfile = -1;
+            return;
+        }
+        uploaded += len;
+
+        if (uploaded == upfile_size) {
+            close(upfile);
+            upfile = -1;
+            ULOG_INFO("upload finish\n");
+        }
+    }
+}
+
 static void uwsc_onmessage(struct uwsc_client *cl, char *msg, uint64_t len, enum websocket_op op)
 {
     struct blob_attr *tb[ARRAY_SIZE(pol)];
     const char *type;
+
+    if (op == WEBSOCKET_OP_BINARY) {
+        write_file(msg, len);
+        return;
+    }
 
     blobmsg_buf_init(&b);
 
@@ -261,10 +287,7 @@ static void uwsc_onmessage(struct uwsc_client *cl, char *msg, uint64_t len, enum
             uloop_end();
         }
     } else if (!strcmp(type, "upfile")) {
-        uint32_t size;
-        char *data;
-
-        if (!tb[RTTYD_NAME]) {
+        if (!tb[RTTYD_NAME] || !tb[RTTYD_SIZE]) {
             ULOG_ERR("upfile failed: Invalid param\n");
             return;
         }
@@ -276,21 +299,14 @@ static void uwsc_onmessage(struct uwsc_client *cl, char *msg, uint64_t len, enum
                 ULOG_ERR("open upfile failed: %s\n", strerror(errno));
                 return;
             }
-        }
 
-        data = blobmsg_get_string(tb[RTTYD_DATA]);
-        size = b64_decode(data, buf, sizeof(buf));
+            uploaded = 0;
+            upfile_size = blobmsg_get_u32(tb[RTTYD_SIZE]);
 
-        if (size > 0) {
-            if (write(upfile, buf, size) < 0) {
-                ULOG_ERR("write upfile failed: %s\n", strerror(errno));
-                close(upfile);
-                upfile = -1;
-                return;
-            }
+            ULOG_INFO("Begin upload file:%d %s\n", upfile_size, buf);
         } else {
-            close(upfile);
-            upfile = -1;
+            ULOG_ERR("Only one file can be uploaded at the same time\n");
+            return;
         }
     }
 }

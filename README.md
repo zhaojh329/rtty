@@ -147,18 +147,18 @@ Select package rtty in menuconfig and compile new image.
 
 Configuring the server parameter
 
-    uci set rtty.@server[0].host='your server host'
-    uci set rtty.@server[0].port='your server port'
+    uci set rtty.@rtty[0].host='your server host'
+    uci set rtty.@rtty[0].port='your server port'
 
 You can customize an ID for your device. If the ID is not configured, RTTY will use
 the MAC address of the specified network interface as the ID.
 The format of the MAC address as the ID is: 1A2A3A4A5A6A
 
-    uci set rtty.@device[0].id='your-device-id'
+    uci set rtty.@rtty[0].id='your-device-id'
 
 You can add a description to your device
 
-    uci set rtty.@device[0].description='My device'
+    uci set rtty.@rtty[0].description='My device'
 
 Save configuration and apply
 

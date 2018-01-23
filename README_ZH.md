@@ -145,13 +145,13 @@ Select package rtty in menuconfig and compile new image.
 
 配置服务器参数
 
-    uci set rtty.@server[0].host='your server host'
-    uci set rtty.@server[0].port='your server port'
+    uci set rtty.@rtty[0].host='your server host'
+    uci set rtty.@rtty[0].port='your server port'
 
 你可以给你的设备自定义一个ID。如果未指定，RTTY将使用指定的网络接口的MAC地址作为其ID，
 以MAC地址作为ID的格式为：1A2A3A4A5A6A
 
-    uci set rtty.@device[0].id='your-device-id'
+    uci set rtty.@rtty[0].id='your-device-id'
 
 保存配置并应用
 
