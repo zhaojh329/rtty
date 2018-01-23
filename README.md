@@ -120,23 +120,23 @@ Query online devices
 You need to cross compiling by yourself
 
 ## For OpenWRT
-add new feed into "feeds.conf.default":
+Update feeds:
 
-    src-git libuwsc https://github.com/zhaojh329/libuwsc-feed.git
-    src-git rtty https://github.com/zhaojh329/rtty-feed.git
+    ./scripts/feeds update -a
+    ./scripts/feeds install -a
 
+For chaos_calmer(15.05), you need to modify the Makefile: feeds/packages/utils/rtty/Makefile
 
-for chaos_calmer(15.05)
+    PKG_SOURCE_PROTO:=git
+    PKG_SOURCE_VERSION:=v$(PKG_VERSION)
+    PKG_SOURCE_URL=https://github.com/zhaojh329/rtty.git
+    # Add the following two lines
+    PKG_SOURCE_SUBDIR:=$(PKG_NAME)-$(PKG_VERSION)
+    PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION)-$(PKG_SOURCE_VERSION).tar.gz
+    # And comment the line below
+    #PKG_MIRROR_HASH:=23a203351fdd47acfd16d3c3b3e3d51dd65a5d9e8ca89d4b1521d40c40616102
 
-    src-git libuwsc https://github.com/zhaojh329/libuwsc-feed.git;for-15.05
-    src-git rtty https://github.com/zhaojh329/rtty-feed.git;for-15.05
-
-Install rtty packages:
-
-    ./scripts/feeds update libuwsc rtty
-    ./scripts/feeds install -a -p rtty
-
-Select package rtty in menuconfig and compile new image.
+Select rtty in menuconfig and compile new image.
 
     Utilities  --->
         Terminal  --->
@@ -147,6 +147,7 @@ Select package rtty in menuconfig and compile new image.
 
 Configuring the server parameter
 
+    uci add rtty rtty   # If it's the first configuration
     uci set rtty.@rtty[0].host='your server host'
     uci set rtty.@rtty[0].port='your server port'
 
