@@ -387,7 +387,7 @@ static void usage(const char *prog)
         "      -a           # Auto reconnect to the server\n"
         "      -v           # verbose\n"
         "      -d           # Adding a description to the device(Maximum 126 bytes)\n"
-        "      -s           # SSL on"
+        "      -s           # SSL on\n"
         , prog);
     exit(1);
 }
