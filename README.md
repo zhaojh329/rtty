@@ -27,7 +27,7 @@
 [vue]: https://github.com/vuejs/vue
 [iview]: https://github.com/iview/iview
 
-A reverse proxy WebTTY. It is composed of the client and the server. It is composed of the client and the
+A reverse proxy WebTTY. It is composed of the client and the
 [server](https://github.com/zhaojh329/rttys). The server is written in go language and uses the [vue]+[iview].
 You can access any of your terminals through a web browser based on the device ID you set.
 
