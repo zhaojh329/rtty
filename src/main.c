@@ -204,7 +204,7 @@ static void uwsc_onopen(struct uwsc_client *cl)
 
 static void write_file(char *msg, uint64_t len)
 {
-    if (upfile) {
+    if (upfile > 0) {
         if (write(upfile, msg, len) < 0) {
             ULOG_ERR("upfile failed:%s\n", strerror(errno));
             close(upfile);
