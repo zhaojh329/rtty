@@ -287,12 +287,12 @@ static void uwsc_onmessage(struct uwsc_client *cl, char *msg, uint64_t len, enum
             uloop_end();
         }
     } else if (!strcmp(type, "upfile")) {
-        if (!tb[RTTYD_NAME] || !tb[RTTYD_SIZE]) {
-            ULOG_ERR("upfile failed: Invalid param\n");
-            return;
-        }
-
         if (upfile < 0) {
+            if (!tb[RTTYD_NAME] || !tb[RTTYD_SIZE]) {
+                ULOG_ERR("upfile failed: Invalid param\n");
+                return;
+            }
+
             snprintf(buf, sizeof(buf) - 1, "/tmp/%s", blobmsg_get_string(tb[RTTYD_NAME]));
             upfile = open(buf, O_CREAT | O_RDWR, 0644);
             if (upfile < 0) {
@@ -305,6 +305,13 @@ static void uwsc_onmessage(struct uwsc_client *cl, char *msg, uint64_t len, enum
 
             ULOG_INFO("Begin upload file:%d %s\n", upfile_size, buf);
         } else {
+            if (tb[RTTYD_ERR]) {
+                close(upfile);
+                upfile = -1;
+                ULOG_ERR("Upload canceled\n");
+                return;
+            }
+
             ULOG_ERR("Only one file can be uploaded at the same time\n");
             return;
         }
