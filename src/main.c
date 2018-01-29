@@ -221,7 +221,7 @@ static void write_file(char *msg, uint64_t len)
     }
 }
 
-static void uwsc_onmessage(struct uwsc_client *cl, char *msg, uint64_t len, enum websocket_op op)
+static void uwsc_onmessage(struct uwsc_client *cl, void *msg, uint64_t len, enum websocket_op op)
 {
     struct blob_attr *tb[ARRAY_SIZE(pol)];
     const char *type;
