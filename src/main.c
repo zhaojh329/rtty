@@ -352,6 +352,8 @@ static void do_connect(struct uloop_timeout *utm)
 
     if (uloop_cancelled || !auto_reconnect)
         uloop_end();
+    else
+        uloop_timeout_set(&reconnect_timer, RECONNECT_INTERVAL * 1000);
 }
 
 static int find_login()
@@ -489,11 +491,11 @@ int main(int argc, char **argv)
     snprintf(server_url, sizeof(server_url), "ws%s://%s:%d/ws/device?did=%s&des=%s", ssl ? "s" : "", host, port, did, buf);
 
     reconnect_timer.cb = do_connect;
-    do_connect(&reconnect_timer);
+    uloop_timeout_set(&reconnect_timer, 100);
+
+    uloop_run();
 
     if (gcl) {
-        uloop_run();
-
         gcl->send(gcl, NULL, 0, WEBSOCKET_OP_CLOSE);
         gcl->free(gcl);
     }
