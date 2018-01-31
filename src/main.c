@@ -29,7 +29,6 @@
 #include "config.h"
 #include "utils.h"
 
-#define KEEPALIVE_INTERVAL  10
 #define RECONNECT_INTERVAL  5
 
 struct tty_session {
@@ -82,40 +81,14 @@ static struct blob_buf b;
 static char did[64];          /* device id */
 static char login[128];       /* /bin/login */
 static char server_url[512];
-static int active;
 static int upfile = -1;         /* The file descriptor of file uploading */
 static uint32_t upfile_size;    /* The file size of file uploading */
 static uint32_t uploaded;       /* uploaded size */
 static bool auto_reconnect;
-struct uloop_timeout keepalive_timer;
 struct uloop_timeout reconnect_timer;
 struct uwsc_client *gcl;
 
 static LIST_HEAD(tty_sessions);
-
-
-static void keepalive(struct uloop_timeout *utm)
-{
-    char *str;
-
-    blobmsg_buf_init(&b);
-    blobmsg_add_string(&b, "type", "ping");
-
-    str = blobmsg_format_json(b.head, true);
-    gcl->send(gcl, str, strlen(str), WEBSOCKET_OP_TEXT);
-    free(str);
-
-    if (!active--) {
-        ULOG_ERR("keepalive timeout\n");
-        if (auto_reconnect) {
-            gcl->send(gcl, NULL, 0, WEBSOCKET_OP_CLOSE);
-        } else
-            uloop_end();
-        return;
-    }
-
-    uloop_timeout_set(utm, KEEPALIVE_INTERVAL * 1000);
-}
 
 static void del_tty_session(struct tty_session *tty)
 {
@@ -196,9 +169,6 @@ static void new_tty_session(struct blob_attr **tb)
 
 static void uwsc_onopen(struct uwsc_client *cl)
 {
-    active = 3;
-    keepalive_timer.cb = keepalive;
-    uloop_timeout_set(&keepalive_timer, KEEPALIVE_INTERVAL * 1000);
     ULOG_INFO("onopen\n");
 }
 
@@ -279,8 +249,6 @@ static void uwsc_onmessage(struct uwsc_client *cl, void *msg, uint64_t len, enum
                 break;
             }
         }
-    } else if (!strcmp(type, "pong")) {
-        active = 3;
     } else if (!strcmp(type, "add")) {
         if (tb[RTTYD_ERR]) {
             ULOG_ERR("add failed: %s\n", blobmsg_get_string(tb[RTTYD_ERR]));
@@ -325,7 +293,6 @@ static void uwsc_onerror(struct uwsc_client *cl)
 
 static void uwsc_onclose(struct uwsc_client *cl)
 {
-    active = 0;
     ULOG_ERR("onclose\n");
 
     if (auto_reconnect) {
@@ -339,8 +306,6 @@ static void uwsc_onclose(struct uwsc_client *cl)
 
 static void do_connect(struct uloop_timeout *utm)
 {
-    uloop_timeout_cancel(&keepalive_timer);
-
     gcl = uwsc_new_ssl(server_url, NULL, false);
     if (gcl) {
         gcl->onopen = uwsc_onopen;
