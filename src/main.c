@@ -22,6 +22,8 @@
 #include <pty.h>
 #include <fcntl.h>
 #include <ctype.h>
+#include <sys/stat.h>
+#include <dirent.h>
 #include <uwsc/uwsc.h>
 #include <libubox/ulog.h>
 #include <libubox/blobmsg_json.h>
@@ -129,7 +131,6 @@ static void pty_on_exit(struct uloop_process *p, int ret)
 
     blobmsg_buf_init(&b);
     blobmsg_add_string(&b, "type", "logout");
-    blobmsg_add_string(&b, "did", did);
     blobmsg_add_string(&b, "sid", tty->sid);
 
     str = blobmsg_format_json(b.head, true);
@@ -189,6 +190,63 @@ static void write_file(void *msg, uint64_t len)
             ULOG_INFO("upload finish\n");
         }
     }
+}
+
+static void lsdir(struct uwsc_client *cl, const char *sid, const char *path)
+{
+    DIR *dir;
+    struct dirent *dentry;
+    void *tbl, *array;
+    char *str;
+
+    dir = opendir(path);
+    if (!dir)
+        return;
+
+    strcpy(buf, sid);
+
+    blobmsg_buf_init(&b);
+    blobmsg_add_string(&b, "type", "filelist");
+    blobmsg_add_string(&b, "sid", buf);
+    array = blobmsg_open_array(&b, "list");
+
+    tbl = blobmsg_open_table(&b, "");
+    blobmsg_add_string(&b, "name", "..");
+    blobmsg_add_string(&b, "type", "dir");
+    blobmsg_close_table(&b, tbl);
+
+    while((dentry = readdir(dir))) {
+        const char *name = dentry->d_name;
+        int type = dentry->d_type;
+
+        if(!strncmp(name,".", 1))
+            continue;
+
+        if (type != DT_DIR && type != DT_REG)
+            continue;
+
+        tbl = blobmsg_open_table(&b, "");
+
+        blobmsg_add_string(&b, "name", name);
+        blobmsg_add_string(&b, "type", (type == DT_DIR) ? "dir" : "reg");
+
+        if (type == DT_REG) {
+            struct stat st;
+            snprintf(buf, sizeof(buf) - 1, "%s%s", path, name);
+            lstat(buf, &st);
+
+            blobmsg_add_string(&b, "mtim", ctime(&st.st_mtime));
+            blobmsg_add_u32(&b, "size", st.st_size);
+        }
+        blobmsg_close_table(&b, tbl);
+    }
+    closedir(dir);
+
+    blobmsg_close_table(&b, array);
+
+    str = blobmsg_format_json(b.head, true);
+    cl->send(cl, str, strlen(str), WEBSOCKET_OP_TEXT);
+    free(str);
 }
 
 static void uwsc_onmessage(struct uwsc_client *cl, void *msg, uint64_t len, enum websocket_op op)
@@ -283,6 +341,18 @@ static void uwsc_onmessage(struct uwsc_client *cl, void *msg, uint64_t len, enum
             ULOG_ERR("Only one file can be uploaded at the same time\n");
             return;
         }
+    } else if (!strcmp(type, "filelist")) {
+        const char *path = "/";
+        struct stat st;
+
+        if (tb[RTTYD_NAME])
+            path = blobmsg_get_string(tb[RTTYD_NAME]);
+
+        lstat(path, &st);
+        if(S_ISDIR(st.st_mode))
+            lsdir(cl, blobmsg_get_string(tb[RTTYD_SID]), path);
+    } else if (!strcmp(type, "downfile")) {
+        printf("downfile:%s\n", blobmsg_get_string(tb[RTTYD_NAME]));
     }
 }
 
