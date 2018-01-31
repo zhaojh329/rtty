@@ -172,7 +172,7 @@ static void uwsc_onopen(struct uwsc_client *cl)
     ULOG_INFO("onopen\n");
 }
 
-static void write_file(char *msg, uint64_t len)
+static void write_file(void *msg, uint64_t len)
 {
     if (upfile > 0) {
         if (write(upfile, msg, len) < 0) {
