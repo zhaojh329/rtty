@@ -12,7 +12,7 @@ find_package(Libuwsc 1.1 REQUIRED)
 include_directories(${CMAKE_CURRENT_BINARY_DIR} ${LIBUWSC_INCLUDE_DIR} ${LIBUBOX_INCLUDE_DIR})
 set(EXTRA_LIBS ${LIBUWSC_LIBRARY} ${LIBUBOX_LIBRARY} blobmsg_json util)
 
-add_executable(rtty main.c utils.c)
+add_executable(rtty main.c utils.c protocol.c)
 target_link_libraries(rtty ${EXTRA_LIBS})
 
 # configure a header file to pass some of the CMake settings to the source code

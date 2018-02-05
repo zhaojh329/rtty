@@ -25,7 +25,6 @@
 #include <sys/ioctl.h>
 #include <net/if.h>
 #include <net/if_arp.h>
-#include <uwsc/uwsc.h>
 #include <libubox/ulog.h>
 
 int get_iface_mac(const char *ifname, char *dst, int len)

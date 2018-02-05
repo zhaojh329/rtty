@@ -30,65 +30,32 @@
 
 #include "config.h"
 #include "utils.h"
+#include "protocol.h"
 
 #define RECONNECT_INTERVAL  5
+
+struct upfile_info {
+    int fd;
+    int size;
+    int uploaded;
+};
 
 struct tty_session {
     pid_t pid;
     int pty;
     char sid[33];
+    struct upfile_info upfile;
+    struct uwsc_client *cl;
     struct ustream_fd sfd;
     struct uloop_process up;
     struct list_head node;
 };
 
-enum {
-    RTTYD_TYPE,
-    RTTYD_SID,
-    RTTYD_ERR,
-    RTTYD_DATA,
-    RTTYD_NAME,
-    RTTYD_SIZE
-};
-
-static const struct blobmsg_policy pol[] = {
-    [RTTYD_TYPE] = {
-        .name = "type",
-        .type = BLOBMSG_TYPE_STRING
-    },
-    [RTTYD_SID] = {
-        .name = "sid",
-        .type = BLOBMSG_TYPE_STRING
-    },
-    [RTTYD_ERR] = {
-        .name = "err",
-        .type = BLOBMSG_TYPE_STRING
-    },
-    [RTTYD_DATA] = {
-        .name = "data",
-        .type = BLOBMSG_TYPE_STRING
-    },
-    [RTTYD_NAME] = {
-        .name = "name",
-        .type = BLOBMSG_TYPE_STRING
-    },
-    [RTTYD_SIZE] = {
-        .name = "size",
-        .type = BLOBMSG_TYPE_INT32
-    }
-};
-
-static char buf[4096 * 10];
-static struct blob_buf b;
-static char did[64];          /* device id */
 static char login[128];       /* /bin/login */
 static char server_url[512];
-static int upfile = -1;         /* The file descriptor of file uploading */
-static uint32_t upfile_size;    /* The file size of file uploading */
-static uint32_t uploaded;       /* uploaded size */
 static bool auto_reconnect;
-struct uloop_timeout reconnect_timer;
-struct uwsc_client *gcl;
+static struct uloop_timeout reconnect_timer;
+static struct rtty_packet *pkt;
 
 static LIST_HEAD(tty_sessions);
 
@@ -100,47 +67,55 @@ static void del_tty_session(struct tty_session *tty)
     close(tty->pty);
     kill(tty->pid, SIGTERM);
     waitpid(tty->pid, NULL, 0);
+    close(tty->upfile.fd);
+    ULOG_INFO("Del session:%s\n", tty->sid);
+    free(tty);
+}
+
+static struct tty_session *find_session(const char *sid)
+{
+    struct tty_session *tty;
+
+    list_for_each_entry(tty, &tty_sessions, node) {
+        if (!strcmp(tty->sid, sid))
+            return tty;
+    }
+    return NULL;
 }
 
 static void pty_read_cb(struct ustream *s, int bytes)
 {
     struct tty_session *tty = container_of(s, struct tty_session, sfd.stream);
-    char *str;
+    struct uwsc_client *cl = tty->cl;
+    void *data;
     int len;
 
-    str = ustream_get_read_buf(s, &len);
-    
-    blobmsg_buf_init(&b);
-    blobmsg_add_string(&b, "type", "data");
-    blobmsg_add_string(&b, "sid", tty->sid);
+    data = ustream_get_read_buf(s, &len);
+    if (!data || len == 0)
+        return;
 
-    b64_encode(str, len, buf, sizeof(buf));
+    rtty_packet_init(pkt, RTTY_PACKET_TTY);
+    rtty_attr_put_string(pkt, RTTY_ATTR_SID, tty->sid);
+    rtty_attr_put(pkt, RTTY_ATTR_DATA, len, data);
     ustream_consume(s, len);
 
-    blobmsg_add_string(&b, "data", buf);
-
-    str = blobmsg_format_json(b.head, true);
-    gcl->send(gcl, str, strlen(str), WEBSOCKET_OP_TEXT);
-    free(str);
+    cl->send(cl, pkt->data, pkt->len, WEBSOCKET_OP_BINARY);
 }
 
 static void pty_on_exit(struct uloop_process *p, int ret)
 {
     struct tty_session *tty = container_of(p, struct tty_session, up);
-    char *str;
+    struct uwsc_client *cl = tty->cl;
 
-    blobmsg_buf_init(&b);
-    blobmsg_add_string(&b, "type", "logout");
-    blobmsg_add_string(&b, "sid", tty->sid);
+    rtty_packet_init(pkt, RTTY_PACKET_LOGOUT);
+    rtty_attr_put_string(pkt, RTTY_ATTR_SID, tty->sid);
 
-    str = blobmsg_format_json(b.head, true);
-    gcl->send(gcl, str, strlen(str), WEBSOCKET_OP_TEXT);
-    free(str);
+    cl->send(cl, pkt->data, pkt->len, WEBSOCKET_OP_BINARY);
 
     del_tty_session(tty);
 }
 
-static void new_tty_session(struct blob_attr **tb)
+static void new_tty_session(struct uwsc_client *cl, struct rtty_packet_info *pi)
 {
     struct tty_session *s;
     int pty;
@@ -156,204 +131,125 @@ static void new_tty_session(struct blob_attr **tb)
 
     s->pid = pid;
     s->pty = pty;
-    memcpy(s->sid, blobmsg_get_string(tb[RTTYD_SID]), 32);
+    strcpy(s->sid, pi->sid);
     
     list_add(&s->node, &tty_sessions);
 
     s->sfd.stream.notify_read = pty_read_cb;
     ustream_fd_init(&s->sfd, s->pty);
 
+    s->cl = cl;
     s->up.pid = pid;
     s->up.cb = pty_on_exit;
     uloop_process_add(&s->up);
+
+    ULOG_INFO("New session:%s\n", pi->sid);
+}
+
+static void pty_write(struct rtty_packet_info *pi)
+{
+    struct tty_session *tty = find_session(pi->sid);
+
+    if (tty && write(tty->pty, pi->data, pi->data_len) < 0) {
+        ULOG_ERR("write to pty error:%s\n", strerror(errno));
+    }
+}
+
+static void handle_upfile(struct rtty_packet_info *pi)
+{
+    struct tty_session *tty = find_session(pi->sid);
+    struct upfile_info *upfile;
+
+    if (!tty)
+        return;
+
+    upfile = &tty->upfile;
+
+    if (pi->code == 0) {
+        char path[512] = "";
+        if (upfile->fd > 0) {
+            ULOG_ERR("Only one file can be uploading at the same time\n");
+            return;
+        }
+
+        if (!pi->name || pi->size == 0) {
+            ULOG_ERR("Upfile failed: name and size required\n");
+            return;
+        }
+
+        snprintf(path, sizeof(path) - 1, "/tmp/%s", pi->name);
+        upfile->fd = open(path, O_CREAT | O_RDWR, 0644);
+        if (upfile->fd < 0) {
+            ULOG_ERR("open upfile failed: %s\n", strerror(errno));
+            return;
+        }
+
+        upfile->size = pi->size;
+        upfile->uploaded = 0;
+
+        ULOG_INFO("Begin upload:%s %d\n", pi->name, pi->size);
+    }
+
+    if (upfile->fd > 0) {
+        if (pi->code == 1 && pi->data && pi->data_len) {
+            if (write(upfile->fd, pi->data, pi->data_len) < 0) {
+                ULOG_ERR("upfile failed:%s\n", strerror(errno));
+                close(upfile->fd);
+                upfile->fd = 0;
+                return;
+            }
+
+            upfile->uploaded += pi->data_len;
+        }
+
+        if (pi->code == 2 || upfile->uploaded == upfile->size)  {
+            close(upfile->fd);
+            upfile->fd = 0;
+            ULOG_INFO("Upload file %s\n", (pi->code == 1) ? "finish" : "canceled");
+        }
+    }
+}
+
+static void uwsc_onmessage(struct uwsc_client *cl, void *msg, uint64_t len, enum websocket_op op)
+{
+    struct rtty_packet_info pi;
+
+    rtty_packet_parse(msg, len, &pi);
+
+    switch (pi.type) {
+    case RTTY_PACKET_LOGIN:
+        new_tty_session(cl, &pi);
+        break;
+    case RTTY_PACKET_LOGOUT: {
+        struct tty_session *tty, *tmp;
+
+        list_for_each_entry_safe(tty, tmp, &tty_sessions, node) {
+            if (!strcmp(tty->sid, pi.sid)) {
+                del_tty_session(tty);
+            }
+        }
+        break;
+    }
+    case RTTY_PACKET_TTY:
+        pty_write(&pi);
+        break;
+    case RTTY_PACKET_ANNOUNCE:
+        if (pi.code) {
+            auto_reconnect = false;
+            ULOG_ERR("register failed: ID conflicting\n");
+            uloop_end();
+        }
+    case RTTY_PACKET_UPFILE:
+        handle_upfile(&pi);
+        break;
+    default:
+        break;
+    }
 }
 
 static void uwsc_onopen(struct uwsc_client *cl)
 {
     ULOG_INFO("onopen\n");
-}
-
-static void write_file(void *msg, uint64_t len)
-{
-    if (upfile > 0) {
-        if (write(upfile, msg, len) < 0) {
-            ULOG_ERR("upfile failed:%s\n", strerror(errno));
-            close(upfile);
-            upfile = -1;
-            return;
-        }
-        uploaded += len;
-
-        if (uploaded == upfile_size) {
-            close(upfile);
-            upfile = -1;
-            ULOG_INFO("upload finish\n");
-        }
-    }
-}
-
-static void lsdir(struct uwsc_client *cl, const char *sid, const char *path)
-{
-    DIR *dir;
-    struct dirent *dentry;
-    void *tbl, *array;
-    char *str;
-
-    dir = opendir(path);
-    if (!dir)
-        return;
-
-    strcpy(buf, sid);
-
-    blobmsg_buf_init(&b);
-    blobmsg_add_string(&b, "type", "filelist");
-    blobmsg_add_string(&b, "sid", buf);
-    array = blobmsg_open_array(&b, "list");
-
-    tbl = blobmsg_open_table(&b, "");
-    blobmsg_add_string(&b, "name", "..");
-    blobmsg_add_string(&b, "type", "dir");
-    blobmsg_close_table(&b, tbl);
-
-    while((dentry = readdir(dir))) {
-        const char *name = dentry->d_name;
-        int type = dentry->d_type;
-
-        if(!strncmp(name,".", 1))
-            continue;
-
-        if (type != DT_DIR && type != DT_REG)
-            continue;
-
-        tbl = blobmsg_open_table(&b, "");
-
-        blobmsg_add_string(&b, "name", name);
-        blobmsg_add_string(&b, "type", (type == DT_DIR) ? "dir" : "reg");
-
-        if (type == DT_REG) {
-            struct stat st;
-            snprintf(buf, sizeof(buf) - 1, "%s%s", path, name);
-            lstat(buf, &st);
-
-            blobmsg_add_string(&b, "mtim", ctime(&st.st_mtime));
-            blobmsg_add_u32(&b, "size", st.st_size);
-        }
-        blobmsg_close_table(&b, tbl);
-    }
-    closedir(dir);
-
-    blobmsg_close_table(&b, array);
-
-    str = blobmsg_format_json(b.head, true);
-    cl->send(cl, str, strlen(str), WEBSOCKET_OP_TEXT);
-    free(str);
-}
-
-static void uwsc_onmessage(struct uwsc_client *cl, void *msg, uint64_t len, enum websocket_op op)
-{
-    struct blob_attr *tb[ARRAY_SIZE(pol)];
-    const char *type;
-
-    if (op == WEBSOCKET_OP_BINARY) {
-        write_file(msg, len);
-        return;
-    }
-
-    blobmsg_buf_init(&b);
-
-    blobmsg_add_json_from_string(&b, msg);
-
-    if (blobmsg_parse(pol, ARRAY_SIZE(pol), tb, blob_data(b.head), blob_len(b.head)) != 0) {
-        ULOG_ERR("Parse failed\n");
-        return;
-    }
-
-    if (!tb[RTTYD_TYPE])
-        return;
-
-    type = blobmsg_get_string(tb[RTTYD_TYPE]);
-    if (!strcmp(type, "login")) {
-        new_tty_session(tb);
-    } else if (!strcmp(type, "logout")) {
-        struct tty_session *tty, *tmp;
-        const char *sid;
-
-        if (!tb[RTTYD_SID])
-            return;
-
-        sid = blobmsg_get_string(tb[RTTYD_SID]);
-
-        list_for_each_entry_safe(tty, tmp, &tty_sessions, node) {
-            if (!strcmp(tty->sid, sid)) {
-                del_tty_session(tty);
-            }
-        }
-    } else if (!strcmp(type, "data")) {
-        const char *sid, *data;
-        struct tty_session *tty;
-        int len;
-
-        if (!tb[RTTYD_SID] || !tb[RTTYD_DATA])
-            return;
-
-        sid = blobmsg_get_string(tb[RTTYD_SID]);
-        data = blobmsg_get_string(tb[RTTYD_DATA]);
-
-        len = b64_decode(data, buf, sizeof(buf));
-        list_for_each_entry(tty, &tty_sessions, node) {
-            if (!strcmp(tty->sid, sid)) {
-                if (write(tty->pty, buf, len) < 0)
-                    perror("write");
-                break;
-            }
-        }
-    } else if (!strcmp(type, "add")) {
-        if (tb[RTTYD_ERR]) {
-            ULOG_ERR("add failed: %s\n", blobmsg_get_string(tb[RTTYD_ERR]));
-            uloop_end();
-        }
-    } else if (!strcmp(type, "upfile")) {
-        if (upfile < 0) {
-            if (!tb[RTTYD_NAME] || !tb[RTTYD_SIZE]) {
-                ULOG_ERR("upfile failed: Invalid param\n");
-                return;
-            }
-
-            snprintf(buf, sizeof(buf) - 1, "/tmp/%s", blobmsg_get_string(tb[RTTYD_NAME]));
-            upfile = open(buf, O_CREAT | O_RDWR, 0644);
-            if (upfile < 0) {
-                ULOG_ERR("open upfile failed: %s\n", strerror(errno));
-                return;
-            }
-
-            uploaded = 0;
-            upfile_size = blobmsg_get_u32(tb[RTTYD_SIZE]);
-
-            ULOG_INFO("Begin upload file:%d %s\n", upfile_size, buf);
-        } else {
-            if (tb[RTTYD_ERR]) {
-                close(upfile);
-                upfile = -1;
-                ULOG_ERR("Upload canceled\n");
-                return;
-            }
-
-            ULOG_ERR("Only one file can be uploaded at the same time\n");
-            return;
-        }
-    } else if (!strcmp(type, "filelist")) {
-        const char *path = "/";
-        struct stat st;
-
-        if (tb[RTTYD_NAME])
-            path = blobmsg_get_string(tb[RTTYD_NAME]);
-
-        lstat(path, &st);
-        if(S_ISDIR(st.st_mode))
-            lsdir(cl, blobmsg_get_string(tb[RTTYD_SID]), path);
-    } else if (!strcmp(type, "downfile")) {
-        printf("downfile:%s\n", blobmsg_get_string(tb[RTTYD_NAME]));
-    }
 }
 
 static void uwsc_onerror(struct uwsc_client *cl)
@@ -363,25 +259,30 @@ static void uwsc_onerror(struct uwsc_client *cl)
 
 static void uwsc_onclose(struct uwsc_client *cl)
 {
+    struct tty_session *tty, *tmp;
+
     ULOG_ERR("onclose\n");
 
-    if (auto_reconnect) {
-        cl->free(cl);
-        cl = NULL;
+    list_for_each_entry_safe(tty, tmp, &tty_sessions, node)
+        del_tty_session(tty);
+
+    cl->send(cl, NULL, 0, WEBSOCKET_OP_CLOSE);
+    cl->free(cl);
+
+    if (auto_reconnect)
         uloop_timeout_set(&reconnect_timer, RECONNECT_INTERVAL * 1000);
-    } else {
+    else
         uloop_end();
-    }
 }
 
 static void do_connect(struct uloop_timeout *utm)
 {
-    gcl = uwsc_new_ssl(server_url, NULL, false);
-    if (gcl) {
-        gcl->onopen = uwsc_onopen;
-        gcl->onmessage = uwsc_onmessage;
-        gcl->onerror = uwsc_onerror;
-        gcl->onclose = uwsc_onclose;
+    struct uwsc_client *cl = uwsc_new_ssl(server_url, NULL, false);
+    if (cl) {
+        cl->onopen = uwsc_onopen;
+        cl->onmessage = uwsc_onmessage;
+        cl->onerror = uwsc_onerror;
+        cl->onclose = uwsc_onclose;
         return;
     }
 
@@ -440,9 +341,10 @@ int main(int argc, char **argv)
 {
     int opt;
     char mac[13] = "";
+    char devid[64] = "";
     const char *host = NULL;
-    const char *description = NULL;
     int port = 0;
+    char *description = NULL;
     bool verbose = false;
     bool ssl = false;
 
@@ -461,7 +363,7 @@ int main(int argc, char **argv)
             port = atoi(optarg);
             break;
         case 'I':
-            strncpy(did, optarg, sizeof(did) - 1);
+            strncpy(devid, optarg, sizeof(devid) - 1);
             break;
         case 'a':
             auto_reconnect = true;
@@ -470,11 +372,16 @@ int main(int argc, char **argv)
             verbose = true;
             break;
         case 'd':
-            description = optarg;
-            if (strlen(description) > 126) {
+            if (strlen(optarg) > 126) {
                 ULOG_ERR("Description too long\n");
                 usage(argv[0]);
             }
+            description = malloc(B64_ENCODE_LEN(strlen(optarg)));
+            if (!description) {
+                ULOG_ERR("malloc failed:%s\n", strerror(errno));
+                exit(1);
+            }
+            b64_encode(optarg, strlen(optarg), description, B64_ENCODE_LEN(strlen(optarg)));
             break;
         case 's':
             ssl = true;
@@ -487,15 +394,15 @@ int main(int argc, char **argv)
     if (!verbose)
         ulog_threshold(LOG_ERR);
 
-    if (!did[0]) {
+    if (!devid[0]) {
         if (!mac[0]) {
             ULOG_ERR("You must specify the ifname or id\n");
             usage(argv[0]);
         }
-        strcpy(did, mac);
+        strcpy(devid, mac);
     }
 
-    if (!valid_id(did)) {
+    if (!valid_id(devid)) {
         ULOG_ERR("Invalid device id\n");
         usage(argv[0]);
     }
@@ -517,25 +424,23 @@ int main(int argc, char **argv)
         return -1;
     }
 
+    pkt = rtty_packet_new(sizeof(struct rtty_packet) + 8192);
+    if (!pkt)
+        return -1;
+
     uloop_init();
 
-    memset(buf, 0, sizeof(buf));
-    if (description)
-        urlencode(buf, sizeof(buf), description, strlen(description));
-
-    snprintf(server_url, sizeof(server_url), "ws%s://%s:%d/ws/device?did=%s&des=%s", ssl ? "s" : "", host, port, did, buf);
+    snprintf(server_url, sizeof(server_url), "ws%s://%s:%d/ws?device=1&devid=%s&description=%s",
+        ssl ? "s" : "", host, port, devid, description ? description : "");
+    free(description);
 
     reconnect_timer.cb = do_connect;
     uloop_timeout_set(&reconnect_timer, 100);
 
     uloop_run();
-
-    if (gcl) {
-        gcl->send(gcl, NULL, 0, WEBSOCKET_OP_CLOSE);
-        gcl->free(gcl);
-    }
-
     uloop_done();
+
+    free(pkt);
     
     return 0;
 }

@@ -29,7 +29,8 @@
 
 A reverse proxy WebTTY. It is composed of the client and the
 [server](https://github.com/zhaojh329/rttys). The server is written in go language and uses the [vue]+[iview].
-You can access any of your terminals through a web browser based on the device ID you set.
+You can access any of your terminals through a web browser based on the device ID you set(If the ID is not set,
+the MAC address of the device is used).
 
 rtty is very suitable for remote maintenance your or your company's thousands of Linux devices deployed around the world.
 
