@@ -17,7 +17,8 @@ enum rtty_packet_type {
     RTTY_PACKET_LOGOUT,
     RTTY_PACKET_TTY,
     RTTY_PACKET_ANNOUNCE,
-    RTTY_PACKET_UPFILE
+    RTTY_PACKET_UPFILE,
+    RTTY_PACKET_DOWNFILE
 };
 
 /* rtty attribute type */
@@ -32,7 +33,7 @@ enum rtty_attr_type {
 struct rtty_packet {
 	uint16_t size;
 	uint32_t len;
-	uint8_t data[0];
+	uint8_t *data;
 };
 
 struct rtty_packet_info {
@@ -47,6 +48,8 @@ struct rtty_packet_info {
 };
 
 struct rtty_packet *rtty_packet_new(int size);
+void rtty_packet_free(struct rtty_packet *pkt);
+int rtty_packet_grow(struct rtty_packet *pkt, int size);
 int rtty_packet_init(struct rtty_packet *pkt, enum rtty_packet_type type);
 
 int rtty_attr_put(struct rtty_packet *pkt, enum rtty_attr_type type, uint16_t len, const void *data);

@@ -11,14 +11,43 @@
 
 struct rtty_packet *rtty_packet_new(int size)
 {
-	struct rtty_packet *pkt = calloc(1, sizeof(struct rtty_packet) + size);
+	struct rtty_packet *pkt = calloc(1, sizeof(struct rtty_packet));
 	if (!pkt) {
 		ULOG_ERR("malloc failed:%s\n", strerror(errno));
 		return NULL;
 	}
 
+	pkt->data = malloc(size);
+	if (!pkt->data) {
+		free(pkt);
+		ULOG_ERR("malloc failed:%s\n", strerror(errno));
+		return NULL;
+	}
+
 	pkt->size = size;
+
 	return pkt;
+}
+
+int rtty_packet_grow(struct rtty_packet *pkt, int size)
+{
+	uint8_t *data = realloc(pkt->data, pkt->size + size);
+	if (!data) {
+		ULOG_ERR("rtty_packet_grow failed:%s\n", strerror(errno));
+		return -1;
+	}
+	pkt->data = data;
+	pkt->size += size;
+	return 0;
+}
+
+void rtty_packet_free(struct rtty_packet *pkt)
+{
+	if (pkt) {
+		if (pkt->data)
+			free(pkt->data);
+		free(pkt);
+	}
 }
 
 int rtty_packet_init(struct rtty_packet *pkt, enum rtty_packet_type type)
@@ -26,7 +55,7 @@ int rtty_packet_init(struct rtty_packet *pkt, enum rtty_packet_type type)
 	uint8_t *data = pkt->data;;
 
 	if (pkt->size < 2 || !data) {
-		ULOG_ERR("No room\n");
+		ULOG_ERR("rtty_packet_init failed\n");
 		return -1;
 	}
 
@@ -42,8 +71,11 @@ int rtty_attr_put(struct rtty_packet *pkt, enum rtty_attr_type type, uint16_t le
 	uint8_t *p = pkt->data + pkt->len;
 
 	if (pkt->len + len + 3 > pkt->size) {
-		ULOG_ERR("No room\n");
-		return -1;
+		if (rtty_packet_grow(pkt, len) < 0) {
+			ULOG_ERR("rtty_packet_grow failed\n");
+			return -1;
+		}
+		p = pkt->data + pkt->len;
 	}
 
 	pkt->len += 3 + len;

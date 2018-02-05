@@ -44,7 +44,9 @@ struct tty_session {
     pid_t pid;
     int pty;
     char sid[33];
+    int downfile;
     struct upfile_info upfile;
+    struct uloop_timeout timer;
     struct uwsc_client *cl;
     struct ustream_fd sfd;
     struct uloop_process up;
@@ -62,6 +64,7 @@ static LIST_HEAD(tty_sessions);
 static void del_tty_session(struct tty_session *tty)
 {
     list_del(&tty->node);
+    uloop_timeout_cancel(&tty->timer);
     uloop_process_delete(&tty->up);
     ustream_free(&tty->sfd.stream);
     close(tty->pty);
@@ -210,6 +213,142 @@ static void handle_upfile(struct rtty_packet_info *pi)
     }
 }
 
+static void send_filelist(struct uwsc_client *cl, const char *sid, const char *path)
+{
+    static struct blob_buf b;
+    DIR *dir;
+    struct dirent *dentry;
+    void *tbl, *array;
+    char *str;
+    char buf[512];
+
+    dir = opendir(path);
+    if (!dir)
+        return;
+
+    blobmsg_buf_init(&b);
+
+    array = blobmsg_open_array(&b, "");
+
+    tbl = blobmsg_open_table(&b, "");
+    blobmsg_add_string(&b, "name", "..");
+    blobmsg_add_string(&b, "type", "dir");
+    blobmsg_close_table(&b, tbl);
+
+    while((dentry = readdir(dir))) {
+        const char *name = dentry->d_name;
+        int type = dentry->d_type;
+        struct stat st;
+
+        if(!strncmp(name, ".", 1))
+            continue;
+
+        if (type != DT_DIR && type != DT_REG)
+            continue;
+
+        tbl = blobmsg_open_table(&b, "");
+
+        blobmsg_add_string(&b, "name", name);
+        blobmsg_add_u8(&b, "dir", type == DT_DIR);
+
+        snprintf(buf, sizeof(buf) - 1, "%s%s", path, name);
+        if (stat(buf, &st) < 0) {
+            ULOG_ERR("stat:%s\n", strerror(errno));
+            continue;
+        }
+
+        blobmsg_add_u32(&b, "mtim", st.st_mtime);
+
+        if (type == DT_REG)
+            blobmsg_add_u32(&b, "size", st.st_size);
+        blobmsg_close_table(&b, tbl);
+    }
+    closedir(dir);
+    blobmsg_close_table(&b, array);
+
+    str = blobmsg_format_json(b.head, true);
+
+    rtty_packet_init(pkt, RTTY_PACKET_DOWNFILE);
+    rtty_attr_put_string(pkt, RTTY_ATTR_SID, sid);
+    rtty_attr_put(pkt, RTTY_ATTR_DATA, strlen(str) - 2, str + 1);
+    cl->send(cl, pkt->data, pkt->len, WEBSOCKET_OP_BINARY);
+
+    free(str);
+    blob_buf_free(&b);
+}
+
+static void send_file_cb(struct uloop_timeout *timer)
+{
+    struct tty_session *tty = container_of(timer, struct tty_session, timer);
+
+    if (tty->downfile > 0) {
+        int len;
+        char buf[4096];
+
+        rtty_packet_init(pkt, RTTY_PACKET_DOWNFILE);
+        rtty_attr_put_string(pkt, RTTY_ATTR_SID, tty->sid);
+
+        len = read(tty->downfile, buf, sizeof(buf));
+        if (len > 0) {
+            rtty_attr_put_u8(pkt, RTTY_ATTR_CODE, 1);
+            rtty_attr_put(pkt, RTTY_ATTR_DATA, len, buf);
+            uloop_timeout_set(timer, 5);
+        } else {
+            close(tty->downfile);
+            tty->downfile = 0;
+            rtty_attr_put_u8(pkt, RTTY_ATTR_CODE, 2);
+            ULOG_INFO("Down file finish\n");
+        }
+        tty->cl->send(tty->cl, pkt->data, pkt->len, WEBSOCKET_OP_BINARY);
+    }
+}
+
+static void handle_downfile(struct uwsc_client *cl, struct rtty_packet_info *pi)
+{
+    struct stat st;
+    const char *name = "/";
+    struct tty_session *tty = find_session(pi->sid);
+
+    if (!tty)
+        return;
+
+    if (pi->code == 1) {
+        if (tty->downfile > 0) {
+            close(tty->downfile);
+            tty->downfile = 0;
+            ULOG_INFO("Down file canceled\n");
+        }
+        return;
+    }
+
+    if (pi->name)
+        name = pi->name;
+
+    if (stat(name, &st) < 0) {
+        ULOG_ERR("down (%s) failed:%s\n", name, strerror(errno));
+        return;
+    }
+
+    if (S_ISDIR(st.st_mode)) {
+        send_filelist(cl, pi->sid, name);
+    } else {
+        if (tty->downfile > 0) {
+            ULOG_ERR("Only one file can be downloading at the same time\n");
+            return;
+        }
+
+        tty->downfile = open(name, O_RDONLY);
+        if (tty->downfile < 0) {
+            ULOG_ERR("open downfile failed: %s\n", strerror(errno));
+            return;
+        }
+
+        ULOG_INFO("Begin down file:%s %d\n", pi->name, st.st_size);
+        tty->timer.cb = send_file_cb;
+        send_file_cb(&tty->timer);
+    }
+}
+
 static void uwsc_onmessage(struct uwsc_client *cl, void *msg, uint64_t len, enum websocket_op op)
 {
     struct rtty_packet_info pi;
@@ -241,6 +380,9 @@ static void uwsc_onmessage(struct uwsc_client *cl, void *msg, uint64_t len, enum
         }
     case RTTY_PACKET_UPFILE:
         handle_upfile(&pi);
+        break;
+    case RTTY_PACKET_DOWNFILE:
+        handle_downfile(cl, &pi);
         break;
     default:
         break;
@@ -439,8 +581,7 @@ int main(int argc, char **argv)
 
     uloop_run();
     uloop_done();
-
-    free(pkt);
+    rtty_packet_free(pkt);
     
     return 0;
 }
