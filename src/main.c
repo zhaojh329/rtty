@@ -233,7 +233,7 @@ static void send_filelist(struct uwsc_client *cl, const char *sid, const char *p
 
     tbl = blobmsg_open_table(&b, "");
     blobmsg_add_string(&b, "name", "..");
-    blobmsg_add_string(&b, "type", "dir");
+    blobmsg_add_u8(&b, "dir", 1);
     blobmsg_close_table(&b, tbl);
 
     while((dentry = readdir(dir))) {
