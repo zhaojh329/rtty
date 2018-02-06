@@ -115,7 +115,7 @@ Replace the following parameters with your own parameters
 
 Query online devices
 
-    curl http://jianhuizhao.f3322.net:5912/list
+    curl http://jianhuizhao.f3322.net:5912/devs
     [{"id":"My-device-ID","description":"My device"}]
 
 ## For Embedded Linux Platform
@@ -152,7 +152,7 @@ Save configuration and apply
     /etc/init.d/rtty restart
 
 # Usage
-Query online devices: http://your-server-host:5912/list
+Query online devices: http://your-server-host:5912/devs
 
 Use your web browser to access your server: http://your-server-host:5912,
 then enter the id of the terminal you want to access, and then click the connection button
