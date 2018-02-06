@@ -254,7 +254,7 @@ static void send_filelist(struct uwsc_client *cl, const char *sid, const char *p
 
         snprintf(buf, sizeof(buf) - 1, "%s%s", path, name);
         if (stat(buf, &st) < 0) {
-            ULOG_ERR("stat:%s\n", strerror(errno));
+            ULOG_ERR("stat '%s': %s\n", buf, strerror(errno));
             continue;
         }
 
