@@ -56,6 +56,7 @@ struct tty_session {
 static char login[128];       /* /bin/login */
 static char server_url[512];
 static bool auto_reconnect;
+static int ping_interval;
 static struct uloop_timeout reconnect_timer;
 static struct rtty_packet *pkt;
 
@@ -392,6 +393,8 @@ static void uwsc_onmessage(struct uwsc_client *cl, void *msg, uint64_t len, enum
 static void uwsc_onopen(struct uwsc_client *cl)
 {
     ULOG_INFO("onopen\n");
+
+    cl->set_ping_interval(cl, ping_interval);
 }
 
 static void uwsc_onerror(struct uwsc_client *cl)
@@ -471,6 +474,7 @@ static void usage(const char *prog)
         "                          it will cover the MAC address(if you have specify the ifname)\n"
         "      -h host      # Server host\n"
         "      -p port      # Server port\n"
+        "      -P interval  # Set ping interval(s)\n"
         "      -a           # Auto reconnect to the server\n"
         "      -v           # verbose\n"
         "      -d           # Adding a description to the device(Maximum 126 bytes)\n"
@@ -490,7 +494,7 @@ int main(int argc, char **argv)
     bool verbose = false;
     bool ssl = false;
 
-    while ((opt = getopt(argc, argv, "i:h:p:I:avd:s")) != -1) {
+    while ((opt = getopt(argc, argv, "i:h:p:I:avd:sP:")) != -1) {
         switch (opt)
         {
         case 'i':
@@ -503,6 +507,9 @@ int main(int argc, char **argv)
             break;
         case 'p':
             port = atoi(optarg);
+            break;
+        case 'P':
+            ping_interval = atoi(optarg);
             break;
         case 'I':
             strncpy(devid, optarg, sizeof(devid) - 1);
