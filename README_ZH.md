@@ -37,6 +37,7 @@ rtty非常适合远程维护你的或者你公司的部署在全球各地的成�
 ![](/rtty.svg)
 ![](/rtty.gif)
 ![](/upfile.gif)
+![](/downfile.gif)
 
 # 特性
 * 部署简单，使用方便

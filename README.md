@@ -39,6 +39,7 @@ rtty is very suitable for remote maintenance your or your company's thousands of
 ![](/rtty.svg)
 ![](/rtty.gif)
 ![](/upfile.gif)
+![](/downfile.gif)
 
 # Features
 * Simple to deployment and easy to use
