@@ -546,12 +546,12 @@ int main(int argc, char **argv)
                 ULOG_ERR("Description too long\n");
                 usage(argv[0]);
             }
-            description = malloc(B64_ENCODE_LEN(strlen(optarg)));
+            description = malloc(strlen(optarg) * 4);
             if (!description) {
                 ULOG_ERR("malloc failed:%s\n", strerror(errno));
                 exit(1);
             }
-            b64_encode(optarg, strlen(optarg), description, B64_ENCODE_LEN(strlen(optarg)));
+            urlencode(description, sizeof(description), optarg, strlen(optarg));
             break;
         case 's':
             ssl = true;
