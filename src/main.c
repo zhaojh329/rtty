@@ -27,6 +27,8 @@
 #include <uwsc/uwsc.h>
 #include <libubox/ulog.h>
 #include <libubox/blobmsg_json.h>
+#include <libubox/avl.h>
+#include <libubox/avl-cmp.h>
 
 #include "config.h"
 #include "utils.h"
@@ -50,7 +52,7 @@ struct tty_session {
     struct uwsc_client *cl;
     struct ustream_fd sfd;
     struct uloop_process up;
-    struct list_head node;
+    struct avl_node avl;
 };
 
 static char login[128];       /* /bin/login */
@@ -59,12 +61,11 @@ static bool auto_reconnect;
 static int ping_interval;
 static struct uloop_timeout reconnect_timer;
 static struct rtty_packet *pkt;
-static int sessions_num;
-static LIST_HEAD(tty_sessions);
+static struct avl_tree tty_sessions;
 
 static void del_tty_session(struct tty_session *tty)
 {
-    list_del(&tty->node);
+    avl_delete(&tty_sessions, &tty->avl);
     uloop_timeout_cancel(&tty->timer);
     uloop_process_delete(&tty->up);
     ustream_free(&tty->sfd.stream);
@@ -75,22 +76,24 @@ static void del_tty_session(struct tty_session *tty)
     ULOG_INFO("Del session:%s\n", tty->sid);
     free(tty);
 
-    sessions_num--;
-    if (sessions_num == 0) {
+    if (avl_is_empty(&tty_sessions)) {
         rtty_packet_free(pkt);
         pkt = NULL;
     }
 }
 
-static struct tty_session *find_session(const char *sid)
+static inline struct tty_session *find_tty_session(const char *sid)
 {
     struct tty_session *tty;
 
-    list_for_each_entry(tty, &tty_sessions, node) {
-        if (!strcmp(tty->sid, sid))
-            return tty;
-    }
-    return NULL;
+    return avl_find_element(&tty_sessions, sid, tty, avl);
+}
+
+static inline void del_tty_session_by_sid(const char *sid)
+{
+    struct tty_session *tty = find_tty_session(sid);
+    if (tty)
+        del_tty_session(tty);
 }
 
 static void pty_read_cb(struct ustream *s, int bytes)
@@ -150,8 +153,6 @@ static void new_tty_session(struct uwsc_client *cl, struct rtty_packet_info *pi)
     s->pid = pid;
     s->pty = pty;
     strcpy(s->sid, pi->sid);
-    
-    list_add(&s->node, &tty_sessions);
 
     s->sfd.stream.notify_read = pty_read_cb;
     ustream_fd_init(&s->sfd, s->pty);
@@ -161,13 +162,15 @@ static void new_tty_session(struct uwsc_client *cl, struct rtty_packet_info *pi)
     s->up.cb = pty_on_exit;
     uloop_process_add(&s->up);
 
-    sessions_num++;
+    s->avl.key = s->sid;
+    avl_insert(&tty_sessions, &s->avl);
+
     ULOG_INFO("New session:%s\n", pi->sid);
 }
 
 static void pty_write(struct rtty_packet_info *pi)
 {
-    struct tty_session *tty = find_session(pi->sid);
+    struct tty_session *tty = find_tty_session(pi->sid);
 
     if (tty && write(tty->pty, pi->data, pi->data_len) < 0) {
         ULOG_ERR("write to pty error:%s\n", strerror(errno));
@@ -176,7 +179,7 @@ static void pty_write(struct rtty_packet_info *pi)
 
 static void handle_upfile(struct rtty_packet_info *pi)
 {
-    struct tty_session *tty = find_session(pi->sid);
+    struct tty_session *tty = find_tty_session(pi->sid);
     struct upfile_info *upfile;
 
     if (!tty)
@@ -327,7 +330,7 @@ static void handle_downfile(struct uwsc_client *cl, struct rtty_packet_info *pi)
 {
     struct stat st;
     const char *name = "/";
-    struct tty_session *tty = find_session(pi->sid);
+    struct tty_session *tty = find_tty_session(pi->sid);
 
     if (!tty)
         return;
@@ -380,13 +383,7 @@ static void uwsc_onmessage(struct uwsc_client *cl, void *msg, uint64_t len, enum
         new_tty_session(cl, &pi);
         break;
     case RTTY_PACKET_LOGOUT: {
-        struct tty_session *tty, *tmp;
-
-        list_for_each_entry_safe(tty, tmp, &tty_sessions, node) {
-            if (!strcmp(tty->sid, pi.sid)) {
-                del_tty_session(tty);
-            }
-        }
+        del_tty_session_by_sid(pi.sid);
         break;
     }
     case RTTY_PACKET_TTY:
@@ -427,7 +424,12 @@ static void uwsc_onclose(struct uwsc_client *cl)
 
     ULOG_ERR("onclose\n");
 
-    list_for_each_entry_safe(tty, tmp, &tty_sessions, node)
+    if (pkt) {
+        rtty_packet_free(pkt);
+        pkt = NULL;
+    }
+
+    avl_remove_all_elements(&tty_sessions, tty, avl, tmp)
         del_tty_session(tty);
 
     cl->send(cl, NULL, 0, WEBSOCKET_OP_CLOSE);
@@ -591,6 +593,8 @@ int main(int argc, char **argv)
         ULOG_ERR("The program 'login' is not found\n");
         return -1;
     }
+
+    avl_init(&tty_sessions, avl_strcmp, false, NULL);
 
     uloop_init();
 
