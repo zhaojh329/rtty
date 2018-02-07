@@ -263,7 +263,7 @@ static void send_filelist(struct uwsc_client *cl, const char *sid, const char *p
             continue;
 
         if(!strcmp(path, "/") &&
-            (!strcmp(name, "/dev") || !strcmp(name, "/proc") || !strcmp(name, "/sys")))
+            (!strcmp(name, "dev") || !strcmp(name, "proc") || !strcmp(name, "sys")))
             continue;
 
         if (type != DT_DIR && type != DT_REG)
