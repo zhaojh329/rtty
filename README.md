@@ -52,8 +52,9 @@ rtty is very suitable for remote maintenance your or your company's thousands of
 * Cross platform: macOS, Linux, FreeBSD/OpenBSD, OpenWrt/LEDE
 
 # Dependencies for Client side
-* [libubox]
-* [libuwsc]
+* [libubox] - C utility functions for OpenWrt, but can also be used for the same purposes in other Linux systems.
+[Reference](https://wiki.openwrt.org/doc/techref/libubox)
+* [libuwsc] - A Lightweight and fully asynchronous WebSocket client C library based on libubox for Embedded Linux.
 * [ustream-ssl] - If you need to support SSL
 * [mbedtls] - If you choose mbedtls as your SSL backend
 * [CyaSSl(wolfssl)] - If you choose wolfssl as your SSL backend

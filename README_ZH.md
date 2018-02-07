@@ -50,8 +50,8 @@ rtty非常适合远程维护你的或者你公司的部署在全球各地的成�
 * 跨平台: macOS, Linux, FreeBSD/OpenBSD, OpenWrt/LEDE
 
 # 客户端依赖
-* [libubox]
-* [libuwsc]
+* [libubox] - 用于OpenWrt的C工具函数库，但也可以用于其他Linux系统中.[参考](https://wiki.openwrt.org/doc/techref/libubox)
+* [libuwsc] - 一个轻量的针对嵌入式Linux的基于libubox的WebSocket客户端C库。
 * [ustream-ssl] - 如果你需要支持SSL
 * [mbedtls] - 如果你选择mbedtls作为你的SSL后端
 * [CyaSSl(wolfssl)] - 如果你选择wolfssl作为你的SSL后端
