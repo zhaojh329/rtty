@@ -59,7 +59,7 @@ static bool auto_reconnect;
 static int ping_interval;
 static struct uloop_timeout reconnect_timer;
 static struct rtty_packet *pkt;
-
+static int sessions_num;
 static LIST_HEAD(tty_sessions);
 
 static void del_tty_session(struct tty_session *tty)
@@ -74,6 +74,12 @@ static void del_tty_session(struct tty_session *tty)
     close(tty->upfile.fd);
     ULOG_INFO("Del session:%s\n", tty->sid);
     free(tty);
+
+    sessions_num--;
+    if (sessions_num == 0) {
+        rtty_packet_free(pkt);
+        pkt = NULL;
+    }
 }
 
 static struct tty_session *find_session(const char *sid)
@@ -125,6 +131,14 @@ static void new_tty_session(struct uwsc_client *cl, struct rtty_packet_info *pi)
     int pty;
     pid_t pid;
 
+    if (!pkt) {
+        pkt = rtty_packet_new(sizeof(struct rtty_packet) + 8192);
+        if (!pkt) {
+            ULOG_ERR("rtty_packet_new failed\n");
+            return;
+        }
+    }
+
     s = calloc(1, sizeof(struct tty_session));
     if (!s)
         return;
@@ -147,6 +161,7 @@ static void new_tty_session(struct uwsc_client *cl, struct rtty_packet_info *pi)
     s->up.cb = pty_on_exit;
     uloop_process_add(&s->up);
 
+    sessions_num++;
     ULOG_INFO("New session:%s\n", pi->sid);
 }
 
@@ -577,10 +592,6 @@ int main(int argc, char **argv)
         return -1;
     }
 
-    pkt = rtty_packet_new(sizeof(struct rtty_packet) + 8192);
-    if (!pkt)
-        return -1;
-
     uloop_init();
 
     snprintf(server_url, sizeof(server_url), "ws%s://%s:%d/ws?device=1&devid=%s&description=%s",
@@ -592,7 +603,6 @@ int main(int argc, char **argv)
 
     uloop_run();
     uloop_done();
-    rtty_packet_free(pkt);
     
     return 0;
 }
