@@ -88,3 +88,30 @@ int urlencode(char *buf, int blen, const char *src, int slen)
 
     return (i == slen) ? len : -1;
 }
+
+int find_login(char *buf, int len)
+{
+    FILE *fp = popen("which login", "r");
+    if (fp) {
+        if (fgets(buf, len, fp))
+            buf[strlen(buf) - 1] = 0;
+        pclose(fp);
+
+        if (!buf[0])
+            return -1;
+        return 0;
+    }
+
+    return -1;
+}
+
+bool valid_id(const char *id)
+{
+    while (*id) {
+        if (!isalnum(*id) && *id != '-' && *id != '_')
+            return false;
+        id++;
+    }
+
+    return true;
+}

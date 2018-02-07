@@ -458,33 +458,6 @@ static void do_connect(struct uloop_timeout *utm)
         uloop_timeout_set(&reconnect_timer, RECONNECT_INTERVAL * 1000);
 }
 
-static int find_login()
-{
-    FILE *fp = popen("which login", "r");
-    if (fp) {
-        if (fgets(login, sizeof(login), fp))
-            login[strlen(login) - 1] = 0;
-        pclose(fp);
-
-        if (!login[0])
-            return -1;
-        return 0;
-    }
-
-    return -1;
-}
-
-static bool valid_id(const char *id)
-{
-    while (*id) {
-        if (!isalnum(*id) && *id != '-' && *id != '_')
-            return false;
-        id++;
-    }
-
-    return true;
-}
-
 static void usage(const char *prog)
 {
     fprintf(stderr, "Usage: %s [option]\n"
@@ -589,7 +562,7 @@ int main(int argc, char **argv)
         return -1;
     }
 
-    if (find_login() < 0) {
+    if (find_login(login, sizeof(login) - 1) < 0) {
         ULOG_ERR("The program 'login' is not found\n");
         return -1;
     }
