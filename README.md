@@ -113,11 +113,11 @@ Install RTTY
 Run RTTY
 Replace the following parameters with your own parameters
 
-    sudo rtty -I 'My-device-ID' -h 'jianhuizhao.f3322.net' -p 5912 -a -v -d 'My Device Description'
+    sudo rtty -I 'My-device-ID' -h 'your-server' -p 5912 -a -v -d 'My Device Description'
 
 Query online devices
 
-    curl http://jianhuizhao.f3322.net:5912/devs
+    curl http://your-server:5912/devs
     [{"id":"My-device-ID","description":"My device"}]
 
 ## For Embedded Linux Platform
