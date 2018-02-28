@@ -110,11 +110,11 @@ rtty非常适合远程维护你的或者你公司的部署在全球各地的成�
 运行RTTY
 将下面的参数替换为你自己的参数
 
-    sudo rtty -I 'My-device-ID' -h 'jianhuizhao.f3322.net' -p 5912 -a -v -d 'My Device Description'
+    sudo rtty -I 'My-device-ID' -h 'your-server' -p 5912 -a -v -d 'My Device Description'
 
 查询在线设备列表
 
-    curl http://jianhuizhao.f3322.net:5912/devs
+    curl http://your-server:5912/devs
     [{"id":"My-device-ID","description":"My device"}]
 
 ## 嵌入式Linux平台

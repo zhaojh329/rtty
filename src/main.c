@@ -519,12 +519,12 @@ int main(int argc, char **argv)
                 ULOG_ERR("Description too long\n");
                 usage(argv[0]);
             }
-            description = malloc(strlen(optarg) * 4);
+            description = calloc(1, strlen(optarg) * 4);
             if (!description) {
                 ULOG_ERR("malloc failed:%s\n", strerror(errno));
                 exit(1);
             }
-            urlencode(description, sizeof(description), optarg, strlen(optarg));
+            urlencode(description, strlen(optarg) * 4, optarg, strlen(optarg));
             break;
         case 's':
             ssl = true;
