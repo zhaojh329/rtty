@@ -163,6 +163,9 @@ You can easily embed RTTY into your existing platform: http://your-server-host:5
 
 Automatic login: http://your-server:5912/?id=device-id&username=device-username&password=device-password
 
+# Upload file and download file
+Open the context menu with the shortcut key: Ctrl+Shift+f
+
 # Contributing
 If you would like to help making [rtty](https://github.com/zhaojh329/rtty) better,
 see the [CONTRIBUTING.md](https://github.com/zhaojh329/rtty/blob/master/CONTRIBUTING.md) file.

@@ -154,6 +154,9 @@ rtty非常适合远程维护你的或者你公司的部署在全球各地的成�
 
 自动登录: http://your-server:5912/?id=device-id&username=device-username&password=device-password
 
+# 上传文件和下载文件
+使用快捷键打开菜单: Ctrl+Shift+f
+
 # 贡献代码
 如果你想帮助[rtty](https://github.com/zhaojh329/rtty)变得更好，请参考
 [CONTRIBUTING_ZH.md](https://github.com/zhaojh329/rtty/blob/master/CONTRIBUTING_ZH.md)。
