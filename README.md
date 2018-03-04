@@ -154,10 +154,7 @@ Save configuration and apply
     /etc/init.d/rtty restart
 
 # Usage
-Query online devices: http://your-server-host:5912/devs
-
-Use your web browser to access your server: http://your-server-host:5912,
-then enter the id of the terminal you want to access, and then click the connection button
+Use your web browser to access your server: http://your-server-host:5912, then click the connection button
 
 You can easily embed RTTY into your existing platform: http://your-server-host:5912?id=your-id
 
