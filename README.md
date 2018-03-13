@@ -6,7 +6,7 @@
 [4]: https://github.com/zhaojh329/rtty/pulls
 [5]: https://img.shields.io/badge/Issues-welcome-brightgreen.svg?style=plastic
 [6]: https://github.com/zhaojh329/rtty/issues/new
-[7]: https://img.shields.io/badge/release-4.0.0-blue.svg?style=plastic
+[7]: https://img.shields.io/badge/release-4.1.0-blue.svg?style=plastic
 [8]: https://github.com/zhaojh329/rtty/releases
 [9]: https://travis-ci.org/zhaojh329/rtty.svg?branch=master
 [10]: https://travis-ci.org/zhaojh329/rtty
@@ -154,14 +154,17 @@ Save configuration and apply
     /etc/init.d/rtty restart
 
 # Usage
-Use your web browser to access your server: http://your-server-host:5912, then click the connection button
+Use your web browser to access your server: `http://your-server-host:5912`, then click the connection button
 
-You can easily embed RTTY into your existing platform: http://your-server-host:5912?id=your-id
+You can easily embed RTTY into your existing platform: `http://your-server-host:5912?id=your-id`
 
-Automatic login: http://your-server:5912/?id=device-id&username=device-username&password=device-password
+Automatic login: `http://your-server:5912/?id=device-id&username=device-username&password=device-password`
 
-# Upload file and download file
+## Upload file and download file
 Open the context menu with the shortcut key: Ctrl+Shift+f
+
+## Execute a command remote
+`curl http://your-server:5912/cmd -d '{"devid":"test","cmd":"ls","username":"test","password":"123456"}'`
 
 # Contributing
 If you would like to help making [rtty](https://github.com/zhaojh329/rtty) better,

@@ -2,7 +2,7 @@ add_definitions(-O -Wall -Werror --std=gnu99 -D_GNU_SOURCE)
 
 # The version number.
 set(RTTY_VERSION_MAJOR 4)
-set(RTTY_VERSION_MINOR 0)
+set(RTTY_VERSION_MINOR 1)
 set(RTTY_VERSION_PATCH 0)
 
 # Check the third party Libraries
@@ -10,9 +10,9 @@ find_package(Libubox REQUIRED)
 find_package(Libuwsc 1.2 REQUIRED)
 
 include_directories(${CMAKE_CURRENT_BINARY_DIR} ${LIBUWSC_INCLUDE_DIR} ${LIBUBOX_INCLUDE_DIR})
-set(EXTRA_LIBS ${LIBUWSC_LIBRARY} ${LIBUBOX_LIBRARY} blobmsg_json util)
+set(EXTRA_LIBS ${LIBUWSC_LIBRARY} ${LIBUBOX_LIBRARY} blobmsg_json util crypt)
 
-add_executable(rtty main.c utils.c protocol.c)
+add_executable(rtty main.c utils.c protocol.c command.c)
 target_link_libraries(rtty ${EXTRA_LIBS})
 
 # configure a header file to pass some of the CMake settings to the source code

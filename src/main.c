@@ -26,6 +26,7 @@
 #include <ctype.h>
 #include <sys/stat.h>
 #include <dirent.h>
+#include <shadow.h>
 #include <uwsc/uwsc.h>
 #include <libubox/ulog.h>
 #include <libubox/blobmsg_json.h>
@@ -35,6 +36,7 @@
 #include "config.h"
 #include "utils.h"
 #include "protocol.h"
+#include "command.h"
 
 #define RECONNECT_INTERVAL  5
 
@@ -64,6 +66,24 @@ static int ping_interval;
 static struct uloop_timeout reconnect_timer;
 static struct rtty_packet *pkt;
 static struct avl_tree tty_sessions;
+
+/* For execute command */
+static bool login_test(const char *username, const char *password)
+{
+    struct spwd *sp;
+
+    if (!username || *username == 0)
+        return false;
+
+    sp = getspnam(username);
+    if (!sp)
+        return false;
+
+    if (!password)
+        password = "";
+
+    return !strcmp(crypt(password, sp->sp_pwdp), sp->sp_pwdp);
+}
 
 static void del_tty_session(struct tty_session *tty)
 {
@@ -374,9 +394,58 @@ static void handle_downfile(struct uwsc_client *cl, struct rtty_packet_info *pi)
     }
 }
 
+enum {
+    COMMAND_ID,
+    COMMAND_USERNAME,
+    COMMAND_PASSWORD,
+    COMMAND_CMD,
+    COMMAND_PARAMS,
+    COMMAND_ENV,
+    _COMMAND_MAX
+};
+
+static const struct blobmsg_policy cmd_policy[] = {
+    [COMMAND_ID] = { .name = "id", .type = BLOBMSG_TYPE_INT32 },
+    [COMMAND_USERNAME] = { .name = "username", .type = BLOBMSG_TYPE_STRING },
+    [COMMAND_PASSWORD] = { .name = "password", .type = BLOBMSG_TYPE_STRING },
+    [COMMAND_CMD] = { .name = "cmd", .type = BLOBMSG_TYPE_STRING },
+    [COMMAND_PARAMS] = { .name = "params", .type = BLOBMSG_TYPE_ARRAY },
+    [COMMAND_ENV] = { .name = "env", .type = BLOBMSG_TYPE_ARRAY }
+};
+
 static void uwsc_onmessage(struct uwsc_client *cl, void *msg, uint64_t len, enum websocket_op op)
 {
     struct rtty_packet_info pi;
+
+    if (op == WEBSOCKET_OP_TEXT) {
+        static struct blob_buf b;
+        struct blob_attr *tb[_COMMAND_MAX];
+        const char *password = "";
+
+        blobmsg_buf_init(&b);
+
+        blobmsg_add_json_from_string(&b, msg);
+
+        blobmsg_parse(cmd_policy, _COMMAND_MAX, tb, blob_data(b.head), blob_len(b.head));
+
+        if (!tb[COMMAND_USERNAME]) {
+            send_command_reply(make_command_reply(blobmsg_get_u32(tb[COMMAND_ID]), COMMAND_ERR_LOGIN), cl);
+            return;
+        }
+
+        if (tb[COMMAND_PASSWORD])
+            password = blobmsg_data(tb[COMMAND_PASSWORD]);
+
+        if (!login_test(blobmsg_data(tb[COMMAND_USERNAME]), password)) {
+            send_command_reply(make_command_reply(blobmsg_get_u32(tb[COMMAND_ID]), COMMAND_ERR_LOGIN), cl);
+            return;
+        }
+
+        run_command(cl, blobmsg_get_u32(tb[COMMAND_ID]), blobmsg_data(tb[COMMAND_CMD]),
+            tb[COMMAND_PARAMS], tb[COMMAND_ENV]);
+        blob_buf_free(&b);
+        return;
+    }
 
     rtty_packet_parse(msg, len, &pi);
 
@@ -579,6 +648,8 @@ int main(int argc, char **argv)
 
     reconnect_timer.cb = do_connect;
     uloop_timeout_set(&reconnect_timer, 100);
+
+    command_init();
 
     uloop_run();
     uloop_done();

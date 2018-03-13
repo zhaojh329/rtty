@@ -6,7 +6,7 @@
 [4]: https://github.com/zhaojh329/rtty/pulls
 [5]: https://img.shields.io/badge/Issues-welcome-brightgreen.svg?style=plastic
 [6]: https://github.com/zhaojh329/rtty/issues/new
-[7]: https://img.shields.io/badge/release-4.0.0-blue.svg?style=plastic
+[7]: https://img.shields.io/badge/release-4.1.0-blue.svg?style=plastic
 [8]: https://github.com/zhaojh329/rtty/releases
 [9]: https://travis-ci.org/zhaojh329/rtty.svg?branch=master
 [10]: https://travis-ci.org/zhaojh329/rtty
@@ -146,14 +146,17 @@ rtty非常适合远程维护你的或者你公司的部署在全球各地的成�
     /etc/init.d/rtty restart
 
 # 如何使用
-使用你的Web浏览器访问你的服务器: http://your-server-host:5912，然后点击连接按钮。
+使用你的Web浏览器访问你的服务器: `http://your-server-host:5912`，然后点击连接按钮。
 
-你可以非常方便的将RTTY嵌入到你现有的平台： http://your-server-host:5912?id=your-id
+你可以非常方便的将RTTY嵌入到你现有的平台： `http://your-server-host:5912?id=your-id`
 
-自动登录: http://your-server:5912/?id=device-id&username=device-username&password=device-password
+自动登录: `http://your-server:5912/?id=device-id&username=device-username&password=device-password`
 
-# 上传文件和下载文件
+## 上传文件和下载文件
 使用快捷键打开菜单: Ctrl+Shift+f
+
+## 远程执行命令
+`curl http://your-server:5912/cmd -d '{"devid":"test","cmd":"ls","username":"test","password":"123456"}'`
 
 # 贡献代码
 如果你想帮助[rtty](https://github.com/zhaojh329/rtty)变得更好，请参考
