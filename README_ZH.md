@@ -32,7 +32,9 @@
 
 rtty非常适合远程维护你的或者你公司的部署在全球各地的成千上万的Linux设备。
 
-`请保持关注以获取最新的项目动态`
+**请保持关注以获取最新的项目动态**
+
+**为了您的安全，强烈建议您使用SSL**
 
 ![](/rtty.svg)
 ![](/rtty.gif)
@@ -47,6 +49,7 @@ rtty非常适合远程维护你的或者你公司的部署在全球各地的成�
 * 支持SSL: openssl, mbedtls, CyaSSl(wolfssl)
 * 支持上传文件到设备
 * 支持从设备下载文件
+* 支持远程执行命令
 * 跨平台: macOS, Linux, FreeBSD/OpenBSD, OpenWrt/LEDE
 
 # 客户端依赖
@@ -110,11 +113,11 @@ rtty非常适合远程维护你的或者你公司的部署在全球各地的成�
 运行RTTY
 将下面的参数替换为你自己的参数
 
-    sudo rtty -I 'My-device-ID' -h 'your-server' -p 5912 -a -v -d 'My Device Description'
+    sudo rtty -I 'My-device-ID' -h 'your-server' -p 5912 -a -v -s -d 'My Device Description'
 
 查询在线设备列表
 
-    curl http://your-server:5912/devs
+    curl -k https://your-server:5912/devs
     [{"id":"My-device-ID","description":"My device"}]
 
 ## 嵌入式Linux平台
@@ -140,23 +143,27 @@ rtty非常适合远程维护你的或者你公司的部署在全球各地的成�
 
     uci set rtty.@rtty[0].id='your-device-id'
 
+使用SSL
+
+    uci set rtty.@rtty[0].ssl='1'
+
 保存配置并应用
 
     uci commit
     /etc/init.d/rtty restart
 
 # 如何使用
-使用你的Web浏览器访问你的服务器: `http://your-server-host:5912`，然后点击连接按钮。
+使用你的Web浏览器访问你的服务器: `https://your-server-host:5912`，然后点击连接按钮。
 
-你可以非常方便的将RTTY嵌入到你现有的平台： `http://your-server-host:5912?id=your-id`
+你可以非常方便的将RTTY嵌入到你现有的平台： `https://your-server-host:5912?id=your-id`
 
-自动登录: `http://your-server:5912/?id=device-id&username=device-username&password=device-password`
+自动登录: `https://your-server:5912/?id=device-id&username=device-username&password=device-password`
 
 ## 上传文件和下载文件
 使用快捷键打开菜单: Ctrl+Shift+f
 
 ## 远程执行命令
-`curl http://your-server:5912/cmd -d '{"devid":"test","cmd":"ls","username":"test","password":"123456"}'`
+`curl -k https://your-server:5912/cmd -d '{"devid":"test","cmd":"ls","username":"test","password":"123456"}'`
 
 # 贡献代码
 如果你想帮助[rtty](https://github.com/zhaojh329/rtty)变得更好，请参考

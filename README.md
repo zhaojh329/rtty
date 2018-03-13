@@ -34,7 +34,11 @@ the MAC address of the device is used).
 
 rtty is very suitable for remote maintenance your or your company's thousands of Linux devices deployed around the world.
 
-`Keep Watching for More Actions on This Space`
+**Keep Watching for More Actions on This Space**
+
+**For your security, it is strongly recommended that you use SSL**
+
+
 
 ![](/rtty.svg)
 ![](/rtty.gif)
@@ -49,6 +53,7 @@ rtty is very suitable for remote maintenance your or your company's thousands of
 * SSL support: openssl, mbedtls, CyaSSl(wolfssl)
 * Support upload file to device
 * Support download file from devices
+* Support Execute a command remote
 * Cross platform: macOS, Linux, FreeBSD/OpenBSD, OpenWrt/LEDE
 
 # Dependencies for Client side
@@ -113,11 +118,11 @@ Install RTTY
 Run RTTY
 Replace the following parameters with your own parameters
 
-    sudo rtty -I 'My-device-ID' -h 'your-server' -p 5912 -a -v -d 'My Device Description'
+    sudo rtty -I 'My-device-ID' -h 'your-server' -p 5912 -a -v -s -d 'My Device Description'
 
 Query online devices
 
-    curl http://your-server:5912/devs
+    curl -k https://your-server:5912/devs
     [{"id":"My-device-ID","description":"My device"}]
 
 ## For Embedded Linux Platform
@@ -148,23 +153,27 @@ You can add a description to your device
 
     uci set rtty.@rtty[0].description='My device'
 
+Use SSL
+
+    uci set rtty.@rtty[0].ssl='1'
+
 Save configuration and apply
 
     uci commit
     /etc/init.d/rtty restart
 
 # Usage
-Use your web browser to access your server: `http://your-server-host:5912`, then click the connection button
+Use your web browser to access your server: `https://your-server-host:5912`, then click the connection button
 
-You can easily embed RTTY into your existing platform: `http://your-server-host:5912?id=your-id`
+You can easily embed RTTY into your existing platform: `https://your-server-host:5912?id=your-id`
 
-Automatic login: `http://your-server:5912/?id=device-id&username=device-username&password=device-password`
+Automatic login: `https://your-server:5912/?id=device-id&username=device-username&password=device-password`
 
 ## Upload file and download file
 Open the context menu with the shortcut key: Ctrl+Shift+f
 
 ## Execute a command remote
-`curl http://your-server:5912/cmd -d '{"devid":"test","cmd":"ls","username":"test","password":"123456"}'`
+`curl -k https://your-server:5912/cmd -d '{"devid":"test","cmd":"ls","username":"test","password":"123456"}'`
 
 # Contributing
 If you would like to help making [rtty](https://github.com/zhaojh329/rtty) better,
