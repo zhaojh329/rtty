@@ -61,28 +61,17 @@ rtty非常适合远程维护你的或者你公司的部署在全球各地的成�
 * [openssl] - 如果你选择openssl作为你的SSL后端
 
 # 部署服务端
-安装GO语言环境（如果您还未安装）
+# 安装
 
-    sudo apt-get install golang     # For ubuntu
+    curl https://raw.githubusercontent.com/zhaojh329/rttys/master/install.sh | sudo sh
 
-    sudo yum install golang         # For Centos
+# 手动运行
 
-设置环境变量GOPATH（如果您未设置）(从Go 1.8开始, 默认为$HOME/go)
+    rttys -cert /etc/rttys/rttys.crt -key /etc/rttys/rttys.key
 
-    export GOPATH=$HOME/go
 
-安装rtty server
+# 后台运行
 
-    go get -u github.com/zhaojh329/rttys
-
-手动运行
-
-    $GOPATH/bin/rttys -port 5912
-
-安装自启动脚本，后台运行(debian/ubuntu)
-
-    cd $GOPATH/src/github.com/zhaojh329/rttys
-    sudo ./install.sh
     sudo /etc/init.d/rttys start
 
 # 如何编译和安装 rtty客户端

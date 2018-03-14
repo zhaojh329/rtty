@@ -66,28 +66,17 @@ rtty is very suitable for remote maintenance your or your company's thousands of
 * [openssl] - If you choose openssl as your SSL backend
 
 # Deploying the server side
-Install the GO language environment (if you haven't installed it)
+# Install
 
-    sudo apt-get install golang     # For Ubuntu
+    curl https://raw.githubusercontent.com/zhaojh329/rttys/master/install.sh | sudo sh
 
-    sudo yum install golang         # For Centos
+# Manual run
 
-Set GOPATH environment variable(if you haven't set it)(since Go 1.8, default is $HOME/go)
+    rttys -cert /etc/rttys/rttys.crt -key /etc/rttys/rttys.key
 
-    export GOPATH=$HOME/go
 
-Install rtty server
+# Run in background
 
-    go get -u github.com/zhaojh329/rttys
-
-Manual run
-
-    $GOPATH/bin/rttys -port 5912
-
-Install the automatic boot script(debian/ubuntu)
-
-    cd $GOPATH/src/github.com/zhaojh329/rttys
-    sudo ./install.sh
     sudo /etc/init.d/rttys start
 
 # How to build and install the Client - rtty
