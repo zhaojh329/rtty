@@ -24,6 +24,7 @@
 #include <libubox/blob.h>
 
 enum {
+    COMMAND_ERR_NONE,
     COMMAND_ERR_TIMEOUT,
     COMMAND_ERR_NOTFOUND,
     COMMAND_ERR_READ,
