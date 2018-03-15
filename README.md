@@ -38,8 +38,6 @@ rtty is very suitable for remote maintenance your or your company's thousands of
 
 **For your security, it is strongly recommended that you use SSL**
 
-
-
 ![](/rtty.svg)
 ![](/rtty.gif)
 ![](/upfile.gif)
