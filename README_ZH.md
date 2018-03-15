@@ -152,7 +152,7 @@ rtty非常适合远程维护你的或者你公司的部署在全球各地的成�
 使用快捷键打开菜单: Ctrl+Shift+f
 
 ## 远程执行命令
-`curl -k https://your-server:5912/cmd -d '{"devid":"test","cmd":"ls","username":"test","password":"123456"}'`
+`curl -k https://your-server:5912/cmd -d '{"devid":"test","username":"test","password":"123456","cmd":"ls","params":["/"],"env":[]}'`
 
 # 贡献代码
 如果你想帮助[rtty](https://github.com/zhaojh329/rtty)变得更好，请参考
