@@ -66,6 +66,19 @@ void command_init()
     q.max_running_tasks = 5;
 }
 
+static void free_command(struct command *c)
+{
+    ustream_free(&c->opipe.stream);
+    ustream_free(&c->epipe.stream);
+
+    close(c->opipe.fd.fd);
+    close(c->epipe.fd.fd);
+
+    free(c->arg);
+    free(c->env);
+    free(c);
+}
+
 static void ustream_to_blobmsg(struct ustream *s, struct blob_buf *buf, const char *name)
 {
     int len;
@@ -120,15 +133,7 @@ static void command_reply(struct command *c, int err)
 
     send_command_reply(buf, c->ws);
 
-    ustream_free(&c->opipe.stream);
-    ustream_free(&c->epipe.stream);
-
-    close(c->opipe.fd.fd);
-    close(c->epipe.fd.fd);
-
-    free(c->arg);
-    free(c->env);
-    free(c);
+    free_command(c);
 }
 
 static void process_opipe_read_cb(struct ustream *s, int bytes)
@@ -206,11 +211,18 @@ static void runqueue_proc_cb(struct uloop_process *p, int ret)
     struct runqueue_process *t = container_of(p, struct runqueue_process, proc);
     struct command *c = container_of(t, struct command, proc);
 
-    c->code = WEXITSTATUS(ret);
+    if (c->code == -1) {
+        /* The server will response timeout to user */
+        ULOG_ERR("Run `%s` timeout\n", c->cmd);
+        free_command(c);
+        goto TIMEOUT;
+    }
 
+    c->code = WEXITSTATUS(ret);
     ustream_poll(&c->opipe.stream);
     ustream_poll(&c->epipe.stream);
 
+TIMEOUT:
     runqueue_task_complete(&t->task);
 }
 
@@ -302,7 +314,7 @@ static void run_command_cancel(struct runqueue *q, struct runqueue_task *t, int 
 {
     struct command *c = container_of(t, struct command, proc.task);
 
-    command_reply(c, COMMAND_ERR_TIMEOUT);
+    c->code = -1;   /* Timeout */
     runqueue_process_cancel_cb(q, t, type);
 }
 

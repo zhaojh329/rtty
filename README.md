@@ -6,7 +6,7 @@
 [4]: https://github.com/zhaojh329/rtty/pulls
 [5]: https://img.shields.io/badge/Issues-welcome-brightgreen.svg?style=plastic
 [6]: https://github.com/zhaojh329/rtty/issues/new
-[7]: https://img.shields.io/badge/release-4.1.0-blue.svg?style=plastic
+[7]: https://img.shields.io/badge/release-4.1.1-blue.svg?style=plastic
 [8]: https://github.com/zhaojh329/rtty/releases
 [9]: https://travis-ci.org/zhaojh329/rtty.svg?branch=master
 [10]: https://travis-ci.org/zhaojh329/rtty
@@ -160,7 +160,7 @@ Automatic login: `https://your-server:5912/?id=device-id&username=device-usernam
 Open the context menu with the shortcut key: Ctrl+Shift+f
 
 ## Execute a command remote
-`curl -k https://your-server:5912/cmd -d '{"devid":"test","cmd":"ls","username":"test","password":"123456"}'`
+`curl -k https://your-server:5912/cmd -d '{"devid":"test","username":"test","password":"123456","cmd":"ls","params":["/"],"env":[]}'`
 
 # Contributing
 If you would like to help making [rtty](https://github.com/zhaojh329/rtty) better,
