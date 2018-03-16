@@ -38,11 +38,6 @@ rtty is very suitable for remote maintenance your or your company's thousands of
 
 **For your security, it is strongly recommended that you use SSL**
 
-![](/rtty.svg)
-![](/rtty.gif)
-![](/upfile.gif)
-![](/downfile.gif)
-
 # Features
 * Simple to deployment and easy to use
 * Reverse Proxy
@@ -53,6 +48,11 @@ rtty is very suitable for remote maintenance your or your company's thousands of
 * Support download file from devices
 * Support Execute a command remote
 * Cross platform: macOS, Linux, FreeBSD/OpenBSD, OpenWrt/LEDE
+
+![](/rtty.svg)
+![](/rtty.gif)
+![](/upfile.gif)
+![](/downfile.gif)
 
 # Dependencies for Client side
 * [libubox] - C utility functions for OpenWrt, but can also be used for the same purposes in other Linux systems.
@@ -165,3 +165,7 @@ Open the context menu with the shortcut key: Ctrl+Shift+f
 # Contributing
 If you would like to help making [rtty](https://github.com/zhaojh329/rtty) better,
 see the [CONTRIBUTING.md](https://github.com/zhaojh329/rtty/blob/master/CONTRIBUTING.md) file.
+
+# QQ group: 153530783
+
+# If the project is helpful to you, please do not hesitate to star. Thank you!

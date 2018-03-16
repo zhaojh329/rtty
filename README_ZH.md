@@ -36,11 +36,6 @@ rtty非常适合远程维护你的或者你公司的部署在全球各地的成�
 
 **为了您的安全，强烈建议您使用SSL**
 
-![](/rtty.svg)
-![](/rtty.gif)
-![](/upfile.gif)
-![](/downfile.gif)
-
 # 特性
 * 部署简单，使用方便
 * 反向代理
@@ -51,6 +46,11 @@ rtty非常适合远程维护你的或者你公司的部署在全球各地的成�
 * 支持从设备下载文件
 * 支持远程执行命令
 * 跨平台: macOS, Linux, FreeBSD/OpenBSD, OpenWrt/LEDE
+
+![](/rtty.svg)
+![](/rtty.gif)
+![](/upfile.gif)
+![](/downfile.gif)
 
 # 客户端依赖
 * [libubox] - 用于OpenWrt的C工具函数库，但也可以用于其他Linux系统中.[参考](https://wiki.openwrt.org/doc/techref/libubox)
@@ -160,3 +160,5 @@ rtty非常适合远程维护你的或者你公司的部署在全球各地的成�
 
 # 技术交流
 QQ群：153530783
+
+# 如果该项目对您有帮助，请随手star，谢谢！
