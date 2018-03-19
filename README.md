@@ -47,7 +47,7 @@ rtty is very suitable for remote maintenance your or your company's thousands of
 * Support upload file to device
 * Support download file from devices
 * Support Execute a command remote
-* Cross platform: macOS, Linux, FreeBSD/OpenBSD, OpenWrt/LEDE
+* Cross platform: Linux, OpenWrt/LEDE
 
 ![](/rtty.svg)
 ![](/rtty.gif)
@@ -160,7 +160,26 @@ Automatic login: `https://your-server:5912/?id=device-id&username=device-usernam
 Open the context menu with the shortcut key: Ctrl+Shift+f
 
 ## Execute a command remote
-`curl -k https://your-server:5912/cmd -d '{"devid":"test","username":"test","password":"123456","cmd":"ls","params":["/"],"env":[]}'`
+### Shell
+
+    curl -k https://your-server:5912/cmd -d '{"devid":"test","username":"test","password":"123456","cmd":"ls","params":["/"],"env":[]}'
+
+    {"Err":0,"msg":"","code":0,"stdout":"bin\ndev\netc\nlib\nmnt\noverlay\nproc\nrom\nroot\nsbin\nsys\ntmp\nusr\nvar\nwww\n","stderr":""}
+
+### Jquery
+
+    var data = {devid: 'test', username: 'test', password: '123456', cmd: 'ls', params: ['/'], env: []};
+    $.post('https://your-server:5912/cmd', JSON.stringify(data), function(r) {console.log(r)});
+
+
+### Axios
+
+    var data = {devid: 'test', username: 'test', password: '123456', cmd: 'ls', params: ['/'], env: []};
+    axios.post('https://your-server:5912/cmd', JSON.stringify(data)).then(function (response) {
+        console.log(response.data);
+    }).catch(function (error) {
+        console.log(error);
+    });
 
 # Contributing
 If you would like to help making [rtty](https://github.com/zhaojh329/rtty) better,

@@ -45,7 +45,7 @@ rtty非常适合远程维护你的或者你公司的部署在全球各地的成�
 * 支持上传文件到设备
 * 支持从设备下载文件
 * 支持远程执行命令
-* 跨平台: macOS, Linux, FreeBSD/OpenBSD, OpenWrt/LEDE
+* 跨平台: macOS, Linux, OpenWrt/LEDE
 
 ![](/rtty.svg)
 ![](/rtty.gif)
@@ -152,7 +152,26 @@ rtty非常适合远程维护你的或者你公司的部署在全球各地的成�
 使用快捷键打开菜单: Ctrl+Shift+f
 
 ## 远程执行命令
-`curl -k https://your-server:5912/cmd -d '{"devid":"test","username":"test","password":"123456","cmd":"ls","params":["/"],"env":[]}'`
+### Shell
+
+    curl -k https://your-server:5912/cmd -d '{"devid":"test","username":"test","password":"123456","cmd":"ls","params":["/"],"env":[]}'
+
+    {"Err":0,"msg":"","code":0,"stdout":"bin\ndev\netc\nlib\nmnt\noverlay\nproc\nrom\nroot\nsbin\nsys\ntmp\nusr\nvar\nwww\n","stderr":""}
+
+### Jquery
+
+    var data = {devid: 'test', username: 'test', password: '123456', cmd: 'ls', params: ['/'], env: []};
+    $.post('https://your-server:5912/cmd', JSON.stringify(data), function(r) {console.log(r)});
+
+
+### Axios
+
+    var data = {devid: 'test', username: 'test', password: '123456', cmd: 'ls', params: ['/'], env: []};
+    axios.post('https://your-server:5912/cmd', JSON.stringify(data)).then(function (response) {
+        console.log(response.data);
+    }).catch(function (error) {
+        console.log(error);
+    });
 
 # 贡献代码
 如果你想帮助[rtty](https://github.com/zhaojh329/rtty)变得更好，请参考
