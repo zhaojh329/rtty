@@ -27,7 +27,9 @@
 [vue]: https://github.com/vuejs/vue
 [iview]: https://github.com/iview/iview
 
-一个反向代理WebTTY。它由客户端和[服务端](https://github.com/zhaojh329/rttys)组成。服务端采用GO语言实现，
+根据您的终端的macaddr通过Web访问您的终端。
+
+它由客户端和[服务端](https://github.com/zhaojh329/rttys)组成。服务端采用GO语言实现，
 以及使用了[vue]+[iview]。你可以基于你设置的设备ID（不设置则为设备的MAC地址）通过Web浏览器访问你的任意一台终端。
 
 rtty非常适合远程维护你的或者你公司的部署在全球各地的成千上万的Linux设备。
@@ -45,7 +47,7 @@ rtty非常适合远程维护你的或者你公司的部署在全球各地的成�
 * 支持上传文件到设备
 * 支持从设备下载文件
 * 支持远程执行命令
-* 跨平台: macOS, Linux, FreeBSD/OpenBSD, OpenWrt/LEDE
+* 跨平台: macOS, Linux, OpenWrt/LEDE
 
 ![](/rtty.svg)
 ![](/rtty.gif)
@@ -152,7 +154,26 @@ rtty非常适合远程维护你的或者你公司的部署在全球各地的成�
 使用快捷键打开菜单: Ctrl+Shift+f
 
 ## 远程执行命令
-`curl -k https://your-server:5912/cmd -d '{"devid":"test","username":"test","password":"123456","cmd":"ls","params":["/"],"env":[]}'`
+### Shell
+
+    curl -k https://your-server:5912/cmd -d '{"devid":"test","username":"test","password":"123456","cmd":"ls","params":["/"],"env":[]}'
+
+    {"Err":0,"msg":"","code":0,"stdout":"bin\ndev\netc\nlib\nmnt\noverlay\nproc\nrom\nroot\nsbin\nsys\ntmp\nusr\nvar\nwww\n","stderr":""}
+
+### Jquery
+
+    var data = {devid: 'test', username: 'test', password: '123456', cmd: 'ls', params: ['/'], env: []};
+    $.post('https://your-server:5912/cmd', JSON.stringify(data), function(r) {console.log(r)});
+
+
+### Axios
+
+    var data = {devid: 'test', username: 'test', password: '123456', cmd: 'ls', params: ['/'], env: []};
+    axios.post('https://your-server:5912/cmd', JSON.stringify(data)).then(function (response) {
+        console.log(response.data);
+    }).catch(function (error) {
+        console.log(error);
+    });
 
 # 贡献代码
 如果你想帮助[rtty](https://github.com/zhaojh329/rtty)变得更好，请参考
