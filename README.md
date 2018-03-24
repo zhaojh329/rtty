@@ -27,12 +27,14 @@
 [vue]: https://github.com/vuejs/vue
 [iview]: https://github.com/iview/iview
 
-A reverse proxy WebTTY. It is composed of the client and the
-[server](https://github.com/zhaojh329/rttys). The server is written in go language and uses the [vue]+[iview].
-You can access any of your terminals through a web browser based on the device ID you set(If the ID is not set,
-the MAC address of the device is used).
+Access your terminal behind a NAT or firewall over the web based on your terminal's macaddr.
 
-rtty is very suitable for remote maintenance your or your company's thousands of Linux devices deployed around the world.
+It is composed of the client and the [server](https://github.com/zhaojh329/rttys). The server is written in go
+language and uses the [vue]+[iview]. You can access any of your terminals through a web browser based on the
+device ID you set(If the ID is not set, the MAC address of the device is used).
+
+rtty is very suitable for remote maintenance your or your company's thousands of Linux devices deployed around
+the world.
 
 **Keep Watching for More Actions on This Space**
 

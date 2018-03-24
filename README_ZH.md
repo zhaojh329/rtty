@@ -27,7 +27,9 @@
 [vue]: https://github.com/vuejs/vue
 [iview]: https://github.com/iview/iview
 
-一个反向代理WebTTY。它由客户端和[服务端](https://github.com/zhaojh329/rttys)组成。服务端采用GO语言实现，
+根据您的终端的macaddr，通过Web访问您的处在NAT或防火墙里面的终端。
+
+它由客户端和[服务端](https://github.com/zhaojh329/rttys)组成。服务端采用GO语言实现，
 以及使用了[vue]+[iview]。你可以基于你设置的设备ID（不设置则为设备的MAC地址）通过Web浏览器访问你的任意一台终端。
 
 rtty非常适合远程维护你的或者你公司的部署在全球各地的成千上万的Linux设备。
@@ -45,7 +47,7 @@ rtty非常适合远程维护你的或者你公司的部署在全球各地的成�
 * 支持上传文件到设备
 * 支持从设备下载文件
 * 支持远程执行命令
-* 跨平台: macOS, Linux, OpenWrt/LEDE
+* 跨平台: Linux, OpenWrt/LEDE
 
 ![](/rtty.svg)
 ![](/rtty.gif)
