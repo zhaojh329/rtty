@@ -63,16 +63,16 @@ rtty非常适合远程维护你的或者你公司的部署在全球各地的成�
 * [openssl] - 如果你选择openssl作为你的SSL后端
 
 # 部署服务端
-# 安装
+## 安装
 
     curl https://raw.githubusercontent.com/zhaojh329/rttys/master/install.sh | sudo sh
 
-# 手动运行
+## 手动运行
 
     rttys -cert /etc/rttys/rttys.crt -key /etc/rttys/rttys.key
 
 
-# 后台运行
+## 后台运行
 
     sudo /etc/init.d/rttys start
 
@@ -93,8 +93,11 @@ rtty非常适合远程维护你的或者你公司的部署在全球各地的成�
     git clone https://git.openwrt.org/project/libubox.git
     cd libubox && cmake -DBUILD_LUA=OFF . && sudo make install
 
+    git clone https://git.openwrt.org/project/ustream-ssl.git
+    cd ustream-ssl && cmake . && sudo make install
+
     git clone https://github.com/zhaojh329/libuwsc.git
-    cd libuwsc && cmake -DUWSC_SSL_SUPPORT=OFF . && sudo make install
+    cd libuwsc && cmake . && sudo make install
 
 编译和安装RTTY
     

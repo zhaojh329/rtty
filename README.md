@@ -66,16 +66,16 @@ the world.
 * [openssl] - If you choose openssl as your SSL backend
 
 # Deploying the server side
-# Install
+## Install
 
     curl https://raw.githubusercontent.com/zhaojh329/rttys/master/install.sh | sudo sh
 
-# Manual run
+## Manual run
 
     rttys -cert /etc/rttys/rttys.crt -key /etc/rttys/rttys.key
 
 
-# Run in background
+## Run in background
 
     sudo /etc/init.d/rttys start
 
@@ -96,8 +96,11 @@ Install dependent packages
     git clone https://git.openwrt.org/project/libubox.git
     cd libubox && cmake -DBUILD_LUA=OFF . && sudo make install
 
+    git clone https://git.openwrt.org/project/ustream-ssl.git
+    cd ustream-ssl && cmake . && sudo make install
+
     git clone https://github.com/zhaojh329/libuwsc.git
-    cd libuwsc && cmake -DUWSC_SSL_SUPPORT=OFF . && sudo make install
+    cd libuwsc && cmake . && sudo make install
 
 Install RTTY
     
