@@ -62,19 +62,7 @@ rtty非常适合远程维护你的或者你公司的部署在全球各地的成�
 * [CyaSSl(wolfssl)] - 如果你选择wolfssl作为你的SSL后端
 * [openssl] - 如果你选择openssl作为你的SSL后端
 
-# 部署服务端
-## 安装
-
-    curl https://raw.githubusercontent.com/zhaojh329/rttys/master/install.sh | sudo sh
-
-## 手动运行
-
-    rttys -cert /etc/rttys/rttys.crt -key /etc/rttys/rttys.key
-
-
-## 后台运行
-
-    sudo /etc/init.d/rttys start
+# [部署服务端](https://github.com/zhaojh329/rttys/blob/master/README_ZH.md)
 
 # 如何编译和安装 rtty客户端
 ## 针对Linux发行版, 例如Ubuntu和Centos

@@ -65,19 +65,7 @@ the world.
 * [CyaSSl(wolfssl)] - If you choose wolfssl as your SSL backend
 * [openssl] - If you choose openssl as your SSL backend
 
-# Deploying the server side
-## Install
-
-    curl https://raw.githubusercontent.com/zhaojh329/rttys/master/install.sh | sudo sh
-
-## Manual run
-
-    rttys -cert /etc/rttys/rttys.crt -key /etc/rttys/rttys.key
-
-
-## Run in background
-
-    sudo /etc/init.d/rttys start
+# [Deploying the server side](https://github.com/zhaojh329/rttys)
 
 # How to build and install the Client - rtty
 ## For Linux distribution, such as Ubuntu and Centos
