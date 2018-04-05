@@ -91,9 +91,9 @@ rtty非常适合远程维护你的或者你公司的部署在全球各地的成�
     
     git clone https://github.com/zhaojh329/rtty.git
     cd rtty && cmake . && sudo make install
+    sudo ldconfig
 
-运行RTTY
-将下面的参数替换为你自己的参数
+运行RTTY(将下面的参数替换为你自己的参数)
 
     sudo rtty -I 'My-device-ID' -h 'your-server' -p 5912 -a -v -s -d 'My Device Description'
 
@@ -142,7 +142,7 @@ rtty非常适合远程维护你的或者你公司的部署在全球各地的成�
 自动登录: `https://your-server:5912/?id=device-id&username=device-username&password=device-password`
 
 ## 上传文件和下载文件
-使用快捷键打开菜单: Ctrl+Shift+f
+使用快捷键打开菜单: Ctrl + Shift + F
 
 ## 远程执行命令
 ### Shell

@@ -94,9 +94,9 @@ Install RTTY
     
     git clone https://github.com/zhaojh329/rtty.git
     cd rtty && cmake . && sudo make install
+    sudo ldconfig
 
-Run RTTY
-Replace the following parameters with your own parameters
+Run RTTY(Replace the following parameters with your own parameters)
 
     sudo rtty -I 'My-device-ID' -h 'your-server' -p 5912 -a -v -s -d 'My Device Description'
 
@@ -150,7 +150,7 @@ You can easily embed RTTY into your existing platform: `https://your-server-host
 Automatic login: `https://your-server:5912/?id=device-id&username=device-username&password=device-password`
 
 ## Upload file and download file
-Open the context menu with the shortcut key: Ctrl+Shift+f
+Open the context menu with the shortcut key: Ctrl + Shift + F
 
 ## Execute a command remote
 ### Shell
