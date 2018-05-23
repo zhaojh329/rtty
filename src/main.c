@@ -500,7 +500,7 @@ static void uwsc_onclose(struct uwsc_client *cl)
         pkt = NULL;
     }
 
-    avl_remove_all_elements(&tty_sessions, tty, avl, tmp)
+    avl_for_each_element_safe(&tty_sessions, tty, avl, tmp)
         del_tty_session(tty);
 
     cl->send(cl, NULL, 0, WEBSOCKET_OP_CLOSE);
