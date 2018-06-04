@@ -1,0 +1,193 @@
+diff --git a/openssl_bio_compat.h b/openssl_bio_compat.h
+new file mode 100644
+index 0000000..dedc412
+--- /dev/null
++++ b/openssl_bio_compat.h
+@@ -0,0 +1,34 @@
++#ifndef OPENSSL_BIO_COMPAT_H
++#define OPENSSL_BIO_COMPAT_H
++
++#include <openssl/opensslv.h>
++#if OPENSSL_VERSION_NUMBER < 0x10100000L
++
++#include <openssl/bio.h>
++#include <string.h>
++
++#define BIO_get_data(b) (b->ptr)
++#define BIO_set_data(b, v) (b->ptr = v)
++#define BIO_set_init(b, v) (b->init = v)
++#define BIO_set_shutdown(b, v) (b->flags = v)
++#define BIO_meth_set_write(m, f) (m->bwrite = f)
++#define BIO_meth_set_read(m, f) (m->bread = f)
++#define BIO_meth_set_puts(m, f) (m->bputs = f)
++#define BIO_meth_set_gets(m, f) (m->bgets = f)
++#define BIO_meth_set_ctrl(m, f) (m->ctrl = f)
++#define BIO_meth_set_create(m, f) (m->create = f)
++#define BIO_meth_set_destroy(m, f) (m->destroy = f)
++
++static inline BIO_METHOD *BIO_meth_new(int type, const char *name)
++{
++	BIO_METHOD *bm = calloc(1, sizeof(BIO_METHOD));
++	if (bm) {
++		bm->type = type;
++		bm->name = name;
++	}
++	return bm;
++}
++
++#endif /* OPENSSL_VERSION_NUMBER */
++
++#endif /* OPENSSL_BIO_COMPAT_H */
+diff --git a/ustream-io-openssl.c b/ustream-io-openssl.c
+index 6711055..aa9f401 100644
+--- a/ustream-io-openssl.c
++++ b/ustream-io-openssl.c
+@@ -21,15 +21,15 @@
+ #include <libubox/ustream.h>
+ 
+ #include "ustream-ssl.h"
++#include "openssl_bio_compat.h"
+ #include "ustream-internal.h"
+ 
+ static int
+ s_ustream_new(BIO *b)
+ {
+-	b->init = 1;
+-	b->num = 0;
+-	b->ptr = NULL;
+-	b->flags = 0;
++	BIO_set_init(b, 1);
++	BIO_set_data(b, NULL);
++	BIO_set_shutdown(b, 0);
+ 	return 1;
+ }
+ 
+@@ -39,9 +39,9 @@ s_ustream_free(BIO *b)
+ 	if (!b)
+ 		return 0;
+ 
+-	b->ptr = NULL;
+-	b->init = 0;
+-	b->flags = 0;
++	BIO_set_data(b, NULL);
++	BIO_set_init(b, 0);
++	BIO_set_shutdown(b, 0);
+ 	return 1;
+ }
+ 
+@@ -55,7 +55,7 @@ s_ustream_read(BIO *b, char *buf, int len)
+ 	if (!buf || len <= 0)
+ 		return 0;
+ 
+-	s = (struct ustream *)b->ptr;
++	s = (struct ustream *)BIO_get_data(b);
+ 	if (!s)
+ 		return 0;
+ 
+@@ -84,7 +84,7 @@ s_ustream_write(BIO *b, const char *buf, int len)
+ 	if (!buf || len <= 0)
+ 		return 0;
+ 
+-	s = (struct ustream *)b->ptr;
++	s = (struct ustream *)BIO_get_data(b);
+ 	if (!s)
+ 		return 0;
+ 
+@@ -116,25 +116,23 @@ static long s_ustream_ctrl(BIO *b, int cmd, long num, void *ptr)
+ 	};
+ }
+ 
+-static BIO_METHOD methods_ustream = {
+-	100 | BIO_TYPE_SOURCE_SINK,
+-	"ustream",
+-	s_ustream_write,
+-	s_ustream_read,
+-	s_ustream_puts,
+-	s_ustream_gets,
+-	s_ustream_ctrl,
+-	s_ustream_new,
+-	s_ustream_free,
+-	NULL,
+-};
+-
+ static BIO *ustream_bio_new(struct ustream *s)
+ {
+ 	BIO *bio;
+ 
+-	bio = BIO_new(&methods_ustream);
+-	bio->ptr = s;
++	BIO_METHOD *methods_ustream;
++
++	methods_ustream = BIO_meth_new(100 | BIO_TYPE_SOURCE_SINK, "ustream");
++	BIO_meth_set_write(methods_ustream, s_ustream_write);
++	BIO_meth_set_read(methods_ustream, s_ustream_read);
++	BIO_meth_set_puts(methods_ustream, s_ustream_puts);
++	BIO_meth_set_gets(methods_ustream, s_ustream_gets);
++	BIO_meth_set_ctrl(methods_ustream, s_ustream_ctrl);
++	BIO_meth_set_create(methods_ustream, s_ustream_new);
++	BIO_meth_set_destroy(methods_ustream, s_ustream_free);
++	bio = BIO_new(methods_ustream);
++	BIO_set_data(bio, s);
++
+ 	return bio;
+ }
+ 
+diff --git a/ustream-openssl.c b/ustream-openssl.c
+index 91bc4e8..c6839ea 100644
+--- a/ustream-openssl.c
++++ b/ustream-openssl.c
+@@ -25,35 +25,43 @@
+ __hidden struct ustream_ssl_ctx *
+ __ustream_ssl_context_new(bool server)
+ {
+-	static bool _init = false;
+ 	const void *m;
+ 	SSL_CTX *c;
+ 
++#if OPENSSL_VERSION_NUMBER < 0x10100000L
++	static bool _init = false;
++
+ 	if (!_init) {
+ 		SSL_load_error_strings();
+ 		SSL_library_init();
+ 		_init = true;
+ 	}
+-
+-	if (server)
+-#ifdef CYASSL_OPENSSL_H_
+-		m = SSLv23_server_method();
+-#else
+-		m = TLSv1_2_server_method();
++# define TLS_server_method SSLv23_server_method
++# define TLS_client_method SSLv23_client_method
+ #endif
+-	else
+-		m = SSLv23_client_method();
++
++	if (server) {
++		m = TLS_server_method();
++	} else
++		m = TLS_client_method();
+ 
+ 	c = SSL_CTX_new((void *) m);
+ 	if (!c)
+ 		return NULL;
+ 
+ 	SSL_CTX_set_verify(c, SSL_VERIFY_NONE, NULL);
+-#if !defined(OPENSSL_NO_ECDH) && !defined(CYASSL_OPENSSL_H_)
++	SSL_CTX_set_options (c, SSL_OP_NO_COMPRESSION); /* avoid CRIME attack */
++#if !defined(OPENSSL_NO_ECDH) && !defined(CYASSL_OPENSSL_H_) && OPENSSL_VERSION_NUMBER < 0x10100000L
+ 	SSL_CTX_set_ecdh_auto(c, 1);
+ #endif
+-	if (server)
++	if (server) {
++#if OPENSSL_VERSION_NUMBER >= 0x10100000L
++		SSL_CTX_set_min_proto_version(c, TLS1_2_VERSION);
++#else
++		SSL_CTX_set_options (c, SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 | SSL_OP_NO_TLSv1 | SSL_OP_NO_TLSv1_1);
++#endif
+ 		SSL_CTX_set_cipher_list(c, "DEFAULT:!RC4:@STRENGTH");
++	}
+ 	SSL_CTX_set_quiet_shutdown(c, 1);
+ 
+ 	return (void *) c;
