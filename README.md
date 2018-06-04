@@ -149,8 +149,8 @@ You can easily embed RTTY into your existing platform: `https://your-server-host
 
 Automatic login: `https://your-server:5912/?id=device-id&username=device-username&password=device-password`
 
-## Upload file and download file
-Open the context menu with the shortcut key: Ctrl + Shift + F
+## Other functions
+Please click the right mouse button
 
 ## Execute a command remote
 ### Shell
