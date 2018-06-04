@@ -544,6 +544,7 @@ static void usage(const char *prog)
         "      -v           # verbose\n"
         "      -d           # Adding a description to the device(Maximum 126 bytes)\n"
         "      -s           # SSL on\n"
+        "      -V           # Show version\n"
         , prog);
     exit(1);
 }
@@ -559,7 +560,7 @@ int main(int argc, char **argv)
     bool verbose = false;
     bool ssl = false;
 
-    while ((opt = getopt(argc, argv, "i:h:p:I:avd:sP:")) != -1) {
+    while ((opt = getopt(argc, argv, "i:h:p:I:avd:sP:V")) != -1) {
         switch (opt)
         {
         case 'i':
@@ -599,6 +600,10 @@ int main(int argc, char **argv)
             break;
         case 's':
             ssl = true;
+            break;
+        case 'V':
+            ULOG_INFO("rtty version %s\n", RTTY_VERSION_STRING);
+            exit(0);
             break;
         default: /* '?' */
             usage(argv[0]);
