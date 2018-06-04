@@ -64,43 +64,15 @@ rtty非常适合远程维护你的或者你公司的部署在全球各地的成�
 
 # [部署服务端](https://github.com/zhaojh329/rttys/blob/master/README_ZH.md)
 
-# 如何编译和安装 rtty客户端
+# 如何安装和运行rtty客户端
 ## 针对Linux发行版, 例如Ubuntu和Centos
-安装编译工具
+安装
 
-    sudo apt install gcc cmake git      # For Ubuntu
-
-    yum install gcc cmake git           # For Centos
-
-编译和安装依赖软件包
-
-    sudo apt install libjson-c-dev      # For Ubuntu
-
-    sudo apt install json-c-devel       # For Centos
-
-    git clone https://git.openwrt.org/project/libubox.git
-    cd libubox && cmake -DBUILD_LUA=OFF . && sudo make install
-
-    git clone https://git.openwrt.org/project/ustream-ssl.git
-    cd ustream-ssl && cmake . && sudo make install
-
-    git clone https://github.com/zhaojh329/libuwsc.git
-    cd libuwsc && cmake . && sudo make install
-
-编译和安装RTTY
-    
-    git clone https://github.com/zhaojh329/rtty.git
-    cd rtty && cmake . && sudo make install
-    sudo ldconfig
+    wget -qO- https://raw.githubusercontent.com/zhaojh329/rtty/master/tools/install.sh | sudo bash
 
 运行RTTY(将下面的参数替换为你自己的参数)
 
     sudo rtty -I 'My-device-ID' -h 'your-server' -p 5912 -a -v -s -d 'My Device Description'
-
-查询在线设备列表
-
-    curl -k https://your-server:5912/devs
-    [{"id":"My-device-ID","description":"My device"}]
 
 ## 嵌入式Linux平台
 你需要自行交叉编译

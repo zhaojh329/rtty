@@ -67,43 +67,15 @@ the world.
 
 # [Deploying the server side](https://github.com/zhaojh329/rttys)
 
-# How to build and install the Client - rtty
+# How to install and run the Client - rtty
 ## For Linux distribution, such as Ubuntu and Centos
-Install build tools
+Install
 
-    sudo apt install gcc cmake git      # For Ubuntu
-
-    yum install gcc cmake git           # For Centos
-
-Install dependent packages
-
-    sudo apt install libjson-c-dev      # For Ubuntu
-
-    sudo apt install json-c-devel       # For Centos
-
-    git clone https://git.openwrt.org/project/libubox.git
-    cd libubox && cmake -DBUILD_LUA=OFF . && sudo make install
-
-    git clone https://git.openwrt.org/project/ustream-ssl.git
-    cd ustream-ssl && cmake . && sudo make install
-
-    git clone https://github.com/zhaojh329/libuwsc.git
-    cd libuwsc && cmake . && sudo make install
-
-Install RTTY
-    
-    git clone https://github.com/zhaojh329/rtty.git
-    cd rtty && cmake . && sudo make install
-    sudo ldconfig
+    wget -qO- https://raw.githubusercontent.com/zhaojh329/rtty/master/tools/install.sh | sudo bash
 
 Run RTTY(Replace the following parameters with your own parameters)
 
     sudo rtty -I 'My-device-ID' -h 'your-server' -p 5912 -a -v -s -d 'My Device Description'
-
-Query online devices
-
-    curl -k https://your-server:5912/devs
-    [{"id":"My-device-ID","description":"My device"}]
 
 ## For Embedded Linux Platform
 You need to cross compiling by yourself
