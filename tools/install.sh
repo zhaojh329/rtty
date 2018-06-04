@@ -50,11 +50,9 @@ cd libubox && cmake -DBUILD_LUA=OFF . && make install && cd -
 cd ustream-ssl
 git checkout 189cd38b4188bfcb4c8cf67d8ae71741ffc2b906
 
-SSL_VER_MAJOR=$(openssl version | cut -d' ' -f2 | cut -d. -f1)
-SSL_VER_MINOR=$(openssl version | cut -d' ' -f2 | cut -d. -f2)
-SSL_VER="${SSL_VER_MAJOR}${SSL_VER_MINOR}"
+LIBSSL_VER=$(cat /usr/include/openssl/opensslv.h | grep OPENSSL_VERSION_NUMBER | sed 's/0x//' | grep -o '[0-9]\+')
 
-[ $SSL_VER -ge 11 ] && {
+[ $LIBSSL_VER -ge 1010000 ] && {
 	quilt import ../rtty/tools/us-openssl_v1_1.patch
 	quilt push -a
 }
