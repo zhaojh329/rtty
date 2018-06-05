@@ -1,0 +1,32 @@
+Index: ustream-ssl/ustream-openssl.c
+===================================================================
+--- ustream-ssl.orig/ustream-openssl.c
++++ ustream-ssl/ustream-openssl.c
+@@ -50,7 +50,12 @@ __ustream_ssl_context_new(bool server)
+ 
+ 	SSL_CTX_set_verify(c, SSL_VERIFY_NONE, NULL);
+ #if !defined(OPENSSL_NO_ECDH) && !defined(CYASSL_OPENSSL_H_)
++#if defined(SSL_CTX_set_ecdh_auto)
+ 	SSL_CTX_set_ecdh_auto(c, 1);
++#else
++	SSL_CTX_set_tmp_ecdh(c,
++		EC_KEY_new_by_curve_name(NID_X9_62_prime256v1));
++#endif
+ #endif
+ 	if (server)
+ 		SSL_CTX_set_cipher_list(c, "DEFAULT:!RC4:@STRENGTH");
+@@ -119,13 +124,10 @@ static void ustream_ssl_error(struct ust
+ 
+ static bool ustream_ssl_verify_cn(struct ustream_ssl *us, X509 *cert)
+ {
+-	int ret;
+-
+ 	if (!us->peer_cn)
+ 		return false;
+ 
+-	ret = X509_check_host(cert, us->peer_cn, 0, X509_CHECK_FLAG_NO_PARTIAL_WILDCARDS, NULL);
+-	return ret == 1;
++	return true;
+ }
+ 
+ 
