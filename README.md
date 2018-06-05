@@ -68,7 +68,7 @@ the world.
 # [Deploying the server side](https://github.com/zhaojh329/rttys)
 
 # How to install and run the Client - rtty
-## For Linux distribution, such as Ubuntu and Centos
+## For Linux distribution, such as Ubuntu, Debian, ArchLinux, Centos
 Install
 
     wget -qO- https://raw.githubusercontent.com/zhaojh329/rtty/master/tools/install.sh | sudo bash
