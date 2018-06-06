@@ -37,6 +37,7 @@
 #include "utils.h"
 #include "protocol.h"
 #include "command.h"
+#include "rtty.pb-c.h"
 
 #define RECONNECT_INTERVAL  5
 

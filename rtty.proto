@@ -1,0 +1,20 @@
+enum rtty_message_type {
+	LOGIN = 1;
+    LOGINACK = 2;
+    LOGOUT = 3;
+    TTY = 4;
+    ANNOUNCE = 5;
+    UPFILE = 6;
+    DOWNFILE = 7;
+}
+
+message rtty_message {
+	required uint32 header = 1; // byte0[0-3]: version, byte0[4-7]: message type
+	required string sid = 2;	// session id
+	message data {
+		optional int32 code = 1;
+		optional bytes data = 2;
+		optional string name = 3;
+		optional uint32 size = 4;
+	}
+}
