@@ -65,7 +65,7 @@ rtty非常适合远程维护你的或者你公司的部署在全球各地的成�
 # [部署服务端](https://github.com/zhaojh329/rttys/blob/master/README_ZH.md)
 
 # 如何安装和运行rtty客户端
-## 针对Linux发行版, 例如 Ubuntu, Debian, ArchLinux, Centos
+## 针对Linux发行版：Ubuntu, Debian, ArchLinux, Centos
 安装
 
     wget -qO- https://raw.githubusercontent.com/zhaojh329/rtty/master/tools/install.sh | sudo bash
