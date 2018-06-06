@@ -21,16 +21,17 @@ typedef struct _RttyMessage__Data RttyMessage__Data;
 
 /* --- enums --- */
 
-typedef enum _RttyMessageType {
-  RTTY_MESSAGE_TYPE__LOGIN = 1,
-  RTTY_MESSAGE_TYPE__LOGINACK = 2,
-  RTTY_MESSAGE_TYPE__LOGOUT = 3,
-  RTTY_MESSAGE_TYPE__TTY = 4,
-  RTTY_MESSAGE_TYPE__ANNOUNCE = 5,
-  RTTY_MESSAGE_TYPE__UPFILE = 6,
-  RTTY_MESSAGE_TYPE__DOWNFILE = 7
-    PROTOBUF_C__FORCE_ENUM_TO_BE_INT_SIZE(RTTY_MESSAGE_TYPE)
-} RttyMessageType;
+typedef enum _RttyMessage__Type {
+  RTTY_MESSAGE__TYPE__UNKNOWN = 0,
+  RTTY_MESSAGE__TYPE__LOGIN = 1,
+  RTTY_MESSAGE__TYPE__LOGINACK = 2,
+  RTTY_MESSAGE__TYPE__LOGOUT = 3,
+  RTTY_MESSAGE__TYPE__TTY = 4,
+  RTTY_MESSAGE__TYPE__ANNOUNCE = 5,
+  RTTY_MESSAGE__TYPE__UPFILE = 6,
+  RTTY_MESSAGE__TYPE__DOWNFILE = 7
+    PROTOBUF_C__FORCE_ENUM_TO_BE_INT_SIZE(RTTY_MESSAGE__TYPE)
+} RttyMessage__Type;
 
 /* --- messages --- */
 
@@ -53,18 +54,15 @@ struct  _RttyMessage__Data
 struct  _RttyMessage
 {
   ProtobufCMessage base;
-  /*
-   * byte0[0-3]: version, byte0[4-7]: message type
-   */
-  uint32_t header;
-  /*
-   * session id
-   */
+  protobuf_c_boolean has_version;
+  uint32_t version;
+  protobuf_c_boolean has_type;
+  uint32_t type;
   char *sid;
 };
 #define RTTY_MESSAGE__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&rtty_message__descriptor) \
-    , 0, NULL }
+    , 0,0, 0,0, NULL }
 
 
 /* RttyMessage__Data methods */
@@ -103,9 +101,9 @@ typedef void (*RttyMessage_Closure)
 
 /* --- descriptors --- */
 
-extern const ProtobufCEnumDescriptor    rtty_message_type__descriptor;
 extern const ProtobufCMessageDescriptor rtty_message__descriptor;
 extern const ProtobufCMessageDescriptor rtty_message__data__descriptor;
+extern const ProtobufCEnumDescriptor    rtty_message__type__descriptor;
 
 PROTOBUF_C__END_DECLS
 

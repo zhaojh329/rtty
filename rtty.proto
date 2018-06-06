@@ -1,20 +1,26 @@
-enum rtty_message_type {
-	LOGIN = 1;
-    LOGINACK = 2;
-    LOGOUT = 3;
-    TTY = 4;
-    ANNOUNCE = 5;
-    UPFILE = 6;
-    DOWNFILE = 7;
-}
+package rtty;
+
+syntax = "proto3";
 
 message rtty_message {
-	required uint32 header = 1; // byte0[0-3]: version, byte0[4-7]: message type
-	required string sid = 2;	// session id
+	enum Type {
+		UNKNOWN = 0;
+		LOGIN = 1;
+	    LOGINACK = 2;
+	    LOGOUT = 3;
+	    TTY = 4;
+	    ANNOUNCE = 5;
+	    UPFILE = 6;
+	    DOWNFILE = 7;
+	}
+
+	uint32 version = 1;
+	uint32 type = 2;
+	string sid = 3;
 	message data {
-		optional int32 code = 1;
-		optional bytes data = 2;
-		optional string name = 3;
-		optional uint32 size = 4;
+		int32 code = 1;
+		bytes data = 2;
+		string name = 3;
+		uint32 size = 4;
 	}
 }
