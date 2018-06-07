@@ -7,49 +7,6 @@
 #endif
 
 #include "rtty.pb-c.h"
-void   rtty_message_data__init
-                     (RttyMessageData         *message)
-{
-  static RttyMessageData init_value = RTTY_MESSAGE_DATA__INIT;
-  *message = init_value;
-}
-size_t rtty_message_data__get_packed_size
-                     (const RttyMessageData *message)
-{
-  assert(message->base.descriptor == &rtty_message_data__descriptor);
-  return protobuf_c_message_get_packed_size ((const ProtobufCMessage*)(message));
-}
-size_t rtty_message_data__pack
-                     (const RttyMessageData *message,
-                      uint8_t       *out)
-{
-  assert(message->base.descriptor == &rtty_message_data__descriptor);
-  return protobuf_c_message_pack ((const ProtobufCMessage*)message, out);
-}
-size_t rtty_message_data__pack_to_buffer
-                     (const RttyMessageData *message,
-                      ProtobufCBuffer *buffer)
-{
-  assert(message->base.descriptor == &rtty_message_data__descriptor);
-  return protobuf_c_message_pack_to_buffer ((const ProtobufCMessage*)message, buffer);
-}
-RttyMessageData *
-       rtty_message_data__unpack
-                     (ProtobufCAllocator  *allocator,
-                      size_t               len,
-                      const uint8_t       *data)
-{
-  return (RttyMessageData *)
-     protobuf_c_message_unpack (&rtty_message_data__descriptor,
-                                allocator, len, data);
-}
-void   rtty_message_data__free_unpacked
-                     (RttyMessageData *message,
-                      ProtobufCAllocator *allocator)
-{
-  assert(message->base.descriptor == &rtty_message_data__descriptor);
-  protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
-}
 void   rtty_message__init
                      (RttyMessage         *message)
 {
@@ -93,83 +50,6 @@ void   rtty_message__free_unpacked
   assert(message->base.descriptor == &rtty_message__descriptor);
   protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
 }
-static const ProtobufCFieldDescriptor rtty_message_data__field_descriptors[4] =
-{
-  {
-    "code",
-    1,
-    PROTOBUF_C_LABEL_OPTIONAL,
-    PROTOBUF_C_TYPE_INT32,
-    offsetof(RttyMessageData, has_code),
-    offsetof(RttyMessageData, code),
-    NULL,
-    NULL,
-    0,             /* flags */
-    0,NULL,NULL    /* reserved1,reserved2, etc */
-  },
-  {
-    "data",
-    2,
-    PROTOBUF_C_LABEL_OPTIONAL,
-    PROTOBUF_C_TYPE_BYTES,
-    offsetof(RttyMessageData, has_data),
-    offsetof(RttyMessageData, data),
-    NULL,
-    NULL,
-    0,             /* flags */
-    0,NULL,NULL    /* reserved1,reserved2, etc */
-  },
-  {
-    "name",
-    3,
-    PROTOBUF_C_LABEL_OPTIONAL,
-    PROTOBUF_C_TYPE_STRING,
-    0,   /* quantifier_offset */
-    offsetof(RttyMessageData, name),
-    NULL,
-    NULL,
-    0,             /* flags */
-    0,NULL,NULL    /* reserved1,reserved2, etc */
-  },
-  {
-    "size",
-    4,
-    PROTOBUF_C_LABEL_OPTIONAL,
-    PROTOBUF_C_TYPE_UINT32,
-    offsetof(RttyMessageData, has_size),
-    offsetof(RttyMessageData, size),
-    NULL,
-    NULL,
-    0,             /* flags */
-    0,NULL,NULL    /* reserved1,reserved2, etc */
-  },
-};
-static const unsigned rtty_message_data__field_indices_by_name[] = {
-  0,   /* field[0] = code */
-  1,   /* field[1] = data */
-  2,   /* field[2] = name */
-  3,   /* field[3] = size */
-};
-static const ProtobufCIntRange rtty_message_data__number_ranges[1 + 1] =
-{
-  { 1, 0 },
-  { 0, 4 }
-};
-const ProtobufCMessageDescriptor rtty_message_data__descriptor =
-{
-  PROTOBUF_C__MESSAGE_DESCRIPTOR_MAGIC,
-  "rtty_message_data",
-  "RttyMessageData",
-  "RttyMessageData",
-  "",
-  sizeof(RttyMessageData),
-  4,
-  rtty_message_data__field_descriptors,
-  rtty_message_data__field_indices_by_name,
-  1,  rtty_message_data__number_ranges,
-  (ProtobufCMessageInit) rtty_message_data__init,
-  NULL,NULL,NULL    /* reserved[123] */
-};
 static const ProtobufCEnumValue rtty_message__type__enum_values_by_number[8] =
 {
   { "UNKNOWN", "RTTY_MESSAGE__TYPE__UNKNOWN", 0 },
@@ -210,7 +90,7 @@ const ProtobufCEnumDescriptor rtty_message__type__descriptor =
   rtty_message__type__value_ranges,
   NULL,NULL,NULL,NULL   /* reserved[1234] */
 };
-static const ProtobufCFieldDescriptor rtty_message__field_descriptors[4] =
+static const ProtobufCFieldDescriptor rtty_message__field_descriptors[7] =
 {
   {
     "version",
@@ -228,10 +108,10 @@ static const ProtobufCFieldDescriptor rtty_message__field_descriptors[4] =
     "type",
     2,
     PROTOBUF_C_LABEL_OPTIONAL,
-    PROTOBUF_C_TYPE_UINT32,
+    PROTOBUF_C_TYPE_ENUM,
     offsetof(RttyMessage, has_type),
     offsetof(RttyMessage, type),
-    NULL,
+    &rtty_message__type__descriptor,
     NULL,
     0,             /* flags */
     0,NULL,NULL    /* reserved1,reserved2, etc */
@@ -249,28 +129,67 @@ static const ProtobufCFieldDescriptor rtty_message__field_descriptors[4] =
     0,NULL,NULL    /* reserved1,reserved2, etc */
   },
   {
-    "data",
+    "code",
     4,
     PROTOBUF_C_LABEL_OPTIONAL,
-    PROTOBUF_C_TYPE_MESSAGE,
-    0,   /* quantifier_offset */
+    PROTOBUF_C_TYPE_INT32,
+    offsetof(RttyMessage, has_code),
+    offsetof(RttyMessage, code),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "data",
+    5,
+    PROTOBUF_C_LABEL_OPTIONAL,
+    PROTOBUF_C_TYPE_BYTES,
+    offsetof(RttyMessage, has_data),
     offsetof(RttyMessage, data),
-    &rtty_message_data__descriptor,
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "name",
+    6,
+    PROTOBUF_C_LABEL_OPTIONAL,
+    PROTOBUF_C_TYPE_STRING,
+    0,   /* quantifier_offset */
+    offsetof(RttyMessage, name),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "size",
+    7,
+    PROTOBUF_C_LABEL_OPTIONAL,
+    PROTOBUF_C_TYPE_UINT32,
+    offsetof(RttyMessage, has_size),
+    offsetof(RttyMessage, size),
+    NULL,
     NULL,
     0,             /* flags */
     0,NULL,NULL    /* reserved1,reserved2, etc */
   },
 };
 static const unsigned rtty_message__field_indices_by_name[] = {
-  3,   /* field[3] = data */
+  3,   /* field[3] = code */
+  4,   /* field[4] = data */
+  5,   /* field[5] = name */
   2,   /* field[2] = sid */
+  6,   /* field[6] = size */
   1,   /* field[1] = type */
   0,   /* field[0] = version */
 };
 static const ProtobufCIntRange rtty_message__number_ranges[1 + 1] =
 {
   { 1, 0 },
-  { 0, 4 }
+  { 0, 7 }
 };
 const ProtobufCMessageDescriptor rtty_message__descriptor =
 {
@@ -280,7 +199,7 @@ const ProtobufCMessageDescriptor rtty_message__descriptor =
   "RttyMessage",
   "",
   sizeof(RttyMessage),
-  4,
+  7,
   rtty_message__field_descriptors,
   rtty_message__field_indices_by_name,
   1,  rtty_message__number_ranges,

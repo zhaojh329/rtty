@@ -15,7 +15,6 @@ PROTOBUF_C__BEGIN_DECLS
 #endif
 
 
-typedef struct _RttyMessageData RttyMessageData;
 typedef struct _RttyMessage RttyMessage;
 
 
@@ -35,9 +34,14 @@ typedef enum _RttyMessage__Type {
 
 /* --- messages --- */
 
-struct  _RttyMessageData
+struct  _RttyMessage
 {
   ProtobufCMessage base;
+  protobuf_c_boolean has_version;
+  uint32_t version;
+  protobuf_c_boolean has_type;
+  RttyMessage__Type type;
+  char *sid;
   protobuf_c_boolean has_code;
   int32_t code;
   protobuf_c_boolean has_data;
@@ -46,45 +50,11 @@ struct  _RttyMessageData
   protobuf_c_boolean has_size;
   uint32_t size;
 };
-#define RTTY_MESSAGE_DATA__INIT \
- { PROTOBUF_C_MESSAGE_INIT (&rtty_message_data__descriptor) \
-    , 0,0, 0,{0,NULL}, NULL, 0,0 }
-
-
-struct  _RttyMessage
-{
-  ProtobufCMessage base;
-  protobuf_c_boolean has_version;
-  uint32_t version;
-  protobuf_c_boolean has_type;
-  uint32_t type;
-  char *sid;
-  RttyMessageData *data;
-};
 #define RTTY_MESSAGE__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&rtty_message__descriptor) \
-    , 0,0, 0,0, NULL, NULL }
+    , 0,0, 0,0, NULL, 0,0, 0,{0,NULL}, NULL, 0,0 }
 
 
-/* RttyMessageData methods */
-void   rtty_message_data__init
-                     (RttyMessageData         *message);
-size_t rtty_message_data__get_packed_size
-                     (const RttyMessageData   *message);
-size_t rtty_message_data__pack
-                     (const RttyMessageData   *message,
-                      uint8_t             *out);
-size_t rtty_message_data__pack_to_buffer
-                     (const RttyMessageData   *message,
-                      ProtobufCBuffer     *buffer);
-RttyMessageData *
-       rtty_message_data__unpack
-                     (ProtobufCAllocator  *allocator,
-                      size_t               len,
-                      const uint8_t       *data);
-void   rtty_message_data__free_unpacked
-                     (RttyMessageData *message,
-                      ProtobufCAllocator *allocator);
 /* RttyMessage methods */
 void   rtty_message__init
                      (RttyMessage         *message);
@@ -106,9 +76,6 @@ void   rtty_message__free_unpacked
                       ProtobufCAllocator *allocator);
 /* --- per-message closures --- */
 
-typedef void (*RttyMessageData_Closure)
-                 (const RttyMessageData *message,
-                  void *closure_data);
 typedef void (*RttyMessage_Closure)
                  (const RttyMessage *message,
                   void *closure_data);
@@ -118,7 +85,6 @@ typedef void (*RttyMessage_Closure)
 
 /* --- descriptors --- */
 
-extern const ProtobufCMessageDescriptor rtty_message_data__descriptor;
 extern const ProtobufCMessageDescriptor rtty_message__descriptor;
 extern const ProtobufCEnumDescriptor    rtty_message__type__descriptor;
 
