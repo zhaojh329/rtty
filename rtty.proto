@@ -1,6 +1,11 @@
-package rtty;
-
 syntax = "proto3";
+
+message rtty_message_data {
+	int32 code = 1;
+	bytes data = 2;
+	string name = 3;
+	uint32 size = 4;
+}
 
 message rtty_message {
 	enum Type {
@@ -17,10 +22,5 @@ message rtty_message {
 	uint32 version = 1;
 	uint32 type = 2;
 	string sid = 3;
-	message data {
-		int32 code = 1;
-		bytes data = 2;
-		string name = 3;
-		uint32 size = 4;
-	}
+	rtty_message_data data = 4;
 }
