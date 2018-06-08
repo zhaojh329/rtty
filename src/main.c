@@ -26,7 +26,6 @@
 #include <ctype.h>
 #include <sys/stat.h>
 #include <dirent.h>
-#include <shadow.h>
 #include <uwsc/uwsc.h>
 #include <libubox/ulog.h>
 #include <libubox/blobmsg_json.h>
@@ -35,8 +34,8 @@
 
 #include "config.h"
 #include "utils.h"
+#include "message.h"
 #include "command.h"
-#include "rtty.pb-c.h"
 
 #define RECONNECT_INTERVAL  5
 
@@ -65,24 +64,6 @@ static bool auto_reconnect;
 static int ping_interval;
 static struct uloop_timeout reconnect_timer;
 static struct avl_tree tty_sessions;
-
-/* For execute command */
-static bool login_test(const char *username, const char *password)
-{
-    struct spwd *sp;
-
-    if (!username || *username == 0)
-        return false;
-
-    sp = getspnam(username);
-    if (!sp)
-        return false;
-
-    if (!password)
-        password = "";
-
-    return !strcmp(crypt(password, sp->sp_pwdp), sp->sp_pwdp);
-}
 
 static void del_tty_session(struct tty_session *tty)
 {
@@ -115,34 +96,18 @@ static inline void del_tty_session_by_sid(const char *sid)
 static void pty_read_cb(struct ustream *s, int bytes)
 {
     struct tty_session *tty = container_of(s, struct tty_session, sfd.stream);
+    RttyMessage *msg = rtty_message_init(RTTY_MESSAGE__TYPE__TTY, tty->sid);
     struct uwsc_client *cl = tty->cl;
-    RttyMessage msg = RTTY_MESSAGE__INIT;
-    void *data, *buf;
-    int len, msg_len;
+    void *data;
+    int len;
 
     data = ustream_get_read_buf(s, &len);
     if (!data || len == 0)
         return;
 
-    msg.has_version = true;
-    msg.version = 2;
+    rtty_message_set_data(msg, data, len);
 
-    msg.has_type = true;
-    msg.type = RTTY_MESSAGE__TYPE__TTY;
-
-    msg.sid = tty->sid;
-
-    msg.has_data = true;
-    msg.data.data = data;
-    msg.data.len = len;
-
-    msg_len = rtty_message__get_packed_size(&msg);
-    buf = malloc(msg_len);
-    rtty_message__pack(&msg, buf);
-
-    cl->send(cl, buf, msg_len, WEBSOCKET_OP_BINARY);
-
-    free(buf);
+    rtty_message_send(cl, msg);
 
     ustream_consume(s, len);
 }
@@ -150,31 +115,14 @@ static void pty_read_cb(struct ustream *s, int bytes)
 static void pty_on_exit(struct uloop_process *p, int ret)
 {
     struct tty_session *tty = container_of(p, struct tty_session, up);
-    struct uwsc_client *cl = tty->cl;
-    RttyMessage msg = RTTY_MESSAGE__INIT;
-    int len;
-    void *out;
+    RttyMessage *msg = rtty_message_init(RTTY_MESSAGE__TYPE__LOGOUT, tty->sid);
 
-    msg.has_version = true;
-    msg.version = 2;
-
-    msg.has_type = true;
-    msg.type = RTTY_MESSAGE__TYPE__LOGOUT;
-
-    msg.sid = tty->sid;
-
-    len = rtty_message__get_packed_size(&msg);
-    out  = malloc(len);
-    rtty_message__pack(&msg, out);
-
-    cl->send(cl, out, len, WEBSOCKET_OP_BINARY);
-
-    free(out);
+    rtty_message_send(tty->cl, msg);
 
     del_tty_session(tty);
 }
 
-static void new_tty_session(struct uwsc_client *cl, RttyMessage *pi)
+static void new_tty_session(struct uwsc_client *cl, RttyMessage *msg)
 {
     struct tty_session *s;
     int pty;
@@ -190,7 +138,7 @@ static void new_tty_session(struct uwsc_client *cl, RttyMessage *pi)
 
     s->pid = pid;
     s->pty = pty;
-    strcpy(s->sid, pi->sid);
+    strcpy(s->sid, msg->sid);
 
     s->sfd.stream.notify_read = pty_read_cb;
     ustream_fd_init(&s->sfd, s->pty);
@@ -203,57 +151,57 @@ static void new_tty_session(struct uwsc_client *cl, RttyMessage *pi)
     s->avl.key = s->sid;
     avl_insert(&tty_sessions, &s->avl);
 
-    ULOG_INFO("New session:%s\n", pi->sid);
+    ULOG_INFO("New session:%s\n", msg->sid);
 }
 
-static void pty_write(RttyMessage *pi)
+static void pty_write(RttyMessage *msg)
 {
-    struct tty_session *tty = find_tty_session(pi->sid);
-    ProtobufCBinaryData *data = &pi->data;
+    struct tty_session *tty = find_tty_session(msg->sid);
+    ProtobufCBinaryData *data = &msg->data;
 
     if (tty && write(tty->pty, data->data, data->len) < 0) {
         ULOG_ERR("write to pty error:%s\n", strerror(errno));
     }
 }
 
-static void handle_upfile(RttyMessage *pi)
+static void handle_upfile(RttyMessage *msg)
 {
-    struct tty_session *tty = find_tty_session(pi->sid);
+    struct tty_session *tty = find_tty_session(msg->sid);
     struct upfile_info *upfile;
-    ProtobufCBinaryData *data = &pi->data;
+    ProtobufCBinaryData *data = &msg->data;
 
     if (!tty)
         return;
 
     upfile = &tty->upfile;
 
-    if (pi->code == 0) {
+    if (msg->code == RTTY_MESSAGE__FILE_CODE__START) {
         char path[512] = "";
         if (upfile->fd > 0) {
             ULOG_ERR("Only one file can be uploading at the same time\n");
             return;
         }
 
-        if (!pi->name || pi->size == 0) {
+        if (!msg->name || msg->size == 0) {
             ULOG_ERR("Upfile failed: name and size required\n");
             return;
         }
 
-        snprintf(path, sizeof(path) - 1, "/tmp/%s", pi->name);
+        snprintf(path, sizeof(path) - 1, "/tmp/%s", msg->name);
         upfile->fd = open(path, O_CREAT | O_RDWR, 0644);
         if (upfile->fd < 0) {
             ULOG_ERR("open upfile failed: %s\n", strerror(errno));
             return;
         }
 
-        upfile->size = pi->size;
+        upfile->size = msg->size;
         upfile->uploaded = 0;
 
-        ULOG_INFO("Begin upload:%s %d\n", pi->name, pi->size);
+        ULOG_INFO("Begin upload:%s %d\n", msg->name, msg->size);
     }
 
     if (upfile->fd > 0) {
-        if (pi->code == 1 && data && data->len) {
+        if (msg->code == RTTY_MESSAGE__FILE_CODE__FILEDATA && data && data->len) {
             if (write(upfile->fd, data->data, data->len) < 0) {
                 ULOG_ERR("upfile failed:%s\n", strerror(errno));
                 close(upfile->fd);
@@ -264,25 +212,25 @@ static void handle_upfile(RttyMessage *pi)
             upfile->uploaded += data->len;
         }
 
-        if (pi->code == 2 || upfile->uploaded == upfile->size)  {
+        if (msg->code == RTTY_MESSAGE__FILE_CODE__CANCELED ||
+            upfile->uploaded == upfile->size)  {
             close(upfile->fd);
             upfile->fd = 0;
-            ULOG_INFO("Upload file %s\n", (pi->code == 1) ? "finish" : "canceled");
+            ULOG_INFO("Upload file %s\n",
+                (msg->code == RTTY_MESSAGE__FILE_CODE__FILEDATA) ? "finish" : "canceled");
         }
     }
 }
 
 static void send_filelist(struct uwsc_client *cl, const char *sid, const char *path)
 {
-    static struct blob_buf b;
-    DIR *dir;
+    RttyMessage *msg = rtty_message_init(RTTY_MESSAGE__TYPE__DOWNFILE, sid);
     struct dirent *dentry;
+    static struct blob_buf b;
     void *tbl, *array;
-    char *str;
     char buf[512];
-    int len;
-    void *out;
-    RttyMessage msg = RTTY_MESSAGE__INIT;
+    char *str;
+    DIR *dir;
 
     dir = opendir(path);
     if (!dir)
@@ -334,25 +282,9 @@ static void send_filelist(struct uwsc_client *cl, const char *sid, const char *p
 
     str = blobmsg_format_json(b.head, true);
 
-    msg.has_version = true;
-    msg.version = 2;
+    rtty_message_set_data(msg, str + 1, strlen(str) - 2);
 
-    msg.has_type = true;
-    msg.type = RTTY_MESSAGE__TYPE__DOWNFILE;
-
-    msg.sid = (char *)sid;
-
-    msg.has_data = true;
-    msg.data.data = (void *)(str + 1);
-    msg.data.len = strlen(str) - 2;
-
-    len  = rtty_message__get_packed_size(&msg);
-    out = malloc(len);
-    rtty_message__pack(&msg, out);
-
-    cl->send(cl, out, len, WEBSOCKET_OP_BINARY);
-
-    free(out);
+    rtty_message_send(cl, msg);
 
     free(str);
     blob_buf_free(&b);
@@ -361,61 +293,41 @@ static void send_filelist(struct uwsc_client *cl, const char *sid, const char *p
 static void send_file_cb(struct uloop_timeout *timer)
 {
     struct tty_session *tty = container_of(timer, struct tty_session, timer);
-    RttyMessage msg = RTTY_MESSAGE__INIT;
+    RttyMessage *msg = rtty_message_init(RTTY_MESSAGE__TYPE__DOWNFILE, tty->sid);
 
     if (tty->downfile > 0) {
         int len;
         char buf[4096];
-        void *buf2;
-
-        msg.has_version = true;
-        msg.version = 2;
-
-        msg.has_type = true;
-        msg.type = RTTY_MESSAGE__TYPE__DOWNFILE;
-
-        msg.sid = tty->sid;
 
         len = read(tty->downfile, buf, sizeof(buf));
         if (len > 0) {
-            msg.has_code = true;
-            msg.code = 1;
-
-            msg.has_data = true;
-            msg.data.data = (void *)buf;
-            msg.data.len = len;
+            rtty_message_set_code(msg, RTTY_MESSAGE__FILE_CODE__FILEDATA);
+            rtty_message_set_data(msg, buf, len);
 
             uloop_timeout_set(timer, 5);
         } else {
             close(tty->downfile);
             tty->downfile = 0;
 
-            msg.has_code = true;
-            msg.code = 2;
+            rtty_message_set_code(msg, RTTY_MESSAGE__FILE_CODE__END);
 
             ULOG_INFO("Down file finish\n");
         }
 
-        len = rtty_message__get_packed_size(&msg);
-        buf2 = malloc(len);
-        rtty_message__pack(&msg, buf2);
-
-        tty->cl->send(tty->cl, buf2, len, WEBSOCKET_OP_BINARY);
-
-        free(buf2);
+        rtty_message_send(tty->cl, msg);
     }
 }
 
-static void handle_downfile(struct uwsc_client *cl, RttyMessage *pi)
+static void handle_downfile(struct uwsc_client *cl, RttyMessage *msg)
 {
     struct stat st;
     const char *name = "/";
-    struct tty_session *tty = find_tty_session(pi->sid);
+    struct tty_session *tty = find_tty_session(msg->sid);
 
     if (!tty)
         return;
 
-    if (pi->code == 1) {
+    if (msg->code == RTTY_MESSAGE__FILE_CODE__CANCELED) {
         if (tty->downfile > 0) {
             close(tty->downfile);
             tty->downfile = 0;
@@ -424,8 +336,8 @@ static void handle_downfile(struct uwsc_client *cl, RttyMessage *pi)
         return;
     }
 
-    if (pi->name)
-        name = pi->name;
+    if (msg->name)
+        name = msg->name;
 
     if (stat(name, &st) < 0) {
         ULOG_ERR("down (%s) failed:%s\n", name, strerror(errno));
@@ -433,7 +345,7 @@ static void handle_downfile(struct uwsc_client *cl, RttyMessage *pi)
     }
 
     if (S_ISDIR(st.st_mode)) {
-        send_filelist(cl, pi->sid, name);
+        send_filelist(cl, msg->sid, name);
     } else {
         if (tty->downfile > 0) {
             ULOG_ERR("Only one file can be downloading at the same time\n");
@@ -446,95 +358,40 @@ static void handle_downfile(struct uwsc_client *cl, RttyMessage *pi)
             return;
         }
 
-        ULOG_INFO("Begin down file:%s %d\n", pi->name, st.st_size);
+        ULOG_INFO("Begin down file:%s %d\n", msg->name, st.st_size);
         tty->timer.cb = send_file_cb;
         send_file_cb(&tty->timer);
     }
 }
 
-enum {
-    COMMAND_ID,
-    COMMAND_USERNAME,
-    COMMAND_PASSWORD,
-    COMMAND_CMD,
-    COMMAND_PARAMS,
-    COMMAND_ENV,
-    _COMMAND_MAX
-};
-
-static const struct blobmsg_policy cmd_policy[] = {
-    [COMMAND_ID] = { .name = "id", .type = BLOBMSG_TYPE_INT32 },
-    [COMMAND_USERNAME] = { .name = "username", .type = BLOBMSG_TYPE_STRING },
-    [COMMAND_PASSWORD] = { .name = "password", .type = BLOBMSG_TYPE_STRING },
-    [COMMAND_CMD] = { .name = "cmd", .type = BLOBMSG_TYPE_STRING },
-    [COMMAND_PARAMS] = { .name = "params", .type = BLOBMSG_TYPE_ARRAY },
-    [COMMAND_ENV] = { .name = "env", .type = BLOBMSG_TYPE_ARRAY }
-};
-
-static void uwsc_onmessage(struct uwsc_client *cl, void *msg, uint64_t len, enum websocket_op op)
+static void uwsc_onmessage(struct uwsc_client *cl, void *data, uint64_t len, enum websocket_op op)
 {
-    RttyMessage *pkt;
+    RttyMessage *msg = rtty_message__unpack(NULL, len, data);
 
-    if (op == WEBSOCKET_OP_TEXT) {
-        static struct blob_buf b;
-        struct blob_attr *tb[_COMMAND_MAX];
-        const char *password = "";
-
-        blobmsg_buf_init(&b);
-
-        blobmsg_add_json_from_string(&b, msg);
-
-        blobmsg_parse(cmd_policy, _COMMAND_MAX, tb, blob_data(b.head), blob_len(b.head));
-
-        if (!tb[COMMAND_USERNAME]) {
-            send_command_reply(make_command_reply(blobmsg_get_u32(tb[COMMAND_ID]), COMMAND_ERR_LOGIN), cl);
-            return;
-        }
-
-        if (tb[COMMAND_PASSWORD])
-            password = blobmsg_data(tb[COMMAND_PASSWORD]);
-
-        if (!login_test(blobmsg_data(tb[COMMAND_USERNAME]), password)) {
-            send_command_reply(make_command_reply(blobmsg_get_u32(tb[COMMAND_ID]), COMMAND_ERR_LOGIN), cl);
-            return;
-        }
-
-        run_command(cl, blobmsg_get_u32(tb[COMMAND_ID]), blobmsg_data(tb[COMMAND_CMD]),
-            tb[COMMAND_PARAMS], tb[COMMAND_ENV]);
-        blob_buf_free(&b);
-        return;
-    }
-
-    pkt = rtty_message__unpack(NULL, len, msg); 
-
-    switch (pkt->type) {
+    switch (msg->type) {
     case RTTY_MESSAGE__TYPE__LOGIN:
-        new_tty_session(cl, pkt);
+        new_tty_session(cl, msg);
         break;
-    case RTTY_MESSAGE__TYPE__LOGOUT: {
-        del_tty_session_by_sid(pkt->sid);
+    case RTTY_MESSAGE__TYPE__LOGOUT:
+        del_tty_session_by_sid(msg->sid);
         break;
-    }
     case RTTY_MESSAGE__TYPE__TTY:
-        pty_write(pkt);
+        pty_write(msg);
         break;
-    case RTTY_MESSAGE__TYPE__ANNOUNCE:
-        if (pkt->code) {
-            auto_reconnect = false;
-            ULOG_ERR("register failed: ID conflicting\n");
-            uloop_end();
-        }
     case RTTY_MESSAGE__TYPE__UPFILE:
-        handle_upfile(pkt);
+        handle_upfile(msg);
         break;
     case RTTY_MESSAGE__TYPE__DOWNFILE:
-        handle_downfile(cl, pkt);
+        handle_downfile(cl, msg);
+        break;
+    case RTTY_MESSAGE__TYPE__COMMAND:
+        run_command(cl, msg, data, len);
         break;
     default:
         break;
     }
 
-    rtty_message__free_unpacked(pkt, NULL);
+    rtty_message__free_unpacked(msg, NULL);
 }
 
 static void uwsc_onopen(struct uwsc_client *cl)

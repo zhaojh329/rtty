@@ -17,17 +17,42 @@
  * USA
  */
 
-#ifndef _COMMAND_H
-#define _COMMAND_H
-
-#include <uwsc/uwsc.h>
-#include <libubox/blob.h>
+#include <stdlib.h>
+#include <libubox/ulog.h>
 
 #include "message.h"
 
-void command_init();
-void run_command(struct uwsc_client *ws, RttyMessage *msg, void *data, uint32_t len);
-struct blob_buf *make_command_reply(uint32_t id, int err);
-void send_command_reply(struct blob_buf *buf, struct uwsc_client *ws);
+RttyMessage *rtty_message_init(RttyMessage__Type type, const char *sid)
+{
+    static RttyMessage msg;
 
-#endif
+    rtty_message__init(&msg);
+
+    msg.has_version = true;
+    msg.version = 2;
+
+    msg.has_type = true;
+    msg.type = type;
+
+    msg.sid = (char *)sid;
+
+    return &msg;
+}
+
+void rtty_message_send(struct uwsc_client *cl, RttyMessage *msg)
+{
+    int len = rtty_message__get_packed_size(msg);
+    void *buf;
+
+    buf = malloc(len);
+    if (!buf) {
+        ULOG_ERR("malloc failed\n");
+        return;
+    }
+
+    rtty_message__pack(msg, buf);
+
+    cl->send(cl, buf, len, WEBSOCKET_OP_BINARY);
+
+    free(buf);
+}

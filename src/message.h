@@ -17,17 +17,41 @@
  * USA
  */
 
-#ifndef _COMMAND_H
-#define _COMMAND_H
+#ifndef _MESSAGE_H
+#define _MESSAGE_H
 
 #include <uwsc/uwsc.h>
-#include <libubox/blob.h>
 
-#include "message.h"
+#include "rtty.pb-c.h"
 
-void command_init();
-void run_command(struct uwsc_client *ws, RttyMessage *msg, void *data, uint32_t len);
-struct blob_buf *make_command_reply(uint32_t id, int err);
-void send_command_reply(struct blob_buf *buf, struct uwsc_client *ws);
+static inline void rtty_message_set_data(RttyMessage *msg, void *data, int len)
+{
+    ProtobufCBinaryData *mdata = &msg->data;
+
+    msg->has_data = true;
+    mdata->data = data;
+    mdata->len = len;
+}
+
+static inline void rtty_message_set_code(RttyMessage *msg, int code)
+{
+    msg->has_code = true;
+    msg->code = code;
+}
+
+static inline void rtty_message_set_id(RttyMessage *msg, int id)
+{
+    msg->has_id = true;
+    msg->id = id;
+}
+
+static inline void rtty_message_set_err(RttyMessage *msg, int err)
+{
+    msg->has_err = true;
+    msg->err = err;
+}
+
+RttyMessage *rtty_message_init(RttyMessage__Type type, const char *sid);
+void rtty_message_send(struct uwsc_client *cl, RttyMessage *msg);
 
 #endif

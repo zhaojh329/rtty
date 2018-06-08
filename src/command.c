@@ -23,6 +23,7 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <limits.h>
+#include <shadow.h>
 #include <sys/stat.h>
 #include <libubox/ulog.h>
 #include <libubox/ustream.h>
@@ -51,9 +52,7 @@ struct command {
     struct ustream_fd opipe;
     struct ustream_fd epipe;
     struct runqueue_process proc;
-    struct blob_attr *arg;
-    struct blob_attr *env;
-    uint32_t id;
+    RttyMessage *msg;
     int code;   /* The exit code of the child */
     char cmd[0];
 };
@@ -66,6 +65,34 @@ void command_init()
     q.max_running_tasks = 5;
 }
 
+/* For execute command */
+static bool login_test(const char *username, const char *password)
+{
+    struct spwd *sp;
+
+    if (!username || *username == 0)
+        return false;
+
+    sp = getspnam(username);
+    if (!sp)
+        return false;
+
+    if (!password)
+        password = "";
+
+    return !strcmp(crypt(password, sp->sp_pwdp), sp->sp_pwdp);
+}
+
+static void command_reply_error(struct uwsc_client *ws, int id, int err)
+{
+    RttyMessage *msg = rtty_message_init(RTTY_MESSAGE__TYPE__COMMAND, NULL);
+
+    rtty_message_set_id(msg, id);
+    rtty_message_set_code(msg, 1);
+    rtty_message_set_err(msg, err);
+    rtty_message_send(ws, msg);
+}
+
 static void free_command(struct command *c)
 {
     ustream_free(&c->opipe.stream);
@@ -74,65 +101,53 @@ static void free_command(struct command *c)
     close(c->opipe.fd.fd);
     close(c->epipe.fd.fd);
 
-    free(c->arg);
-    free(c->env);
+    rtty_message__free_unpacked(c->msg, NULL);
     free(c);
 }
 
-static void ustream_to_blobmsg(struct ustream *s, struct blob_buf *buf, const char *name)
+static void ustream_to_string(struct ustream *s, char **str)
 {
     int len;
-    char *rbuf, *wbuf;
+    char *buf, *p;
 
     if ((len = ustream_pending_data(s, false)) > 0) {
-        wbuf = blobmsg_alloc_string_buffer(buf, name, len + 1);
-
-        if (!wbuf)
+        *str = calloc(1, len + 1);
+        if (!*str) {
+            ULOG_ERR("calloc failed\n");
             return;
-
-        ustream_for_each_read_buffer(s, rbuf, len) {
-            memcpy(wbuf, rbuf, len);
-            wbuf += len;
         }
 
-        *wbuf = 0;
-        blobmsg_add_string_buffer(buf);
+        p = *str;
+
+        ustream_for_each_read_buffer(s, buf, len) {
+            memcpy(p, buf, len);
+            p += len;
+        }
     }
-}
-
-struct blob_buf *make_command_reply(uint32_t id, int err)
-{
-    static struct blob_buf buf;
-
-    blob_buf_init(&buf, 0);
-
-    blobmsg_add_u32(&buf, "id", id);
-    blobmsg_add_u32(&buf, "err", err);
-
-    return &buf;
-}
-
-void send_command_reply(struct blob_buf *buf, struct uwsc_client *ws)
-{
-    char *str = blobmsg_format_json(buf->head, true);
-
-    ws->send(ws, str, strlen(str), WEBSOCKET_OP_TEXT);
-    free(str);
-    blob_buf_free(buf);
 }
 
 static void command_reply(struct command *c, int err)
 {
-    struct blob_buf *buf = make_command_reply(c->id, err);
+    RttyMessage *msg = rtty_message_init(RTTY_MESSAGE__TYPE__COMMAND, NULL);
+    char *std_out = NULL, *std_err = NULL;
 
-    if (!err) {
-        blobmsg_add_u32(buf, "code", c->code);
-        ustream_to_blobmsg(&c->opipe.stream, buf, "stdout");
-        ustream_to_blobmsg(&c->epipe.stream, buf, "stderr");
+    rtty_message_set_id(msg, c->msg->id);
+    rtty_message_set_err(msg, err);
+
+    if (err == RTTY_MESSAGE__COMMAND_ERR__NONE) {
+        rtty_message_set_code(msg, c->code);
+
+        ustream_to_string(&c->opipe.stream, &std_out);
+        ustream_to_string(&c->epipe.stream, &std_err);
+
+        msg->std_out = std_out;
+        msg->std_err = std_err;
     }
 
-    send_command_reply(buf, c->ws);
+    rtty_message_send(c->ws, msg);
 
+    free(std_out);
+    free(std_err);
     free_command(c);
 }
 
@@ -141,7 +156,7 @@ static void process_opipe_read_cb(struct ustream *s, int bytes)
     struct command *c = container_of(s, struct command, opipe.stream);
 
     if (ustream_read_buf_full(s))
-        command_reply(c, COMMAND_ERR_READ);
+        command_reply(c, RTTY_MESSAGE__COMMAND_ERR__READ);
 }
 
 static void process_epipe_read_cb(struct ustream *s, int bytes)
@@ -149,7 +164,7 @@ static void process_epipe_read_cb(struct ustream *s, int bytes)
     struct command *c = container_of(s, struct command, epipe.stream);
 
     if (ustream_read_buf_full(s))
-        command_reply(c, COMMAND_ERR_READ);
+        command_reply(c, RTTY_MESSAGE__COMMAND_ERR__READ);
 }
 
 static void process_opipe_state_cb(struct ustream *s)
@@ -157,7 +172,7 @@ static void process_opipe_state_cb(struct ustream *s)
     struct command *c = container_of(s, struct command, opipe.stream);
 
     if (c->opipe.stream.eof && c->epipe.stream.eof)
-        command_reply(c, 0);
+        command_reply(c, RTTY_MESSAGE__COMMAND_ERR__NONE);
 }
 
 static void process_epipe_state_cb(struct ustream *s)
@@ -165,7 +180,7 @@ static void process_epipe_state_cb(struct ustream *s)
     struct command *c = container_of(s, struct command, epipe.stream);
 
     if (c->opipe.stream.eof && c->epipe.stream.eof)
-        command_reply(c, 0);
+        command_reply(c, RTTY_MESSAGE__COMMAND_ERR__NONE);
 }
 
 static const char *cmd_lookup(const char *cmd)
@@ -229,18 +244,18 @@ TIMEOUT:
 static void q_cmd_run(struct runqueue *q, struct runqueue_task *t)
 {
     struct command *c = container_of(t, struct command, proc.task);
+    RttyMessage *msg = c->msg;
     pid_t pid;
     int opipe[2];
     int epipe[2];
     char arglen;
     char **args;
-    int rem;
-    struct blob_attr *cur;
+    int i;
 
     if (pipe(opipe) || pipe(epipe)) {
         ULOG_ERR("pipe:%s\n", strerror(errno));
         runqueue_task_complete(t);
-        send_command_reply(make_command_reply(c->id, COMMAND_ERR_SYS), c->ws);
+        command_reply_error(c->ws, msg->id, RTTY_MESSAGE__COMMAND_ERR__SYSCALL);
         return;
     }
 
@@ -248,7 +263,7 @@ static void q_cmd_run(struct runqueue *q, struct runqueue_task *t)
     case -1:
         ULOG_ERR("fork: %s\n", strerror(errno));
         runqueue_task_complete(t);
-        send_command_reply(make_command_reply(c->id, COMMAND_ERR_SYS), c->ws);
+        command_reply_error(c->ws, msg->id, RTTY_MESSAGE__COMMAND_ERR__SYSCALL);
         return;
 
     case 0:
@@ -261,39 +276,18 @@ static void q_cmd_run(struct runqueue *q, struct runqueue_task *t)
         close(opipe[0]);
         close(epipe[0]);
 
-        arglen = 2;
-        args = malloc(sizeof(char *) * arglen);
-        if (!args) {
-            ULOG_ERR("malloc failed: No mem\n");
+        arglen = 2 + msg->n_params;
+        args = calloc(1, sizeof(char *) * arglen);
+        if (!args)
             return;
-        }
 
         args[0] = (char *)c->cmd;
-        args[1] = NULL;
 
-        if (c->arg) {
-            blobmsg_for_each_attr(cur, c->arg, rem) {
-                if (blobmsg_type(cur) != BLOBMSG_TYPE_STRING)
-                    continue;
+        for (i = 0; i < msg->n_params; i++)
+            args[i + 1] = msg->params[i];
 
-                arglen++;
-
-                if (!(args = realloc(args, sizeof(char *) * arglen))) {
-                    ULOG_ERR("realloc failed: No mem\n");
-                    return;
-                }
-
-                args[arglen-2] = blobmsg_data(cur);
-                args[arglen-1] = NULL;
-            }
-        }
-
-        if (c->env) {
-            blobmsg_for_each_attr(cur, c->env, rem) {
-                if (blobmsg_type(cur) == BLOBMSG_TYPE_STRING)
-                    setenv(blobmsg_name(cur), blobmsg_data(cur), 1);
-            }
-        }
+        for (i = 0; i < msg->n_env; i++)
+            setenv(msg->env[i]->key, msg->env[i]->value, 1);
 
         execv(c->cmd, args);
         break;
@@ -318,8 +312,7 @@ static void run_command_cancel(struct runqueue *q, struct runqueue_task *t, int 
     runqueue_process_cancel_cb(q, t, type);
 }
 
-void run_command(struct uwsc_client *ws, uint32_t id, const char *cmd,
-    const struct blob_attr *arg, const struct blob_attr *env)
+void run_command(struct uwsc_client *ws, RttyMessage *msg, void *data, uint32_t len)
 {
     static const struct runqueue_task_type cmd_type = {
         .run = q_cmd_run,
@@ -327,43 +320,31 @@ void run_command(struct uwsc_client *ws, uint32_t id, const char *cmd,
         .kill = runqueue_process_kill_cb
     };
     struct command *c;
+    const char *cmd;
 
-    cmd = cmd_lookup(cmd);
+    if (!msg->username) {
+        command_reply_error(ws, msg->id, RTTY_MESSAGE__COMMAND_ERR__PERMISSION);
+        return;
+    }
+
+    if (!login_test(msg->username, msg->password)) {
+        command_reply_error(ws, msg->id, RTTY_MESSAGE__COMMAND_ERR__PERMISSION);
+        return;
+    }
+
+    cmd = cmd_lookup(msg->name);
     if (!cmd) {
-        ULOG_ERR("Not found cmd\n");
-        send_command_reply(make_command_reply(id, COMMAND_ERR_NOTFOUND), ws);
+        command_reply_error(ws, msg->id, RTTY_MESSAGE__COMMAND_ERR__NOTFOUND);
         return;
     }
 
     c = calloc(1, sizeof(struct command) + strlen(cmd) + 1);
     c->proc.task.type = &cmd_type;
     c->proc.task.run_timeout = 5000;
-    c->id = id;
     c->ws = ws;
     strcpy(c->cmd, cmd);
 
-    if (arg) {
-        c->arg = blob_memdup((struct blob_attr *)arg);
-        if (!c->arg) {
-            ULOG_ERR("blob_memdup arg failed: No mem\n");
-            goto err;
-        }
-    }
-
-    if (env) {
-        c->env = blob_memdup((struct blob_attr *)env);
-        if (!c->env) {
-            ULOG_ERR("blob_memdup env failed: No mem\n");
-            goto err;
-        }
-    }
+    c->msg = rtty_message__unpack(NULL, len, data);
 
     runqueue_task_add(&q, &c->proc.task, false);
-    return;
-
-err:
-    free(c->arg);
-    free(c->env);
-    free(c);
-    send_command_reply(make_command_reply(c->id, COMMAND_ERR_SYS), c->ws);
 }

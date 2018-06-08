@@ -16,6 +16,7 @@ PROTOBUF_C__BEGIN_DECLS
 
 
 typedef struct _RttyMessage RttyMessage;
+typedef struct _RttyMessage__EnvEntry RttyMessage__EnvEntry;
 
 
 /* --- enums --- */
@@ -26,13 +27,49 @@ typedef enum _RttyMessage__Type {
   RTTY_MESSAGE__TYPE__LOGINACK = 2,
   RTTY_MESSAGE__TYPE__LOGOUT = 3,
   RTTY_MESSAGE__TYPE__TTY = 4,
-  RTTY_MESSAGE__TYPE__ANNOUNCE = 5,
-  RTTY_MESSAGE__TYPE__UPFILE = 6,
-  RTTY_MESSAGE__TYPE__DOWNFILE = 7
+  RTTY_MESSAGE__TYPE__UPFILE = 5,
+  RTTY_MESSAGE__TYPE__DOWNFILE = 6,
+  RTTY_MESSAGE__TYPE__COMMAND = 7
     PROTOBUF_C__FORCE_ENUM_TO_BE_INT_SIZE(RTTY_MESSAGE__TYPE)
 } RttyMessage__Type;
+typedef enum _RttyMessage__LoginCode {
+  RTTY_MESSAGE__LOGIN_CODE__OK = 0,
+  RTTY_MESSAGE__LOGIN_CODE__OFFLINE = 1
+    PROTOBUF_C__FORCE_ENUM_TO_BE_INT_SIZE(RTTY_MESSAGE__LOGIN_CODE)
+} RttyMessage__LoginCode;
+typedef enum _RttyMessage__FileCode {
+  RTTY_MESSAGE__FILE_CODE__START = 0,
+  RTTY_MESSAGE__FILE_CODE__RATELIMIT = 1,
+  RTTY_MESSAGE__FILE_CODE__FILEDATA = 2,
+  RTTY_MESSAGE__FILE_CODE__CANCELED = 3,
+  RTTY_MESSAGE__FILE_CODE__END = 4
+    PROTOBUF_C__FORCE_ENUM_TO_BE_INT_SIZE(RTTY_MESSAGE__FILE_CODE)
+} RttyMessage__FileCode;
+typedef enum _RttyMessage__CommandErr {
+  RTTY_MESSAGE__COMMAND_ERR__NONE = 0,
+  RTTY_MESSAGE__COMMAND_ERR__TIMEOUT = 1,
+  RTTY_MESSAGE__COMMAND_ERR__NOTFOUND = 2,
+  RTTY_MESSAGE__COMMAND_ERR__READ = 3,
+  RTTY_MESSAGE__COMMAND_ERR__PERMISSION = 4,
+  RTTY_MESSAGE__COMMAND_ERR__SYSCALL = 5,
+  RTTY_MESSAGE__COMMAND_ERR__DEV_OFFLINE = 6,
+  RTTY_MESSAGE__COMMAND_ERR__CMD_REQUIRED = 7,
+  RTTY_MESSAGE__COMMAND_ERR__DEVID_REQUIRED = 8
+    PROTOBUF_C__FORCE_ENUM_TO_BE_INT_SIZE(RTTY_MESSAGE__COMMAND_ERR)
+} RttyMessage__CommandErr;
 
 /* --- messages --- */
+
+struct  _RttyMessage__EnvEntry
+{
+  ProtobufCMessage base;
+  char *key;
+  char *value;
+};
+#define RTTY_MESSAGE__ENV_ENTRY__INIT \
+ { PROTOBUF_C_MESSAGE_INIT (&rtty_message__env_entry__descriptor) \
+    , NULL, NULL }
+
 
 struct  _RttyMessage
 {
@@ -49,12 +86,27 @@ struct  _RttyMessage
   char *name;
   protobuf_c_boolean has_size;
   uint32_t size;
+  protobuf_c_boolean has_id;
+  uint32_t id;
+  protobuf_c_boolean has_err;
+  int32_t err;
+  char *username;
+  char *password;
+  char *std_out;
+  char *std_err;
+  size_t n_params;
+  char **params;
+  size_t n_env;
+  RttyMessage__EnvEntry **env;
 };
 #define RTTY_MESSAGE__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&rtty_message__descriptor) \
-    , 0,0, 0,0, NULL, 0,0, 0,{0,NULL}, NULL, 0,0 }
+    , 0,0, 0,0, NULL, 0,0, 0,{0,NULL}, NULL, 0,0, 0,0, 0,0, NULL, NULL, NULL, NULL, 0,NULL, 0,NULL }
 
 
+/* RttyMessage__EnvEntry methods */
+void   rtty_message__env_entry__init
+                     (RttyMessage__EnvEntry         *message);
 /* RttyMessage methods */
 void   rtty_message__init
                      (RttyMessage         *message);
@@ -76,6 +128,9 @@ void   rtty_message__free_unpacked
                       ProtobufCAllocator *allocator);
 /* --- per-message closures --- */
 
+typedef void (*RttyMessage__EnvEntry_Closure)
+                 (const RttyMessage__EnvEntry *message,
+                  void *closure_data);
 typedef void (*RttyMessage_Closure)
                  (const RttyMessage *message,
                   void *closure_data);
@@ -86,7 +141,11 @@ typedef void (*RttyMessage_Closure)
 /* --- descriptors --- */
 
 extern const ProtobufCMessageDescriptor rtty_message__descriptor;
+extern const ProtobufCMessageDescriptor rtty_message__env_entry__descriptor;
 extern const ProtobufCEnumDescriptor    rtty_message__type__descriptor;
+extern const ProtobufCEnumDescriptor    rtty_message__login_code__descriptor;
+extern const ProtobufCEnumDescriptor    rtty_message__file_code__descriptor;
+extern const ProtobufCEnumDescriptor    rtty_message__command_err__descriptor;
 
 PROTOBUF_C__END_DECLS
 

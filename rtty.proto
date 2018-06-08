@@ -7,17 +7,49 @@ message rtty_message {
 	    LOGINACK = 2;
 	    LOGOUT = 3;
 	    TTY = 4;
-	    ANNOUNCE = 5;
-	    UPFILE = 6;
-	    DOWNFILE = 7;
+	    UPFILE = 5;
+	    DOWNFILE = 6;
+	    COMMAND = 7;
+	}
+
+	enum LoginCode {
+		OK = 0;
+		OFFLINE = 1;
+	}
+
+	enum FileCode {
+		START = 0;
+		RATELIMIT = 1;
+		FILEDATA = 2;
+		CANCELED = 3;
+		END = 4;
+	}
+
+	enum CommandErr {
+		NONE = 0;
+		TIMEOUT = 1;
+		NOTFOUND = 2;
+		READ = 3;
+		PERMISSION = 4;
+		SYSCALL = 5;
+		DEV_OFFLINE = 6;
+		CMD_REQUIRED = 7;
+		DEVID_REQUIRED = 8;
 	}
 
 	uint32 version = 1;
 	Type type = 2;
 	string sid = 3;
-
 	int32 code = 4;
 	bytes data = 5;
 	string name = 6;
 	uint32 size = 7;
+	uint32 id = 8;
+	int32 err = 9;
+	string username = 10;
+	string password = 11;
+	string std_out = 12;
+	string std_err = 13;
+	repeated string params = 14;
+	map<string, string> env = 15;
 }
