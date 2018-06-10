@@ -8,7 +8,7 @@ set(RTTY_VERSION_PATCH 2)
 # Check the third party Libraries
 find_package(Libubox REQUIRED)
 find_package(Libuwsc 1.2 REQUIRED)
-find_package(Libprotobuf-c REQUIRED)
+find_package(Libprotobuf-c 1.2 REQUIRED)
 
 include_directories(${CMAKE_CURRENT_BINARY_DIR} ${LIBUWSC_INCLUDE_DIR} ${LIBUBOX_INCLUDE_DIR} ${LIBPROTOBUFC_INCLUDE_DIR})
 set(EXTRA_LIBS ${LIBUWSC_LIBRARY} ${LIBUBOX_LIBRARY} ${LIBPROTOBUFC_LIBRARY} blobmsg_json util crypt)
