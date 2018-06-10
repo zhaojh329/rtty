@@ -3,10 +3,12 @@
 LSB_ID=
 
 INSTALL=
+REMOVE=
 UPDATE=
 
 PKG_JSON="libjson-c-dev"
 PKG_SSL="libssl-dev"
+PKG_LIBPROTOBUF_C="libprotobuf-c0-dev"
 
 show_distribution() {
 	local pretty_name=""
@@ -36,28 +38,34 @@ detect_pkg_tool() {
 	check_cmd apt && {
 		UPDATE="apt update -q"
 		INSTALL="apt install -y"
+		REMOVE="apt remove -y"
 		return 0
 	}
 
 	check_cmd apt-get && {
 		UPDATE="apt-get update -q"
 		INSTALL="apt-get install -y"
+		REMOVE="apt-get remove -y"
 		return 0
 	}
 
 	check_cmd yum && {
 		UPDATE="yum update -yq"
 		INSTALL="yum install -y"
+		REMOVE="yum "
 		PKG_JSON="json-c-devel"
 		PKG_SSL="openssl-devel"
+		PKG_LIBPROTOBUF_C="protobuf-c-devel"
 		return 0
 	}
 
 	check_cmd pacman && {
 		UPDATE="pacman -Sy --noprogressbar"
 		INSTALL="pacman -S --noconfirm --noprogressbar"
+		REMOVE="pacman -R --noconfirm --noprogressbar"
 		PKG_JSON="json-c"
 		PKG_SSL="openssl"
+		PKG_LIBPROTOBUF_C="protobuf-c"
 		return 0
 	}
 
@@ -76,16 +84,16 @@ check_lib_header() {
 	local path search
 
 	search="/usr/include/$prefix"
-	path=$(find $search -name $header 2>/dev/null)
+	path=$(find $search -type f -name $header 2>/dev/null)
 	[ -n "$path" ] && {
-		echo ${path%/*}
+		echo ${path%/*} | cut -d' ' -f1
 		return
 	}
 
 	search="/usr/local/include/$prefix"
-	path=$(find $search -name $header 2>/dev/null)
+	path=$(find $search -type f -name $header 2>/dev/null)
 	[ -n "$path" ] && {
-		echo ${path%/*}
+		echo ${path%/*} | cut -d' ' -f1
 		return
 	}
 }
@@ -121,16 +129,56 @@ LIBSSL_INCLUDE=$(check_lib_header opensslv.h)
 	LIBSSL_INCLUDE=$(check_lib_header opensslv.h)
 }
 
+PBC_INCLUDE=$(check_lib_header protobuf-c.h)
+[ -n "$PBC_INCLUDE" ] || {
+	$INSTALL $PKG_LIBPROTOBUF_C
+	PBC_INCLUDE=$(check_lib_header protobuf-c.h)
+}
+
+PBC_VER=$(cat $PBC_INCLUDE/protobuf-c.h | grep PROTOBUF_C_VERSION_NUMBER | grep -o '[0-9x]\+')
+[ -n "$PBC_VER" ] || PBC_VER="0000000"
+
 rm -rf /tmp/rtty-build
 mkdir /tmp/rtty-build
 pushd /tmp/rtty-build
 
-git clone https://github.com/zhaojh329/libuwsc.git
-git clone https://github.com/zhaojh329/rtty.git
+if [ $PBC_VER -lt 1002000 ];
+then
+	$REMOVE $PKG_LIBPROTOBUF_C
+
+	check_tool autoconf
+	check_tool libtool
+
+	git clone https://github.com/protobuf-c/protobuf-c.git || {
+		echo "Clone protobuf-c failed"
+		exit 1
+	}
+
+	cd protobuf-c && ./autogen.sh && ./configure --disable-protoc
+	[ $? -eq 0 ] || exit 1
+
+	make && make install && cd -
+	[ $? -eq 0 ] || exit 1
+fi
+
+git clone https://github.com/zhaojh329/libuwsc.git || {
+	echo "Clone libuwsc failed"
+	exit 1
+}
+
+sleep 5
+
+git clone https://github.com/zhaojh329/rtty.git || {
+	echo "Clone rtty failed"
+	exit 1
+}
 
 # libubox
 [ -n "$LIBUBOX_FOUND" ] || {
-	git clone https://git.openwrt.org/project/libubox.git
+	git clone https://git.openwrt.org/project/libubox.git || {
+		echo "Clone libubox failed"
+		exit 1
+	}
 	cd libubox && cmake -DBUILD_LUA=OFF . && make install && cd -
 	[ $? -eq 0 ] || exit 1
 }
@@ -138,7 +186,10 @@ git clone https://github.com/zhaojh329/rtty.git
 
 # ustream-ssl
 [ -n "$USTREAM_SSL_FOUND" ] || {
-	git clone https://git.openwrt.org/project/ustream-ssl.git
+	git clone https://git.openwrt.org/project/ustream-ssl.git || {
+		echo "Clone ustream-ssl failed"
+		exit 1
+	}
 	cd ustream-ssl
 	git checkout 189cd38b4188bfcb4c8cf67d8ae71741ffc2b906
 	LIBSSL_VER=$(cat $LIBSSL_INCLUDE/opensslv.h | grep OPENSSL_VERSION_NUMBER | grep -o '[0-9x]\+')
@@ -147,12 +198,12 @@ git clone https://github.com/zhaojh329/rtty.git
 	# > 1.1
 	if [ $LIBSSL_VER -ge 101000 ];
 	then
-		quilt import ../libumqtt/tools/us-openssl_v1_1.patch
+		quilt import ../rtty/tools/us-openssl_v1_1.patch
 		quilt push -a
 	elif [ $LIBSSL_VER -le 100020 ];
 	then
 	    # < 1.1.2
-	    quilt import ../libumqtt/tools/us-openssl_v1_0_1.patch
+	    quilt import ../rtty/tools/us-openssl_v1_0_1.patch
 	    quilt push -a
 	fi
 
