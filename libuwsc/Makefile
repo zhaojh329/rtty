@@ -56,11 +56,11 @@ define Package/libuwsc-cyassl
   VARIANT:=cyassl
 endef
 
-define Package/libuwsc-polarssl
+define Package/libuwsc-mbedtls
   $(Package/libuwsc/default)
-  TITLE += (polarssl)
-  DEPENDS += +libustream-polarssl
-  VARIANT:=polarssl
+  TITLE += (mbedtls)
+  DEPENDS += +libustream-mbedtls
+  VARIANT:=mbedtls
 endef
 
 ifeq ($(BUILD_VARIANT),nossl)
@@ -75,9 +75,9 @@ endef
 Package/libuwsc-nossl/install = $(Package/libuwsc/default/install)
 Package/libuwsc-openssl/install = $(Package/libuwsc/default/install)
 Package/libuwsc-cyassl/install = $(Package/libuwsc/default/install)
-Package/libuwsc-polarssl/install = $(Package/libuwsc/default/install)
+Package/libuwsc-mbedtls/install = $(Package/libuwsc/default/install)
 
 $(eval $(call BuildPackage,libuwsc-nossl))
-$(eval $(call BuildPackage,libuwsc-polarssl))
+$(eval $(call BuildPackage,libuwsc-mbedtls))
 $(eval $(call BuildPackage,libuwsc-cyassl))
 $(eval $(call BuildPackage,libuwsc-openssl))

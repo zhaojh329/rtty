@@ -4,9 +4,10 @@
 
 # Update feeds
 
-    ./scripts/feeds  uninstall libprotobuf-c
+    ./scripts/feeds uninstall -a
     ./scripts/feeds update rtty
     ./scripts/feeds install -a -f -p rtty
+    ./scripts/feeds install -a
 
 # Select rtty in menuconfig and compile new image.
 

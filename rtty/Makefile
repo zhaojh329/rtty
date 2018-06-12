@@ -44,7 +44,7 @@ define Package/rtty-nossl
   TITLE += (NO SSL)
   DEPENDS += +libuwsc-nossl
   VARIANT:=nossl
-  CONFLICTS:=rtty-openssl rtty-cyassl rtty-polarssl
+  CONFLICTS:=rtty-openssl rtty-cyassl rtty-mbedtls
 endef
 
 define Package/rtty-openssl
@@ -52,7 +52,7 @@ define Package/rtty-openssl
   TITLE += (openssl)
   DEPENDS += +libuwsc-openssl
   VARIANT:=openssl
-  CONFLICTS:=rtty-cyassl rtty-polarssl
+  CONFLICTS:=rtty-cyassl rtty-mbedtls
 endef
 
 define Package/rtty-cyassl
@@ -60,20 +60,20 @@ define Package/rtty-cyassl
   TITLE += (cyassl)
   DEPENDS += +libuwsc-cyassl
   VARIANT:=cyassl
-  CONFLICTS:=rtty-polarssl
+  CONFLICTS:=rtty-mbedtls
 endef
 
-define Package/rtty-polarssl
+define Package/rtty-mbedtls
   $(Package/rtty/default)
-  TITLE += (polarssl)
-  DEPENDS += +libuwsc-polarssl
-  VARIANT:=polarssl
+  TITLE += (mbedtls)
+  DEPENDS += +libuwsc-mbedtls
+  VARIANT:=mbedtls
 endef
 
 Package/rtty-nossl/description = $(Package/rtty/default/description)
 Package/rtty-openssl/description = $(Package/rtty/default/description)
 Package/rtty-cyassl/description = $(Package/rtty/default/description)
-Package/rtty-polarssl/description = $(Package/rtty/default/description)
+Package/rtty-mbedtls/description = $(Package/rtty/default/description)
 
 define Package/rtty/default/install
 	$(INSTALL_DIR) $(1)/usr/sbin $(1)/etc/init.d $(1)/etc/config
@@ -85,10 +85,10 @@ endef
 Package/rtty-nossl/install = $(Package/rtty/default/install)
 Package/rtty-openssl/install = $(Package/rtty/default/install)
 Package/rtty-cyassl/install = $(Package/rtty/default/install)
-Package/rtty-polarssl/install = $(Package/rtty/default/install)
+Package/rtty-mbedtls/install = $(Package/rtty/default/install)
 
 $(eval $(call BuildPackage,rtty-nossl))
-$(eval $(call BuildPackage,rtty-polarssl))
+$(eval $(call BuildPackage,rtty-mbedtls))
 $(eval $(call BuildPackage,rtty-cyassl))
 $(eval $(call BuildPackage,rtty-openssl))
 
