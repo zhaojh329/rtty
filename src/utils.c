@@ -27,7 +27,7 @@
 #include <sys/ioctl.h>
 #include <net/if.h>
 #include <net/if_arp.h>
-#include <libubox/ulog.h>
+#include <uwsc/log.h>
 
 int get_iface_mac(const char *ifname, char *dst, int len)
 {
@@ -36,7 +36,7 @@ int get_iface_mac(const char *ifname, char *dst, int len)
     uint8_t *hw;
 
     if ((sock = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
-        ULOG_ERR("create socket failed:%s\n", strerror(errno));
+        uwsc_log_err("create socket failed:%s\n", strerror(errno));
         return -1;
     }
 
@@ -46,7 +46,7 @@ int get_iface_mac(const char *ifname, char *dst, int len)
     strncpy(ifr.ifr_name, ifname, sizeof(ifr.ifr_name));
 
     if (ioctl(sock, SIOCGIFHWADDR, &ifr) < 0) {
-        ULOG_ERR("ioctl failed:%s\n", strerror(errno));
+        uwsc_log_err("ioctl failed:%s\n", strerror(errno));
         close(sock);
         return -1;
     }

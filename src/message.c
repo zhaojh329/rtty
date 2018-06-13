@@ -18,7 +18,7 @@
  */
 
 #include <stdlib.h>
-#include <libubox/ulog.h>
+#include <uwsc/log.h>
 
 #include "message.h"
 
@@ -46,7 +46,7 @@ void rtty_message_send(struct uwsc_client *cl, RttyMessage *msg)
 
     buf = malloc(len);
     if (!buf) {
-        ULOG_ERR("malloc failed\n");
+        uwsc_log_err("malloc failed\n");
         return;
     }
 

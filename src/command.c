@@ -25,7 +25,7 @@
 #include <limits.h>
 #include <shadow.h>
 #include <sys/stat.h>
-#include <libubox/ulog.h>
+#include <uwsc/log.h>
 #include <libubox/ustream.h>
 #include <libubox/blobmsg_json.h>
 #include <libubox/runqueue.h>
@@ -113,7 +113,7 @@ static void ustream_to_string(struct ustream *s, char **str)
     if ((len = ustream_pending_data(s, false)) > 0) {
         *str = calloc(1, len + 1);
         if (!*str) {
-            ULOG_ERR("calloc failed\n");
+            uwsc_log_err("calloc failed\n");
             return;
         }
 
@@ -228,7 +228,7 @@ static void runqueue_proc_cb(struct uloop_process *p, int ret)
 
     if (c->code == -1) {
         /* The server will response timeout to user */
-        ULOG_ERR("Run `%s` timeout\n", c->cmd);
+        uwsc_log_err("Run `%s` timeout\n", c->cmd);
         free_command(c);
         goto TIMEOUT;
     }
@@ -253,7 +253,7 @@ static void q_cmd_run(struct runqueue *q, struct runqueue_task *t)
     int i;
 
     if (pipe(opipe) || pipe(epipe)) {
-        ULOG_ERR("pipe:%s\n", strerror(errno));
+        uwsc_log_err("pipe:%s\n", strerror(errno));
         runqueue_task_complete(t);
         command_reply_error(c->ws, msg->id, RTTY_MESSAGE__COMMAND_ERR__SYSCALL);
         return;
@@ -261,7 +261,7 @@ static void q_cmd_run(struct runqueue *q, struct runqueue_task *t)
 
     switch ((pid = fork())) {
     case -1:
-        ULOG_ERR("fork: %s\n", strerror(errno));
+        uwsc_log_err("fork: %s\n", strerror(errno));
         runqueue_task_complete(t);
         command_reply_error(c->ws, msg->id, RTTY_MESSAGE__COMMAND_ERR__SYSCALL);
         return;

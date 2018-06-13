@@ -27,7 +27,6 @@
 #include <sys/stat.h>
 #include <dirent.h>
 #include <uwsc/uwsc.h>
-#include <libubox/ulog.h>
 #include <libubox/blobmsg_json.h>
 #include <libubox/avl.h>
 #include <libubox/avl-cmp.h>
@@ -75,7 +74,7 @@ static void del_tty_session(struct tty_session *tty)
     kill(tty->pid, SIGTERM);
     waitpid(tty->pid, NULL, 0);
     close(tty->upfile.fd);
-    ULOG_INFO("Del session:%s\n", tty->sid);
+    uwsc_log_info("Del session:%s\n", tty->sid);
     free(tty);
 }
 
@@ -151,7 +150,7 @@ static void new_tty_session(struct uwsc_client *cl, RttyMessage *msg)
     s->avl.key = s->sid;
     avl_insert(&tty_sessions, &s->avl);
 
-    ULOG_INFO("New session:%s\n", msg->sid);
+    uwsc_log_info("New session:%s\n", msg->sid);
 }
 
 static void pty_write(RttyMessage *msg)
@@ -160,7 +159,7 @@ static void pty_write(RttyMessage *msg)
     ProtobufCBinaryData *data = &msg->data;
 
     if (tty && write(tty->pty, data->data, data->len) < 0) {
-        ULOG_ERR("write to pty error:%s\n", strerror(errno));
+        uwsc_log_err("write to pty error:%s\n", strerror(errno));
     }
 }
 
@@ -178,32 +177,32 @@ static void handle_upfile(RttyMessage *msg)
     if (msg->code == RTTY_MESSAGE__FILE_CODE__START) {
         char path[512] = "";
         if (upfile->fd > 0) {
-            ULOG_ERR("Only one file can be uploading at the same time\n");
+            uwsc_log_err("Only one file can be uploading at the same time\n");
             return;
         }
 
         if (!msg->name || msg->size == 0) {
-            ULOG_ERR("Upfile failed: name and size required\n");
+            uwsc_log_err("Upfile failed: name and size required\n");
             return;
         }
 
         snprintf(path, sizeof(path) - 1, "/tmp/%s", msg->name);
         upfile->fd = open(path, O_CREAT | O_RDWR, 0644);
         if (upfile->fd < 0) {
-            ULOG_ERR("open upfile failed: %s\n", strerror(errno));
+            uwsc_log_err("open upfile failed: %s\n", strerror(errno));
             return;
         }
 
         upfile->size = msg->size;
         upfile->uploaded = 0;
 
-        ULOG_INFO("Begin upload:%s %d\n", msg->name, msg->size);
+        uwsc_log_info("Begin upload:%s %d\n", msg->name, msg->size);
     }
 
     if (upfile->fd > 0) {
         if (msg->code == RTTY_MESSAGE__FILE_CODE__FILEDATA && data && data->len) {
             if (write(upfile->fd, data->data, data->len) < 0) {
-                ULOG_ERR("upfile failed:%s\n", strerror(errno));
+                uwsc_log_err("upfile failed:%s\n", strerror(errno));
                 close(upfile->fd);
                 upfile->fd = 0;
                 return;
@@ -216,7 +215,7 @@ static void handle_upfile(RttyMessage *msg)
             upfile->uploaded == upfile->size)  {
             close(upfile->fd);
             upfile->fd = 0;
-            ULOG_INFO("Upload file %s\n",
+            uwsc_log_info("Upload file %s\n",
                 (msg->code == RTTY_MESSAGE__FILE_CODE__FILEDATA) ? "finish" : "canceled");
         }
     }
@@ -267,7 +266,7 @@ static void send_filelist(struct uwsc_client *cl, const char *sid, const char *p
 
         snprintf(buf, sizeof(buf) - 1, "%s%s", path, name);
         if (stat(buf, &st) < 0) {
-            ULOG_ERR("stat '%s': %s\n", buf, strerror(errno));
+            uwsc_log_err("stat '%s': %s\n", buf, strerror(errno));
             continue;
         }
 
@@ -311,7 +310,7 @@ static void send_file_cb(struct uloop_timeout *timer)
 
             rtty_message_set_code(msg, RTTY_MESSAGE__FILE_CODE__END);
 
-            ULOG_INFO("Down file finish\n");
+            uwsc_log_info("Down file finish\n");
         }
 
         rtty_message_send(tty->cl, msg);
@@ -331,7 +330,7 @@ static void handle_downfile(struct uwsc_client *cl, RttyMessage *msg)
         if (tty->downfile > 0) {
             close(tty->downfile);
             tty->downfile = 0;
-            ULOG_INFO("Down file canceled\n");
+            uwsc_log_info("Down file canceled\n");
         }
         return;
     }
@@ -340,7 +339,7 @@ static void handle_downfile(struct uwsc_client *cl, RttyMessage *msg)
         name = msg->name;
 
     if (stat(name, &st) < 0) {
-        ULOG_ERR("down (%s) failed:%s\n", name, strerror(errno));
+        uwsc_log_err("down (%s) failed:%s\n", name, strerror(errno));
         return;
     }
 
@@ -348,17 +347,17 @@ static void handle_downfile(struct uwsc_client *cl, RttyMessage *msg)
         send_filelist(cl, msg->sid, name);
     } else {
         if (tty->downfile > 0) {
-            ULOG_ERR("Only one file can be downloading at the same time\n");
+            uwsc_log_err("Only one file can be downloading at the same time\n");
             return;
         }
 
         tty->downfile = open(name, O_RDONLY);
         if (tty->downfile < 0) {
-            ULOG_ERR("open downfile failed: %s\n", strerror(errno));
+            uwsc_log_err("open downfile failed: %s\n", strerror(errno));
             return;
         }
 
-        ULOG_INFO("Begin down file:%s %d\n", msg->name, st.st_size);
+        uwsc_log_info("Begin down file:%s %d\n", msg->name, st.st_size);
         tty->timer.cb = send_file_cb;
         send_file_cb(&tty->timer);
     }
@@ -396,21 +395,21 @@ static void uwsc_onmessage(struct uwsc_client *cl, void *data, uint64_t len, enu
 
 static void uwsc_onopen(struct uwsc_client *cl)
 {
-    ULOG_INFO("onopen\n");
+    uwsc_log_info("onopen\n");
 
     cl->set_ping_interval(cl, ping_interval);
 }
 
 static void uwsc_onerror(struct uwsc_client *cl)
 {
-    ULOG_ERR("onerror:%d\n", cl->error);
+    uwsc_log_err("onerror:%d\n", cl->error);
 }
 
 static void uwsc_onclose(struct uwsc_client *cl)
 {
     struct tty_session *tty, *tmp;
 
-    ULOG_ERR("onclose\n");
+    uwsc_log_err("onclose\n");
 
     avl_for_each_element_safe(&tty_sessions, tty, avl, tmp)
         del_tty_session(tty);
@@ -500,12 +499,12 @@ int main(int argc, char **argv)
             break;
         case 'd':
             if (strlen(optarg) > 126) {
-                ULOG_ERR("Description too long\n");
+                uwsc_log_err("Description too long\n");
                 usage(argv[0]);
             }
             description = calloc(1, strlen(optarg) * 4);
             if (!description) {
-                ULOG_ERR("malloc failed:%s\n", strerror(errno));
+                uwsc_log_err("malloc failed:%s\n", strerror(errno));
                 exit(1);
             }
             urlencode(description, strlen(optarg) * 4, optarg, strlen(optarg));
@@ -514,7 +513,7 @@ int main(int argc, char **argv)
             ssl = true;
             break;
         case 'V':
-            ULOG_INFO("rtty version %s\n", RTTY_VERSION_STRING);
+            uwsc_log_info("rtty version %s\n", RTTY_VERSION_STRING);
             exit(0);
             break;
         default: /* '?' */
@@ -523,35 +522,35 @@ int main(int argc, char **argv)
     }
 
     if (!verbose)
-        ulog_threshold(LOG_ERR);
+        uwsc_log_threshold(LOG_ERR);
 
     if (!devid[0]) {
         if (!mac[0]) {
-            ULOG_ERR("You must specify the ifname or id\n");
+            uwsc_log_err("You must specify the ifname or id\n");
             usage(argv[0]);
         }
         strcpy(devid, mac);
     }
 
     if (!valid_id(devid)) {
-        ULOG_ERR("Invalid device id\n");
+        uwsc_log_err("Invalid device id\n");
         usage(argv[0]);
     }
 
     if (!host || !port) {
-        ULOG_ERR("You must specify the host and port\n");
+        uwsc_log_err("You must specify the host and port\n");
         usage(argv[0]);
     }
 
-    ULOG_INFO("rtty version %s\n", RTTY_VERSION_STRING);
+    uwsc_log_info("rtty version %s\n", RTTY_VERSION_STRING);
 
     if (setuid(0) < 0) {
-        ULOG_ERR("Operation not permitted\n");
+        uwsc_log_err("Operation not permitted\n");
         return -1;
     }
 
     if (find_login(login, sizeof(login) - 1) < 0) {
-        ULOG_ERR("The program 'login' is not found\n");
+        uwsc_log_err("The program 'login' is not found\n");
         return -1;
     }
 
