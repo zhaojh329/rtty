@@ -26,6 +26,7 @@
 [CyaSSl(wolfssl)]: https://github.com/wolfSSL/wolfssl
 [vue]: https://github.com/vuejs/vue
 [iview]: https://github.com/iview/iview
+[protobuf-c]: https://github.com/protobuf-c/protobuf-c
 
 Access your terminal behind a NAT or firewall over the web based on your terminal's macaddr.
 
@@ -60,6 +61,7 @@ the world.
 * [libubox] - C utility functions for OpenWrt, but can also be used for the same purposes in other Linux systems.
 [Reference](https://wiki.openwrt.org/doc/techref/libubox)
 * [libuwsc] - A Lightweight and fully asynchronous WebSocket client C library based on libubox for Embedded Linux.
+* [protobuf-c]: - Protocol Buffers implementation in C
 * [ustream-ssl] - If you need to support SSL
 * [mbedtls] - If you choose mbedtls as your SSL backend
 * [CyaSSl(wolfssl)] - If you choose wolfssl as your SSL backend
@@ -85,9 +87,9 @@ You need to cross compiling by yourself
 # Usage
 Use your web browser to access your server: `https://your-server-host:5912`, then click the connection button
 
-You can easily embed RTTY into your existing platform: `https://your-server-host:5912?id=your-id`
+You can easily embed RTTY into your existing platform: `https://your-server-host:5912/#/?id=your-id`
 
-Automatic login: `https://your-server:5912/?id=device-id&username=device-username&password=device-password`
+Automatic login: `https://your-server:5912/#/?id=device-id&username=device-username&password=device-password`
 
 ## Other functions
 Please click the right mouse button
@@ -95,19 +97,19 @@ Please click the right mouse button
 ## Execute a command remote
 ### Shell
 
-    curl -k https://your-server:5912/cmd -d '{"devid":"test","username":"test","password":"123456","cmd":"ls","params":["/"],"env":[]}'
+    curl -k https://your-server:5912/cmd -d '{"devid":"test","username":"test","password":"123456","cmd":"ls","params":["/"],"env":{}}'
 
     {"Err":0,"msg":"","code":0,"stdout":"bin\ndev\netc\nlib\nmnt\noverlay\nproc\nrom\nroot\nsbin\nsys\ntmp\nusr\nvar\nwww\n","stderr":""}
 
 ### Jquery
 
-    var data = {devid: 'test', username: 'test', password: '123456', cmd: 'ls', params: ['/'], env: []};
+    var data = {devid: 'test', username: 'test', password: '123456', cmd: 'ls', params: ['/'], env: {}};
     $.post('https://your-server:5912/cmd', JSON.stringify(data), function(r) {console.log(r)});
 
 
 ### Axios
 
-    var data = {devid: 'test', username: 'test', password: '123456', cmd: 'ls', params: ['/'], env: []};
+    var data = {devid: 'test', username: 'test', password: '123456', cmd: 'ls', params: ['/'], env: {}};
     axios.post('https://your-server:5912/cmd', JSON.stringify(data)).then(function (response) {
         console.log(response.data);
     }).catch(function (error) {

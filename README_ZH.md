@@ -26,6 +26,7 @@
 [CyaSSl(wolfssl)]: https://github.com/wolfSSL/wolfssl
 [vue]: https://github.com/vuejs/vue
 [iview]: https://github.com/iview/iview
+[protobuf-c]: https://github.com/protobuf-c/protobuf-c
 
 根据您的终端的macaddr，通过Web访问您的处在NAT或防火墙里面的终端。
 
@@ -57,6 +58,7 @@ rtty非常适合远程维护你的或者你公司的部署在全球各地的成�
 # 客户端依赖
 * [libubox] - 用于OpenWrt的C工具函数库，但也可以用于其他Linux系统中.[参考](https://wiki.openwrt.org/doc/techref/libubox)
 * [libuwsc] - 一个轻量的针对嵌入式Linux的基于libubox的WebSocket客户端C库。
+* [protobuf-c]: - Protocol Buffers的C语言实现
 * [ustream-ssl] - 如果你需要支持SSL
 * [mbedtls] - 如果你选择mbedtls作为你的SSL后端
 * [CyaSSl(wolfssl)] - 如果你选择wolfssl作为你的SSL后端
@@ -82,9 +84,9 @@ rtty非常适合远程维护你的或者你公司的部署在全球各地的成�
 # 如何使用
 使用你的Web浏览器访问你的服务器: `https://your-server-host:5912`，然后点击连接按钮。
 
-你可以非常方便的将RTTY嵌入到你现有的平台： `https://your-server-host:5912?id=your-id`
+你可以非常方便的将RTTY嵌入到你现有的平台： `https://your-server-host:5912/#/?id=your-id`
 
-自动登录: `https://your-server:5912/?id=device-id&username=device-username&password=device-password`
+自动登录: `https://your-server:5912/#/?id=device-id&username=device-username&password=device-password`
 
 ## 其他功能
 请点击鼠标右键
@@ -92,19 +94,19 @@ rtty非常适合远程维护你的或者你公司的部署在全球各地的成�
 ## 远程执行命令
 ### Shell
 
-    curl -k https://your-server:5912/cmd -d '{"devid":"test","username":"test","password":"123456","cmd":"ls","params":["/"],"env":[]}'
+    curl -k https://your-server:5912/cmd -d '{"devid":"test","username":"test","password":"123456","cmd":"ls","params":["/"],"env":{}}'
 
     {"Err":0,"msg":"","code":0,"stdout":"bin\ndev\netc\nlib\nmnt\noverlay\nproc\nrom\nroot\nsbin\nsys\ntmp\nusr\nvar\nwww\n","stderr":""}
 
 ### Jquery
 
-    var data = {devid: 'test', username: 'test', password: '123456', cmd: 'ls', params: ['/'], env: []};
+    var data = {devid: 'test', username: 'test', password: '123456', cmd: 'ls', params: ['/'], env: {}};
     $.post('https://your-server:5912/cmd', JSON.stringify(data), function(r) {console.log(r)});
 
 
 ### Axios
 
-    var data = {devid: 'test', username: 'test', password: '123456', cmd: 'ls', params: ['/'], env: []};
+    var data = {devid: 'test', username: 'test', password: '123456', cmd: 'ls', params: ['/'], env: {}};
     axios.post('https://your-server:5912/cmd', JSON.stringify(data)).then(function (response) {
         console.log(response.data);
     }).catch(function (error) {
