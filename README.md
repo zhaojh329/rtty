@@ -80,39 +80,7 @@ Run RTTY(Replace the following parameters with your own parameters)
 ## For Embedded Linux Platform
 You need to cross compiling by yourself
 
-## For OpenWRT
-Install
-
-    opkg update
-    opkg list | grep rtty
-    opkg install rtty-nossl
-
-If the install command fails, you can [compile it yourself](/BUILDOPENWRT.md).
-
-Configuring the server parameter
-
-    uci add rtty rtty   # If it's the first configuration
-    uci set rtty.@rtty[0].host='your server host'
-    uci set rtty.@rtty[0].port='your server port'
-
-You can customize an ID for your device. If the ID is not configured, RTTY will use
-the MAC address of the specified network interface as the ID.
-The format of the MAC address as the ID is: 1A2A3A4A5A6A
-
-    uci set rtty.@rtty[0].id='your-device-id'
-
-You can add a description to your device
-
-    uci set rtty.@rtty[0].description='My device'
-
-Use SSL
-
-    uci set rtty.@rtty[0].ssl='1'
-
-Save configuration and apply
-
-    uci commit
-    /etc/init.d/rtty restart
+## [For OpenWRT](/OPENWRT.md)
 
 # Usage
 Use your web browser to access your server: `https://your-server-host:5912`, then click the connection button

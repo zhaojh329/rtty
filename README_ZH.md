@@ -77,34 +77,7 @@ rtty非常适合远程维护你的或者你公司的部署在全球各地的成�
 ## 嵌入式Linux平台
 你需要自行交叉编译
 
-## 如何在OpenWRT中使用
-安装
-
-    opkg update
-    opkg list | grep rtty
-    opkg install rtty-nossl
-
-如果安装失败，你可以[自己编译](/BUILDOPENWRT_ZH.md)。
-
-配置服务器参数
-
-    uci add rtty rtty   # If it's the first configuration
-    uci set rtty.@rtty[0].host='your server host'
-    uci set rtty.@rtty[0].port='your server port'
-
-你可以给你的设备自定义一个ID。如果未指定，RTTY将使用指定的网络接口的MAC地址作为其ID，
-以MAC地址作为ID的格式为：1A2A3A4A5A6A
-
-    uci set rtty.@rtty[0].id='your-device-id'
-
-使用SSL
-
-    uci set rtty.@rtty[0].ssl='1'
-
-保存配置并应用
-
-    uci commit
-    /etc/init.d/rtty restart
+## [如何在OpenWRT中使用](/OPENWRT_ZH.md)
 
 # 如何使用
 使用你的Web浏览器访问你的服务器: `https://your-server-host:5912`，然后点击连接按钮。
