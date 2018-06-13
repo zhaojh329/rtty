@@ -259,21 +259,25 @@ static void send_filelist(struct uwsc_client *cl, const char *sid, const char *p
         if (type != DT_DIR && type != DT_REG)
             continue;
 
-        tbl = blobmsg_open_table(&b, "");
-
-        blobmsg_add_string(&b, "name", name);
-        blobmsg_add_u8(&b, "dir", type == DT_DIR);
-
         snprintf(buf, sizeof(buf) - 1, "%s%s", path, name);
         if (stat(buf, &st) < 0) {
             uwsc_log_err("stat '%s': %s\n", buf, strerror(errno));
             continue;
         }
 
+        if (type == DT_REG && st.st_size > INT_MAX)
+            continue;
+
+        tbl = blobmsg_open_table(&b, "");
+
+        blobmsg_add_string(&b, "name", name);
+        blobmsg_add_u8(&b, "dir", type == DT_DIR);
+
         blobmsg_add_u32(&b, "mtim", st.st_mtime);
 
         if (type == DT_REG)
             blobmsg_add_u32(&b, "size", st.st_size);
+
         blobmsg_close_table(&b, tbl);
     }
     closedir(dir);
