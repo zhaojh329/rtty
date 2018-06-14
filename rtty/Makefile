@@ -8,8 +8,8 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=rtty
-PKG_VERSION:=5.0.1
-PKG_RELEASE:=1
+PKG_VERSION:=5.0.2
+PKG_RELEASE:=2
 
 PKG_SOURCE_PROTO:=git
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
@@ -32,7 +32,7 @@ define Package/rtty/default
   CATEGORY:=Utilities
   SUBMENU:=Terminal
   TITLE:=A reverse proxy WebTTY
-  DEPENDS:=+libblobmsg-json +libprotobuf-c
+  DEPENDS:=+libprotobuf-c
 endef
 
 define Package/rtty/default/description
