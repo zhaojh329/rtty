@@ -3,7 +3,7 @@ add_definitions(-O -Wall -Werror --std=gnu99 -D_GNU_SOURCE)
 # The version number.
 set(RTTY_VERSION_MAJOR 5)
 set(RTTY_VERSION_MINOR 0)
-set(RTTY_VERSION_PATCH 1)
+set(RTTY_VERSION_PATCH 2)
 
 # Check the third party Libraries
 find_package(Libubox REQUIRED)
