@@ -9,6 +9,8 @@ before_install:
   - cd libubox && cmake -DBUILD_LUA=OFF . && sudo make install && cd -
   - git clone https://github.com/zhaojh329/libuwsc.git
   - cd libuwsc && cmake -DUWSC_SSL_SUPPORT=OFF . && sudo make install && cd -
+  - git clone https://github.com/protobuf-c/protobuf-c.git
+  - cd protobuf-c && ./autogen.sh && ./configure --disable-protoc && sudo make install && cd -
 
 script:
   - mkdir build && cd build
