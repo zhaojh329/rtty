@@ -7,6 +7,12 @@
 #endif
 
 #include "rtty.pb-c.h"
+void   rtty_message__file__init
+                     (RttyMessage__File         *message)
+{
+  static RttyMessage__File init_value = RTTY_MESSAGE__FILE__INIT;
+  *message = init_value;
+}
 void   rtty_message__env_entry__init
                      (RttyMessage__EnvEntry         *message)
 {
@@ -56,6 +62,83 @@ void   rtty_message__free_unpacked
   assert(message->base.descriptor == &rtty_message__descriptor);
   protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
 }
+static const ProtobufCFieldDescriptor rtty_message__file__field_descriptors[4] =
+{
+  {
+    "name",
+    1,
+    PROTOBUF_C_LABEL_OPTIONAL,
+    PROTOBUF_C_TYPE_STRING,
+    0,   /* quantifier_offset */
+    offsetof(RttyMessage__File, name),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "dir",
+    2,
+    PROTOBUF_C_LABEL_OPTIONAL,
+    PROTOBUF_C_TYPE_BOOL,
+    offsetof(RttyMessage__File, has_dir),
+    offsetof(RttyMessage__File, dir),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "mtime",
+    3,
+    PROTOBUF_C_LABEL_OPTIONAL,
+    PROTOBUF_C_TYPE_UINT64,
+    offsetof(RttyMessage__File, has_mtime),
+    offsetof(RttyMessage__File, mtime),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "size",
+    4,
+    PROTOBUF_C_LABEL_OPTIONAL,
+    PROTOBUF_C_TYPE_UINT64,
+    offsetof(RttyMessage__File, has_size),
+    offsetof(RttyMessage__File, size),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+};
+static const unsigned rtty_message__file__field_indices_by_name[] = {
+  1,   /* field[1] = dir */
+  2,   /* field[2] = mtime */
+  0,   /* field[0] = name */
+  3,   /* field[3] = size */
+};
+static const ProtobufCIntRange rtty_message__file__number_ranges[1 + 1] =
+{
+  { 1, 0 },
+  { 0, 4 }
+};
+const ProtobufCMessageDescriptor rtty_message__file__descriptor =
+{
+  PROTOBUF_C__MESSAGE_DESCRIPTOR_MAGIC,
+  "rtty_message.File",
+  "File",
+  "RttyMessage__File",
+  "",
+  sizeof(RttyMessage__File),
+  4,
+  rtty_message__file__field_descriptors,
+  rtty_message__file__field_indices_by_name,
+  1,  rtty_message__file__number_ranges,
+  (ProtobufCMessageInit) rtty_message__file__init,
+  NULL,NULL,NULL    /* reserved[123] */
+};
 static const ProtobufCFieldDescriptor rtty_message__env_entry__field_descriptors[2] =
 {
   {
@@ -251,7 +334,7 @@ const ProtobufCEnumDescriptor rtty_message__command_err__descriptor =
   rtty_message__command_err__value_ranges,
   NULL,NULL,NULL,NULL   /* reserved[1234] */
 };
-static const ProtobufCFieldDescriptor rtty_message__field_descriptors[15] =
+static const ProtobufCFieldDescriptor rtty_message__field_descriptors[16] =
 {
   {
     "version",
@@ -433,12 +516,25 @@ static const ProtobufCFieldDescriptor rtty_message__field_descriptors[15] =
     0,             /* flags */
     0,NULL,NULL    /* reserved1,reserved2, etc */
   },
+  {
+    "filelist",
+    16,
+    PROTOBUF_C_LABEL_REPEATED,
+    PROTOBUF_C_TYPE_MESSAGE,
+    offsetof(RttyMessage, n_filelist),
+    offsetof(RttyMessage, filelist),
+    &rtty_message__file__descriptor,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
 };
 static const unsigned rtty_message__field_indices_by_name[] = {
   3,   /* field[3] = code */
   4,   /* field[4] = data */
   14,   /* field[14] = env */
   8,   /* field[8] = err */
+  15,   /* field[15] = filelist */
   7,   /* field[7] = id */
   5,   /* field[5] = name */
   13,   /* field[13] = params */
@@ -454,7 +550,7 @@ static const unsigned rtty_message__field_indices_by_name[] = {
 static const ProtobufCIntRange rtty_message__number_ranges[1 + 1] =
 {
   { 1, 0 },
-  { 0, 15 }
+  { 0, 16 }
 };
 const ProtobufCMessageDescriptor rtty_message__descriptor =
 {
@@ -464,7 +560,7 @@ const ProtobufCMessageDescriptor rtty_message__descriptor =
   "RttyMessage",
   "",
   sizeof(RttyMessage),
-  15,
+  16,
   rtty_message__field_descriptors,
   rtty_message__field_indices_by_name,
   1,  rtty_message__number_ranges,

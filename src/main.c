@@ -17,17 +17,12 @@
  * USA
  */
 
-#include <stdio.h>
-#include <unistd.h>
-#include <string.h>
-#include <sys/wait.h>
 #include <pty.h>
 #include <fcntl.h>
-#include <ctype.h>
-#include <sys/stat.h>
 #include <dirent.h>
+#include <sys/wait.h>
+#include <sys/stat.h>
 #include <uwsc/uwsc.h>
-#include <libubox/blobmsg_json.h>
 #include <libubox/avl.h>
 #include <libubox/avl-cmp.h>
 
@@ -224,25 +219,27 @@ static void handle_upfile(RttyMessage *msg)
 static void send_filelist(struct uwsc_client *cl, const char *sid, const char *path)
 {
     RttyMessage *msg = rtty_message_init(RTTY_MESSAGE__TYPE__DOWNFILE, sid);
+    RttyMessage__File **filelist = NULL;
     struct dirent *dentry;
-    static struct blob_buf b;
-    void *tbl, *array;
+    int n_filelist = 0;
     char buf[512];
-    char *str;
-    DIR *dir;
+    DIR *dir = NULL;
 
     dir = opendir(path);
-    if (!dir)
-        return;
+    if (!dir) {
+        uwsc_log_err("opendir '%s' failed\n", path);
+        goto done;
+    }
 
-    blobmsg_buf_init(&b);
+    filelist = calloc(FILE_LIST_MAX, sizeof(RttyMessage__File *));
+    if (!filelist) {
+        uwsc_log_err("calloc failed\n");
+        goto done;
+    }
 
-    array = blobmsg_open_array(&b, "");
-
-    tbl = blobmsg_open_table(&b, "");
-    blobmsg_add_string(&b, "name", "..");
-    blobmsg_add_u8(&b, "dir", 1);
-    blobmsg_close_table(&b, tbl);
+    if (rtty_message_file_init(&filelist[n_filelist], "..", true, 0, 0) < 0)
+        goto done;
+    n_filelist++;
 
     while((dentry = readdir(dir))) {
         const char *name = dentry->d_name;
@@ -268,29 +265,29 @@ static void send_filelist(struct uwsc_client *cl, const char *sid, const char *p
         if (type == DT_REG && st.st_size > INT_MAX)
             continue;
 
-        tbl = blobmsg_open_table(&b, "");
+        if (rtty_message_file_init(&filelist[n_filelist], name, type == DT_DIR,
+            st.st_mtime, st.st_size) < 0)
+            break;
 
-        blobmsg_add_string(&b, "name", name);
-        blobmsg_add_u8(&b, "dir", type == DT_DIR);
-
-        blobmsg_add_u32(&b, "mtim", st.st_mtime);
-
-        if (type == DT_REG)
-            blobmsg_add_u32(&b, "size", st.st_size);
-
-        blobmsg_close_table(&b, tbl);
+        if (n_filelist++ == FILE_LIST_MAX)
+            break;
     }
-    closedir(dir);
-    blobmsg_close_table(&b, array);
 
-    str = blobmsg_format_json(b.head, true);
+done:
+    if (dir)
+        closedir(dir);
 
-    rtty_message_set_data(msg, str + 1, strlen(str) - 2);
+    msg->n_filelist = n_filelist;
+    msg->filelist = filelist;
 
     rtty_message_send(cl, msg);
 
-    free(str);
-    blob_buf_free(&b);
+    if (filelist) {
+        for (int i = 0; i < n_filelist; i++)
+            free(filelist[i]);
+
+        free(filelist);
+    }
 }
 
 static void send_file_cb(struct uloop_timeout *timer)

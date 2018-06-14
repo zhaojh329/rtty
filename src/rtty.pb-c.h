@@ -16,6 +16,7 @@ PROTOBUF_C__BEGIN_DECLS
 
 
 typedef struct _RttyMessage RttyMessage;
+typedef struct _RttyMessage__File RttyMessage__File;
 typedef struct _RttyMessage__EnvEntry RttyMessage__EnvEntry;
 
 
@@ -60,6 +61,22 @@ typedef enum _RttyMessage__CommandErr {
 
 /* --- messages --- */
 
+struct  _RttyMessage__File
+{
+  ProtobufCMessage base;
+  char *name;
+  protobuf_c_boolean has_dir;
+  protobuf_c_boolean dir;
+  protobuf_c_boolean has_mtime;
+  uint64_t mtime;
+  protobuf_c_boolean has_size;
+  uint64_t size;
+};
+#define RTTY_MESSAGE__FILE__INIT \
+ { PROTOBUF_C_MESSAGE_INIT (&rtty_message__file__descriptor) \
+    , NULL, 0,0, 0,0, 0,0 }
+
+
 struct  _RttyMessage__EnvEntry
 {
   ProtobufCMessage base;
@@ -98,12 +115,17 @@ struct  _RttyMessage
   char **params;
   size_t n_env;
   RttyMessage__EnvEntry **env;
+  size_t n_filelist;
+  RttyMessage__File **filelist;
 };
 #define RTTY_MESSAGE__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&rtty_message__descriptor) \
-    , 0,0, 0,0, NULL, 0,0, 0,{0,NULL}, NULL, 0,0, 0,0, 0,0, NULL, NULL, NULL, NULL, 0,NULL, 0,NULL }
+    , 0,0, 0,0, NULL, 0,0, 0,{0,NULL}, NULL, 0,0, 0,0, 0,0, NULL, NULL, NULL, NULL, 0,NULL, 0,NULL, 0,NULL }
 
 
+/* RttyMessage__File methods */
+void   rtty_message__file__init
+                     (RttyMessage__File         *message);
 /* RttyMessage__EnvEntry methods */
 void   rtty_message__env_entry__init
                      (RttyMessage__EnvEntry         *message);
@@ -128,6 +150,9 @@ void   rtty_message__free_unpacked
                       ProtobufCAllocator *allocator);
 /* --- per-message closures --- */
 
+typedef void (*RttyMessage__File_Closure)
+                 (const RttyMessage__File *message,
+                  void *closure_data);
 typedef void (*RttyMessage__EnvEntry_Closure)
                  (const RttyMessage__EnvEntry *message,
                   void *closure_data);
@@ -141,6 +166,7 @@ typedef void (*RttyMessage_Closure)
 /* --- descriptors --- */
 
 extern const ProtobufCMessageDescriptor rtty_message__descriptor;
+extern const ProtobufCMessageDescriptor rtty_message__file__descriptor;
 extern const ProtobufCMessageDescriptor rtty_message__env_entry__descriptor;
 extern const ProtobufCEnumDescriptor    rtty_message__type__descriptor;
 extern const ProtobufCEnumDescriptor    rtty_message__login_code__descriptor;

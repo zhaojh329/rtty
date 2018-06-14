@@ -1,5 +1,6 @@
 syntax = "proto3";
 
+
 message rtty_message {
 	enum Type {
 		UNKNOWN = 0;
@@ -37,6 +38,13 @@ message rtty_message {
 		DEVID_REQUIRED = 8;
 	}
 
+    message File {
+        string name = 1;
+        bool dir = 2;
+        uint64 mtime = 3;
+        uint64 size = 4;
+    }
+
 	uint32 version = 1;
 	Type type = 2;
 	string sid = 3;
@@ -52,4 +60,5 @@ message rtty_message {
 	string std_err = 13;
 	repeated string params = 14;
 	map<string, string> env = 15;
+	repeated File filelist = 16;
 }
