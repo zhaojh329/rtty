@@ -53,9 +53,7 @@ the world.
 * Cross platform: Linux, OpenWrt/LEDE
 
 ![](/rtty.svg)
-![](/rtty.gif)
-![](/upfile.gif)
-![](/downfile.gif)
+![](/rtty.f30806d.gif)
 
 # Dependencies for Client side
 * [libubox] - C utility functions for OpenWrt, but can also be used for the same purposes in other Linux systems.

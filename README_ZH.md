@@ -51,9 +51,7 @@ rtty非常适合远程维护你的或者你公司的部署在全球各地的成�
 * 跨平台: Linux, OpenWrt/LEDE
 
 ![](/rtty.svg)
-![](/rtty.gif)
-![](/upfile.gif)
-![](/downfile.gif)
+![](/rtty-zh.f30806d.gif)
 
 # 客户端依赖
 * [libubox] - 用于OpenWrt的C工具函数库，但也可以用于其他Linux系统中.[参考](https://wiki.openwrt.org/doc/techref/libubox)
