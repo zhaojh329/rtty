@@ -546,7 +546,7 @@ int main(int argc, char **argv)
 
     uwsc_log_info("rtty version %s\n", RTTY_VERSION_STRING);
 
-    if (setuid(0) < 0) {
+    if (getuid() > 0) {
         uwsc_log_err("Operation not permitted\n");
         return -1;
     }
