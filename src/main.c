@@ -20,6 +20,7 @@
 #include <pty.h>
 #include <fcntl.h>
 #include <dirent.h>
+#include <unistd.h>
 #include <sys/wait.h>
 #include <sys/stat.h>
 #include <uwsc/uwsc.h>
