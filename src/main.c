@@ -365,6 +365,18 @@ static void handle_downfile(struct uwsc_client *cl, RttyMessage *msg)
     }
 }
 
+static void change_winsize(RttyMessage *msg)
+{
+    struct tty_session *tty = find_tty_session(msg->sid);
+    struct winsize size = {
+        .ws_col = msg->cols,
+        .ws_row = msg->rows
+    };
+
+    if(ioctl(tty->pty, TIOCSWINSZ, &size) < 0)
+        uwsc_log_err("ioctl TIOCSWINSZ error\n");
+}
+
 static void uwsc_onmessage(struct uwsc_client *cl, void *data, uint64_t len, enum websocket_op op)
 {
     RttyMessage *msg = rtty_message__unpack(NULL, len, data);
@@ -387,6 +399,9 @@ static void uwsc_onmessage(struct uwsc_client *cl, void *data, uint64_t len, enu
         break;
     case RTTY_MESSAGE__TYPE__COMMAND:
         run_command(cl, msg, data, len);
+        break;
+    case RTTY_MESSAGE__TYPE__WINSIZE:
+        change_winsize(msg);
         break;
     default:
         break;

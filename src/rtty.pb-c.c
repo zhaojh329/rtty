@@ -190,7 +190,7 @@ const ProtobufCMessageDescriptor rtty_message__env_entry__descriptor =
   (ProtobufCMessageInit) rtty_message__env_entry__init,
   NULL,NULL,NULL    /* reserved[123] */
 };
-static const ProtobufCEnumValue rtty_message__type__enum_values_by_number[8] =
+static const ProtobufCEnumValue rtty_message__type__enum_values_by_number[9] =
 {
   { "UNKNOWN", "RTTY_MESSAGE__TYPE__UNKNOWN", 0 },
   { "LOGIN", "RTTY_MESSAGE__TYPE__LOGIN", 1 },
@@ -200,11 +200,12 @@ static const ProtobufCEnumValue rtty_message__type__enum_values_by_number[8] =
   { "UPFILE", "RTTY_MESSAGE__TYPE__UPFILE", 5 },
   { "DOWNFILE", "RTTY_MESSAGE__TYPE__DOWNFILE", 6 },
   { "COMMAND", "RTTY_MESSAGE__TYPE__COMMAND", 7 },
+  { "WINSIZE", "RTTY_MESSAGE__TYPE__WINSIZE", 8 },
 };
 static const ProtobufCIntRange rtty_message__type__value_ranges[] = {
-{0, 0},{0, 8}
+{0, 0},{0, 9}
 };
-static const ProtobufCEnumValueIndex rtty_message__type__enum_values_by_name[8] =
+static const ProtobufCEnumValueIndex rtty_message__type__enum_values_by_name[9] =
 {
   { "COMMAND", 7 },
   { "DOWNFILE", 6 },
@@ -214,6 +215,7 @@ static const ProtobufCEnumValueIndex rtty_message__type__enum_values_by_name[8] 
   { "TTY", 4 },
   { "UNKNOWN", 0 },
   { "UPFILE", 5 },
+  { "WINSIZE", 8 },
 };
 const ProtobufCEnumDescriptor rtty_message__type__descriptor =
 {
@@ -222,9 +224,9 @@ const ProtobufCEnumDescriptor rtty_message__type__descriptor =
   "Type",
   "RttyMessage__Type",
   "",
-  8,
+  9,
   rtty_message__type__enum_values_by_number,
-  8,
+  9,
   rtty_message__type__enum_values_by_name,
   1,
   rtty_message__type__value_ranges,
@@ -334,7 +336,7 @@ const ProtobufCEnumDescriptor rtty_message__command_err__descriptor =
   rtty_message__command_err__value_ranges,
   NULL,NULL,NULL,NULL   /* reserved[1234] */
 };
-static const ProtobufCFieldDescriptor rtty_message__field_descriptors[16] =
+static const ProtobufCFieldDescriptor rtty_message__field_descriptors[18] =
 {
   {
     "version",
@@ -528,9 +530,34 @@ static const ProtobufCFieldDescriptor rtty_message__field_descriptors[16] =
     0,             /* flags */
     0,NULL,NULL    /* reserved1,reserved2, etc */
   },
+  {
+    "cols",
+    17,
+    PROTOBUF_C_LABEL_OPTIONAL,
+    PROTOBUF_C_TYPE_UINT32,
+    offsetof(RttyMessage, has_cols),
+    offsetof(RttyMessage, cols),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "rows",
+    18,
+    PROTOBUF_C_LABEL_OPTIONAL,
+    PROTOBUF_C_TYPE_UINT32,
+    offsetof(RttyMessage, has_rows),
+    offsetof(RttyMessage, rows),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
 };
 static const unsigned rtty_message__field_indices_by_name[] = {
   3,   /* field[3] = code */
+  16,   /* field[16] = cols */
   4,   /* field[4] = data */
   14,   /* field[14] = env */
   8,   /* field[8] = err */
@@ -539,6 +566,7 @@ static const unsigned rtty_message__field_indices_by_name[] = {
   5,   /* field[5] = name */
   13,   /* field[13] = params */
   10,   /* field[10] = password */
+  17,   /* field[17] = rows */
   2,   /* field[2] = sid */
   6,   /* field[6] = size */
   12,   /* field[12] = std_err */
@@ -550,7 +578,7 @@ static const unsigned rtty_message__field_indices_by_name[] = {
 static const ProtobufCIntRange rtty_message__number_ranges[1 + 1] =
 {
   { 1, 0 },
-  { 0, 16 }
+  { 0, 18 }
 };
 const ProtobufCMessageDescriptor rtty_message__descriptor =
 {
@@ -560,7 +588,7 @@ const ProtobufCMessageDescriptor rtty_message__descriptor =
   "RttyMessage",
   "",
   sizeof(RttyMessage),
-  16,
+  18,
   rtty_message__field_descriptors,
   rtty_message__field_indices_by_name,
   1,  rtty_message__number_ranges,

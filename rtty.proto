@@ -11,6 +11,7 @@ message rtty_message {
 	    UPFILE = 5;
 	    DOWNFILE = 6;
 	    COMMAND = 7;
+	    WINSIZE = 8;
 	}
 
 	enum LoginCode {
@@ -61,4 +62,6 @@ message rtty_message {
 	repeated string params = 14;
 	map<string, string> env = 15;
 	repeated File filelist = 16;
+	uint32 cols = 17;
+	uint32 rows = 18;
 }

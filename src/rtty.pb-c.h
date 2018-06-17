@@ -30,7 +30,8 @@ typedef enum _RttyMessage__Type {
   RTTY_MESSAGE__TYPE__TTY = 4,
   RTTY_MESSAGE__TYPE__UPFILE = 5,
   RTTY_MESSAGE__TYPE__DOWNFILE = 6,
-  RTTY_MESSAGE__TYPE__COMMAND = 7
+  RTTY_MESSAGE__TYPE__COMMAND = 7,
+  RTTY_MESSAGE__TYPE__WINSIZE = 8
     PROTOBUF_C__FORCE_ENUM_TO_BE_INT_SIZE(RTTY_MESSAGE__TYPE)
 } RttyMessage__Type;
 typedef enum _RttyMessage__LoginCode {
@@ -117,10 +118,14 @@ struct  _RttyMessage
   RttyMessage__EnvEntry **env;
   size_t n_filelist;
   RttyMessage__File **filelist;
+  protobuf_c_boolean has_cols;
+  uint32_t cols;
+  protobuf_c_boolean has_rows;
+  uint32_t rows;
 };
 #define RTTY_MESSAGE__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&rtty_message__descriptor) \
-    , 0,0, 0,0, NULL, 0,0, 0,{0,NULL}, NULL, 0,0, 0,0, 0,0, NULL, NULL, NULL, NULL, 0,NULL, 0,NULL, 0,NULL }
+    , 0,0, 0,0, NULL, 0,0, 0,{0,NULL}, NULL, 0,0, 0,0, 0,0, NULL, NULL, NULL, NULL, 0,NULL, 0,NULL, 0,NULL, 0,0, 0,0 }
 
 
 /* RttyMessage__File methods */
