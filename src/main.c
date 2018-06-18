@@ -431,7 +431,6 @@ static void uwsc_onclose(struct uwsc_client *cl)
     avl_for_each_element_safe(&tty_sessions, tty, avl, tmp)
         del_tty_session(tty);
 
-    cl->send(cl, NULL, 0, WEBSOCKET_OP_CLOSE);
     cl->free(cl);
 
     if (auto_reconnect)
