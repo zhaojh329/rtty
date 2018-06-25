@@ -121,9 +121,3 @@ see the [CONTRIBUTING.md](https://github.com/zhaojh329/rtty/blob/master/CONTRIBU
 # QQ group: 153530783
 
 # If the project is helpful to you, please do not hesitate to star. Thank you!
-
-# Support developer
-
-![](/alipay.png)
-
-![](/wechat.png)
