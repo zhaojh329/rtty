@@ -114,6 +114,8 @@ Please click the right mouse button
         console.log(error);
     });
 
+# [Donate](https://gitee.com/zhaojh329/rtty#project-donate-overview)
+
 # Contributing
 If you would like to help making [rtty](https://github.com/zhaojh329/rtty) better,
 see the [CONTRIBUTING.md](https://github.com/zhaojh329/rtty/blob/master/CONTRIBUTING.md) file.

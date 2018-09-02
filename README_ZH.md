@@ -111,6 +111,8 @@ rtty非常适合远程维护你的或者你公司的部署在全球各地的成�
         console.log(error);
     });
 
+# [捐赠](https://gitee.com/zhaojh329/rtty#project-donate-overview)
+
 # 贡献代码
 如果你想帮助[rtty](https://github.com/zhaojh329/rtty)变得更好，请参考
 [CONTRIBUTING_ZH.md](https://github.com/zhaojh329/rtty/blob/master/CONTRIBUTING_ZH.md)。
