@@ -21,7 +21,6 @@
 #define _COMMAND_H
 
 #include <uwsc/uwsc.h>
-#include <libubox/blob.h>
 
 #include "message.h"
 

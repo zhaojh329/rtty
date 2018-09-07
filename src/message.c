@@ -20,7 +20,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <uwsc/log.h>
-#include <libubox/utils.h>
 
 #include "message.h"
 
@@ -47,7 +46,7 @@ int rtty_message_file_init(RttyMessage__File **file, const char *name,
     RttyMessage__File *n_file;
     char *name_buf;
 
-    n_file = calloc_a(sizeof(RttyMessage__File), &name_buf, strlen(name) + 1);
+    n_file = calloc(1, sizeof(RttyMessage__File) + strlen(name) + 1);
     if (!n_file) {
         uwsc_log_err("calloc_a failed\n");
         return -1;
@@ -55,6 +54,7 @@ int rtty_message_file_init(RttyMessage__File **file, const char *name,
 
     rtty_message__file__init(n_file);
 
+	name_buf = (char *)n_file + sizeof(RttyMessage__File);
     n_file->name = strcpy(name_buf, name);
 
     n_file->has_dir = true;
@@ -86,7 +86,7 @@ void rtty_message_send(struct uwsc_client *cl, RttyMessage *msg)
 
     rtty_message__pack(msg, buf);
 
-    cl->send(cl, buf, len, WEBSOCKET_OP_BINARY);
+    cl->send(cl, buf, len, UWSC_OP_BINARY);
 
     free(buf);
 }

@@ -17,6 +17,7 @@
  * USA
  */
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -25,44 +26,40 @@
 #include <limits.h>
 #include <shadow.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
 #include <uwsc/log.h>
-#include <libubox/ustream.h>
-#include <libubox/blobmsg_json.h>
-#include <libubox/runqueue.h>
 
+#include "avl.h"
 #include "command.h"
 
 #define FILE_MAX_SIZE   (4096 * 64)
 
-#define ustream_declare(us, fd, name)                     \
-    us.stream.string_data   = true;                       \
-    us.stream.r.buffer_len  = 4096;                       \
-    us.stream.r.max_buffers = FILE_MAX_SIZE / 4096;   \
-    us.stream.notify_read   = process_##name##_read_cb;  \
-    us.stream.notify_state  = process_##name##_state_cb; \
-    ustream_fd_init(&us, fd);
-
-#define ustream_for_each_read_buffer(stream, ptr, len) \
-    for (ptr = ustream_get_read_buf(stream, &len);     \
-         ptr != NULL && len > 0;                       \
-         ustream_consume(stream, len), ptr = ustream_get_read_buf(stream, &len))
-
 struct command {
+	struct avl_node avl;
     struct uwsc_client *ws;
-    struct ustream_fd opipe;
-    struct ustream_fd epipe;
-    struct runqueue_process proc;
-    RttyMessage *msg;
+	struct ev_child cw;
+	struct ev_io ioo;	/* Watch stdout of child */
+	struct ev_io ioe;	/* Watch stderr of child */
+	struct buffer ob;	/* buffer for stdout */
+	struct buffer eb;	/* buffer for stderr */
     int code;   /* The exit code of the child */
+	RttyMessage *msg;
     char cmd[0];
 };
 
-static struct runqueue q;
+static struct avl_tree cmd_tree;
+
+static int avl_strcmp(const void *k1, const void *k2, void *ptr)
+{
+	const RttyMessage *msg1 = k1;
+	const RttyMessage *msg2 = k2;
+
+	return msg1->id - msg2->id;
+}
 
 void command_init()
 {
-    runqueue_init(&q);
-    q.max_running_tasks = 5;
+	avl_init(&cmd_tree, avl_strcmp, false, NULL);
 }
 
 /* For execute command */
@@ -81,106 +78,6 @@ static bool login_test(const char *username, const char *password)
         password = "";
 
     return !strcmp(crypt(password, sp->sp_pwdp), sp->sp_pwdp);
-}
-
-static void command_reply_error(struct uwsc_client *ws, int id, int err)
-{
-    RttyMessage *msg = rtty_message_init(RTTY_MESSAGE__TYPE__COMMAND, NULL);
-
-    rtty_message_set_id(msg, id);
-    rtty_message_set_code(msg, 1);
-    rtty_message_set_err(msg, err);
-    rtty_message_send(ws, msg);
-}
-
-static void free_command(struct command *c)
-{
-    ustream_free(&c->opipe.stream);
-    ustream_free(&c->epipe.stream);
-
-    close(c->opipe.fd.fd);
-    close(c->epipe.fd.fd);
-
-    rtty_message__free_unpacked(c->msg, NULL);
-    free(c);
-}
-
-static void ustream_to_string(struct ustream *s, char **str)
-{
-    int len;
-    char *buf, *p;
-
-    if ((len = ustream_pending_data(s, false)) > 0) {
-        *str = calloc(1, len + 1);
-        if (!*str) {
-            uwsc_log_err("calloc failed\n");
-            return;
-        }
-
-        p = *str;
-
-        ustream_for_each_read_buffer(s, buf, len) {
-            memcpy(p, buf, len);
-            p += len;
-        }
-    }
-}
-
-static void command_reply(struct command *c, int err)
-{
-    RttyMessage *msg = rtty_message_init(RTTY_MESSAGE__TYPE__COMMAND, NULL);
-    char *std_out = NULL, *std_err = NULL;
-
-    rtty_message_set_id(msg, c->msg->id);
-    rtty_message_set_err(msg, err);
-
-    if (err == RTTY_MESSAGE__COMMAND_ERR__NONE) {
-        rtty_message_set_code(msg, c->code);
-
-        ustream_to_string(&c->opipe.stream, &std_out);
-        ustream_to_string(&c->epipe.stream, &std_err);
-
-        msg->std_out = std_out;
-        msg->std_err = std_err;
-    }
-
-    rtty_message_send(c->ws, msg);
-
-    free(std_out);
-    free(std_err);
-    free_command(c);
-}
-
-static void process_opipe_read_cb(struct ustream *s, int bytes)
-{
-    struct command *c = container_of(s, struct command, opipe.stream);
-
-    if (ustream_read_buf_full(s))
-        command_reply(c, RTTY_MESSAGE__COMMAND_ERR__READ);
-}
-
-static void process_epipe_read_cb(struct ustream *s, int bytes)
-{
-    struct command *c = container_of(s, struct command, epipe.stream);
-
-    if (ustream_read_buf_full(s))
-        command_reply(c, RTTY_MESSAGE__COMMAND_ERR__READ);
-}
-
-static void process_opipe_state_cb(struct ustream *s)
-{
-    struct command *c = container_of(s, struct command, opipe.stream);
-
-    if (c->opipe.stream.eof && c->epipe.stream.eof)
-        command_reply(c, RTTY_MESSAGE__COMMAND_ERR__NONE);
-}
-
-static void process_epipe_state_cb(struct ustream *s)
-{
-    struct command *c = container_of(s, struct command, epipe.stream);
-
-    if (c->opipe.stream.eof && c->epipe.stream.eof)
-        command_reply(c, RTTY_MESSAGE__COMMAND_ERR__NONE);
 }
 
 static const char *cmd_lookup(const char *cmd)
@@ -221,62 +118,116 @@ static const char *cmd_lookup(const char *cmd)
     return NULL;
 }
 
-static void runqueue_proc_cb(struct uloop_process *p, int ret)
+static void command_free(struct command *c)
 {
-    struct runqueue_process *t = container_of(p, struct runqueue_process, proc);
-    struct command *c = container_of(t, struct command, proc);
+    close(c->ioo.fd);
+    close(c->ioe.fd);
 
-    if (c->code == -1) {
-        /* The server will response timeout to user */
-        uwsc_log_err("Run `%s` timeout\n", c->cmd);
-        free_command(c);
-        goto TIMEOUT;
-    }
+	ev_io_stop(c->ws->loop, &c->ioo);
+	ev_io_stop(c->ws->loop, &c->ioe);
+	ev_child_stop(c->ws->loop, &c->cw);
 
-    c->code = WEXITSTATUS(ret);
-    ustream_poll(&c->opipe.stream);
-    ustream_poll(&c->epipe.stream);
+	buffer_free(&c->ob);
+	buffer_free(&c->eb);
 
-TIMEOUT:
-    runqueue_task_complete(&t->task);
+    rtty_message__free_unpacked(c->msg, NULL);
+
+	avl_delete(&cmd_tree, &c->avl);
+
+    free(c);
 }
 
-static void q_cmd_run(struct runqueue *q, struct runqueue_task *t)
+static void command_reply_error(struct uwsc_client *ws, int id, int err)
 {
-    struct command *c = container_of(t, struct command, proc.task);
-    RttyMessage *msg = c->msg;
-    pid_t pid;
-    int opipe[2];
+    RttyMessage *msg = rtty_message_init(RTTY_MESSAGE__TYPE__COMMAND, NULL);
+
+    rtty_message_set_id(msg, id);
+    rtty_message_set_code(msg, 1);
+    rtty_message_set_err(msg, err);
+    rtty_message_send(ws, msg);
+}
+
+static void command_reply(struct command *c, int err)
+{
+	RttyMessage *msg = rtty_message_init(RTTY_MESSAGE__TYPE__COMMAND, NULL);
+
+	rtty_message_set_id(msg, c->msg->id);
+	rtty_message_set_err(msg, err);
+
+	if (err == RTTY_MESSAGE__COMMAND_ERR__NONE) {
+		rtty_message_set_code(msg, c->code);
+
+		buffer_put_zero(&c->ob, 1);
+		buffer_put_zero(&c->eb, 1);
+
+		msg->std_out = buffer_data(&c->ob);
+		msg->std_err = buffer_data(&c->eb);
+	}
+
+	rtty_message_send(c->ws, msg);
+
+	command_free(c);
+}
+
+static void ev_command_exit(struct ev_loop *loop, struct ev_child *w, int revents)
+{
+	struct command *c = container_of(w, struct command, cw);
+
+	c->code = WEXITSTATUS(w->rstatus);
+
+	command_reply(c, 0);
+}
+
+static void ev_io_stdout_cb(struct ev_loop *loop, struct ev_io *w, int revents)
+{
+	struct command *c = container_of(w, struct command, ioo);
+	bool eof;
+
+	buffer_put_fd(&c->ob, w->fd, -1, &eof, NULL, NULL);
+}
+
+static void ev_io_stderr_cb(struct ev_loop *loop, struct ev_io *w, int revents)
+{
+	struct command *c = container_of(w, struct command, ioe);
+	bool eof;
+
+	buffer_put_fd(&c->eb, w->fd, -1, &eof, NULL, NULL);
+}
+
+static void add_command(struct command *c)
+{
+	RttyMessage *msg = c->msg;
+	int opipe[2];
     int epipe[2];
-    char arglen;
+	pid_t pid;
+	char arglen;
     char **args;
-    int i;
+	int i;
 
-    if (pipe(opipe) || pipe(epipe)) {
-        uwsc_log_err("pipe:%s\n", strerror(errno));
-        runqueue_task_complete(t);
-        command_reply_error(c->ws, msg->id, RTTY_MESSAGE__COMMAND_ERR__SYSCALL);
-        return;
-    }
+	c->avl.key = c->msg;
+	avl_insert(&cmd_tree, &c->avl);
 
-    switch ((pid = fork())) {
-    case -1:
-        uwsc_log_err("fork: %s\n", strerror(errno));
-        runqueue_task_complete(t);
-        command_reply_error(c->ws, msg->id, RTTY_MESSAGE__COMMAND_ERR__SYSCALL);
-        return;
+	if (pipe2(opipe, O_CLOEXEC | O_NONBLOCK) < 0 ||
+		pipe2(epipe, O_CLOEXEC | O_NONBLOCK) < 0) {
+		uwsc_log_err("pipe2 failed: %s\n", strerror(errno));
+		command_reply_error(c->ws, msg->id, RTTY_MESSAGE__COMMAND_ERR__SYSCALL);
+		return;
+	}
 
-    case 0:
-        uloop_done();
+	pid = fork();
+	switch (pid) {
+	case -1:
+		uwsc_log_err("fork: %s\n", strerror(errno));
+		break;
+	case 0:
+		/* Close unused read end */
+		close(opipe[0]);
+		close(epipe[0]);
 
-        dup2(opipe[1], 1);
-        dup2(epipe[1], 2);
+		dup2(opipe[1], 1);
+		dup2(epipe[1], 2);
 
-        close(0);
-        close(opipe[0]);
-        close(epipe[0]);
-
-        arglen = 2 + msg->n_params;
+		arglen = 2 + msg->n_params;
         args = calloc(1, sizeof(char *) * arglen);
         if (!args)
             return;
@@ -290,35 +241,27 @@ static void q_cmd_run(struct runqueue *q, struct runqueue_task *t)
             setenv(msg->env[i]->key, msg->env[i]->value, 1);
 
         execv(c->cmd, args);
-        break;
+		break;
+	default:
+		/* Close unused write end */
+		close(opipe[1]);
+		close(epipe[1]);
 
-    default:
-        close(opipe[1]);
-        close(epipe[1]);
+		/* Watch child's status */
+		ev_child_init(&c->cw, ev_command_exit, pid, 0);
+		ev_child_start(c->ws->loop, &c->cw);
 
-        ustream_declare(c->opipe, opipe[0], opipe);
-        ustream_declare(c->epipe, epipe[0], epipe);
+		ev_io_init(&c->ioo, ev_io_stdout_cb, opipe[0], EV_READ);
+		ev_io_start(c->ws->loop, &c->ioo);
 
-        runqueue_process_add(q, &c->proc, pid);
-        c->proc.proc.cb = runqueue_proc_cb;
-    }
-}
-
-static void run_command_cancel(struct runqueue *q, struct runqueue_task *t, int type)
-{
-    struct command *c = container_of(t, struct command, proc.task);
-
-    c->code = -1;   /* Timeout */
-    runqueue_process_cancel_cb(q, t, type);
+		ev_io_init(&c->ioe, ev_io_stderr_cb, epipe[0], EV_READ);
+		ev_io_start(c->ws->loop, &c->ioe);
+		break;
+	}
 }
 
 void run_command(struct uwsc_client *ws, RttyMessage *msg, void *data, uint32_t len)
 {
-    static const struct runqueue_task_type cmd_type = {
-        .run = q_cmd_run,
-        .cancel = run_command_cancel,
-        .kill = runqueue_process_kill_cb
-    };
     struct command *c;
     const char *cmd;
 
@@ -339,12 +282,10 @@ void run_command(struct uwsc_client *ws, RttyMessage *msg, void *data, uint32_t 
     }
 
     c = calloc(1, sizeof(struct command) + strlen(cmd) + 1);
-    c->proc.task.type = &cmd_type;
-    c->proc.task.run_timeout = 5000;
     c->ws = ws;
     strcpy(c->cmd, cmd);
 
     c->msg = rtty_message__unpack(NULL, len, data);
 
-    runqueue_task_add(&q, &c->proc.task, false);
+	add_command(c);
 }

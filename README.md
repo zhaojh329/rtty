@@ -18,11 +18,10 @@
 [![Build Status][9]][10]
 
 [Xterm.js]: https://github.com/xtermjs/xterm.js
-[libubox]: https://git.openwrt.org/?p=project/libubox.git
+[libev]: http://software.schmorp.de/pkg/libev.html
 [libuwsc]: https://github.com/zhaojh329/libuwsc
-[ustream-ssl]: https://git.openwrt.org/?p=project/ustream-ssl.git
 [openssl]: https://github.com/openssl/openssl
-[mbedtls]: https://github.com/ARMmbed/mbedtls
+[mbedtls(polarssl)]: https://github.com/ARMmbed/mbedtls
 [CyaSSl(wolfssl)]: https://github.com/wolfSSL/wolfssl
 [vue]: https://github.com/vuejs/vue
 [iview]: https://github.com/iview/iview
@@ -56,12 +55,10 @@ the world.
 ![](/rtty.f30806d.gif)
 
 # Dependencies for Client side
-* [libubox] - C utility functions for OpenWrt, but can also be used for the same purposes in other Linux systems.
-[Reference](https://wiki.openwrt.org/doc/techref/libubox)
-* [libuwsc] - A Lightweight and fully asynchronous WebSocket client C library based on libubox for Embedded Linux.
+* [libev] - A full-featured and high-performance event loop
+* [libuwsc] - A Lightweight and fully asynchronous WebSocket client library based on libev
 * [protobuf-c]: - Protocol Buffers implementation in C
-* [ustream-ssl] - If you need to support SSL
-* [mbedtls] - If you choose mbedtls as your SSL backend
+* [mbedtls(polarssl)] - If you choose mbedtls as your SSL backend
 * [CyaSSl(wolfssl)] - If you choose wolfssl as your SSL backend
 * [openssl] - If you choose openssl as your SSL backend
 

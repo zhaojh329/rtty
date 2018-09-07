@@ -18,11 +18,10 @@
 [![Build Status][9]][10]
 
 [Xterm.js]: https://github.com/xtermjs/xterm.js
-[libubox]: https://git.openwrt.org/?p=project/libubox.git
+[libev]: http://software.schmorp.de/pkg/libev.html
 [libuwsc]: https://github.com/zhaojh329/libuwsc
-[ustream-ssl]: https://git.openwrt.org/?p=project/ustream-ssl.git
 [openssl]: https://github.com/openssl/openssl
-[mbedtls]: https://github.com/ARMmbed/mbedtls
+[mbedtls(polarssl)]: https://github.com/ARMmbed/mbedtls
 [CyaSSl(wolfssl)]: https://github.com/wolfSSL/wolfssl
 [vue]: https://github.com/vuejs/vue
 [iview]: https://github.com/iview/iview
@@ -54,11 +53,10 @@ rtty非常适合远程维护你的或者你公司的部署在全球各地的成�
 ![](/rtty-zh.f30806d.gif)
 
 # 客户端依赖
-* [libubox] - 用于OpenWrt的C工具函数库，但也可以用于其他Linux系统中.[参考](https://wiki.openwrt.org/doc/techref/libubox)
-* [libuwsc] - 一个轻量的针对嵌入式Linux的基于libubox的WebSocket客户端C库。
+* [libev] - 高性能的事件循环库
+* [libuwsc] - 一个轻量的针对嵌入式Linux的基于libev的WebSocket客户端C库。
 * [protobuf-c]: - Protocol Buffers的C语言实现
-* [ustream-ssl] - 如果你需要支持SSL
-* [mbedtls] - 如果你选择mbedtls作为你的SSL后端
+* [mbedtls(polarssl)] - 如果你选择mbedtls作为你的SSL后端
 * [CyaSSl(wolfssl)] - 如果你选择wolfssl作为你的SSL后端
 * [openssl] - 如果你选择openssl作为你的SSL后端
 

@@ -19,14 +19,16 @@
 
 #include <pty.h>
 #include <fcntl.h>
+#include <errno.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <dirent.h>
 #include <unistd.h>
 #include <sys/wait.h>
 #include <sys/stat.h>
 #include <uwsc/uwsc.h>
-#include <libubox/avl.h>
-#include <libubox/avl-cmp.h>
 
+#include "avl.h"
 #include "config.h"
 #include "utils.h"
 #include "message.h"
@@ -44,28 +46,40 @@ struct tty_session {
     pid_t pid;
     int pty;
     char sid[33];
-    int downfile;
-    struct upfile_info upfile;
-    struct uloop_timeout timer;
+
+    struct ev_loop *loop;
+    struct ev_timer timer;
     struct uwsc_client *cl;
-    struct ustream_fd sfd;
-    struct uloop_process up;
+    struct ev_io ior;
+    struct ev_io iow;
+    struct ev_child cw;
+    struct buffer rb;
+    struct buffer wb;
     struct avl_node avl;
+
+	int downfile;
+	struct upfile_info upfile;
 };
 
 static char login[128];       /* /bin/login */
 static char server_url[512];
 static bool auto_reconnect;
 static int ping_interval;
-static struct uloop_timeout reconnect_timer;
+static struct ev_timer reconnect_timer;
 static struct avl_tree tty_sessions;
 
 static void del_tty_session(struct tty_session *tty)
 {
+	ev_io_stop(tty->loop, &tty->ior);
+	ev_io_stop(tty->loop, &tty->iow);
+	ev_timer_stop(tty->loop, &tty->timer);
+	ev_child_stop(tty->loop, &tty->cw);
+
+	buffer_free(&tty->rb);
+	buffer_free(&tty->wb);
+
     avl_delete(&tty_sessions, &tty->avl);
-    uloop_timeout_cancel(&tty->timer);
-    uloop_process_delete(&tty->up);
-    ustream_free(&tty->sfd.stream);
+
     close(tty->pty);
     kill(tty->pid, SIGTERM);
     waitpid(tty->pid, NULL, 0);
@@ -88,28 +102,47 @@ static inline void del_tty_session_by_sid(const char *sid)
         del_tty_session(tty);
 }
 
-static void pty_read_cb(struct ustream *s, int bytes)
+static void pty_read_cb(struct ev_loop *loop, struct ev_io *w, int revents)
 {
-    struct tty_session *tty = container_of(s, struct tty_session, sfd.stream);
+    struct tty_session *tty = container_of(w, struct tty_session, ior);
     RttyMessage *msg = rtty_message_init(RTTY_MESSAGE__TYPE__TTY, tty->sid);
     struct uwsc_client *cl = tty->cl;
-    void *data;
+    struct buffer *rb = &cl->rb;
+    bool eof;
     int len;
 
-    data = ustream_get_read_buf(s, &len);
-    if (!data || len == 0)
+    len = buffer_put_fd(rb, w->fd, -1, &eof, NULL, NULL);
+    if (len <= 0) {
+		if (errno != EIO)
+	        uwsc_log_err("Read from pty failed: %s\n", strerror(errno));
         return;
+    }
 
-    rtty_message_set_data(msg, data, len);
-
+    rtty_message_set_data(msg, buffer_data(rb), buffer_length(rb));
     rtty_message_send(cl, msg);
 
-    ustream_consume(s, len);
+    buffer_pull(rb, NULL, buffer_length(rb));
 }
 
-static void pty_on_exit(struct uloop_process *p, int ret)
+static void pty_write_cb(struct ev_loop *loop, struct ev_io *w, int revents)
 {
-    struct tty_session *tty = container_of(p, struct tty_session, up);
+    struct tty_session *tty = container_of(w, struct tty_session, iow);
+    struct buffer *wb = &tty->wb;
+    int ret;
+
+    ret = buffer_pull_to_fd(wb, w->fd, buffer_length(wb), NULL, NULL);
+    if (ret < 0) {
+        uwsc_log_err("Write to pty failed: %s\n", strerror(errno));
+        return;
+    }
+
+    if (buffer_length(wb) < 1)
+        ev_io_stop(loop, w);
+}
+
+static void pty_on_exit(struct ev_loop *loop, struct ev_child *w, int revents)
+{
+    struct tty_session *tty = container_of(w, struct tty_session, cw);
     RttyMessage *msg = rtty_message_init(RTTY_MESSAGE__TYPE__LOGOUT, tty->sid);
 
     rtty_message_send(tty->cl, msg);
@@ -131,17 +164,21 @@ static void new_tty_session(struct uwsc_client *cl, RttyMessage *msg)
     if (pid == 0)
         execl(login, login, NULL);
 
+    s->cl = cl;
     s->pid = pid;
     s->pty = pty;
+    s->loop = cl->loop;
     strcpy(s->sid, msg->sid);
 
-    s->sfd.stream.notify_read = pty_read_cb;
-    ustream_fd_init(&s->sfd, s->pty);
+	fcntl(pty, F_SETFL, fcntl(pty, F_GETFL, 0) | O_NONBLOCK);
 
-    s->cl = cl;
-    s->up.pid = pid;
-    s->up.cb = pty_on_exit;
-    uloop_process_add(&s->up);
+    ev_io_init(&s->ior, pty_read_cb, pty, EV_READ);
+    ev_io_start(cl->loop, &s->ior);
+
+    ev_io_init(&s->iow, pty_write_cb, pty, EV_WRITE);
+
+    ev_child_init(&s->cw, pty_on_exit, pid, 0);
+    ev_child_start(cl->loop, &s->cw);
 
     s->avl.key = s->sid;
     avl_insert(&tty_sessions, &s->avl);
@@ -154,9 +191,11 @@ static void pty_write(RttyMessage *msg)
     struct tty_session *tty = find_tty_session(msg->sid);
     ProtobufCBinaryData *data = &msg->data;
 
-    if (tty && write(tty->pty, data->data, data->len) < 0) {
-        uwsc_log_err("write to pty error:%s\n", strerror(errno));
-    }
+	if (!tty)
+		return;
+
+	buffer_put_data(&tty->wb, data->data, data->len);
+	ev_io_start(tty->loop, &tty->iow);
 }
 
 static void handle_upfile(RttyMessage *msg)
@@ -291,9 +330,9 @@ done:
     }
 }
 
-static void send_file_cb(struct uloop_timeout *timer)
+static void send_file_cb(struct ev_loop *loop, struct ev_timer *w, int revents)
 {
-    struct tty_session *tty = container_of(timer, struct tty_session, timer);
+    struct tty_session *tty = container_of(w, struct tty_session, timer);
     RttyMessage *msg = rtty_message_init(RTTY_MESSAGE__TYPE__DOWNFILE, tty->sid);
 
     if (tty->downfile > 0) {
@@ -305,7 +344,7 @@ static void send_file_cb(struct uloop_timeout *timer)
             rtty_message_set_code(msg, RTTY_MESSAGE__FILE_CODE__FILEDATA);
             rtty_message_set_data(msg, buf, len);
 
-            uloop_timeout_set(timer, 5);
+            ev_timer_start(loop, w);
         } else {
             close(tty->downfile);
             tty->downfile = 0;
@@ -360,8 +399,8 @@ static void handle_downfile(struct uwsc_client *cl, RttyMessage *msg)
         }
 
         uwsc_log_info("Begin down file:%s %d\n", msg->name, st.st_size);
-        tty->timer.cb = send_file_cb;
-        send_file_cb(&tty->timer);
+        ev_timer_init(&tty->timer, send_file_cb, 5.0, 0.0);
+        send_file_cb(tty->loop, &tty->timer, 0);
     }
 }
 
@@ -377,9 +416,14 @@ static void change_winsize(RttyMessage *msg)
         uwsc_log_err("ioctl TIOCSWINSZ error\n");
 }
 
-static void uwsc_onmessage(struct uwsc_client *cl, void *data, uint64_t len, enum websocket_op op)
+static void uwsc_onmessage(struct uwsc_client *cl, void *data, size_t len, bool binary)
 {
-    RttyMessage *msg = rtty_message__unpack(NULL, len, data);
+    RttyMessage *msg;
+
+    if (!binary)
+        return;
+
+    msg = rtty_message__unpack(NULL, len, data);
 
     switch (msg->type) {
     case RTTY_MESSAGE__TYPE__LOGIN:
@@ -417,31 +461,32 @@ static void uwsc_onopen(struct uwsc_client *cl)
     cl->set_ping_interval(cl, ping_interval);
 }
 
-static void uwsc_onerror(struct uwsc_client *cl)
+static void uwsc_onerror(struct uwsc_client *cl, int err, const char *msg)
 {
-    uwsc_log_err("onerror:%d\n", cl->error);
+    uwsc_log_err("onerror:%d: %s\n", err, msg);
+    free(cl);
 }
 
-static void uwsc_onclose(struct uwsc_client *cl)
+static void uwsc_onclose(struct uwsc_client *cl, int code, const char *reason)
 {
     struct tty_session *tty, *tmp;
 
-    uwsc_log_err("onclose\n");
+    uwsc_log_err("onclose:%d: %s\n", code, reason);
 
     avl_for_each_element_safe(&tty_sessions, tty, avl, tmp)
         del_tty_session(tty);
 
-    cl->free(cl);
-
     if (auto_reconnect)
-        uloop_timeout_set(&reconnect_timer, RECONNECT_INTERVAL * 1000);
+        ev_timer_start(cl->loop, &reconnect_timer);
     else
-        uloop_end();
+        ev_break(cl->loop, EVBREAK_ALL);
+
+    free(cl);
 }
 
-static void do_connect(struct uloop_timeout *utm)
+static void do_connect(struct ev_loop *loop, struct ev_timer *w, int revents)
 {
-    struct uwsc_client *cl = uwsc_new_ssl(server_url, NULL, false);
+    struct uwsc_client *cl = uwsc_new_ssl_v2(server_url, NULL, false, loop);
     if (cl) {
         cl->onopen = uwsc_onopen;
         cl->onmessage = uwsc_onmessage;
@@ -450,10 +495,23 @@ static void do_connect(struct uloop_timeout *utm)
         return;
     }
 
-    if (uloop_cancelled || !auto_reconnect)
-        uloop_end();
+    if (!auto_reconnect)
+        ev_break(cl->loop, EVBREAK_ALL);
     else
-        uloop_timeout_set(&reconnect_timer, RECONNECT_INTERVAL * 1000);
+        ev_timer_start(loop, w);
+}
+
+static void signal_cb(struct ev_loop *loop, ev_signal *w, int revents)
+{
+    if (w->signum == SIGINT) {
+        ev_break(loop, EVBREAK_ALL);
+        uwsc_log_info("Normal quit\n");
+    }
+}
+
+static int avl_strcmp(const void *k1, const void *k2, void *ptr)
+{
+	return strcmp(k1, k2);
 }
 
 static void usage(const char *prog)
@@ -479,6 +537,8 @@ static void usage(const char *prog)
 int main(int argc, char **argv)
 {
     int opt;
+    struct ev_loop *loop = EV_DEFAULT;
+    struct ev_signal signal_watcher;
     char mac[13] = "";
     char devid[64] = "";
     const char *host = NULL;
@@ -572,19 +632,19 @@ int main(int argc, char **argv)
 
     avl_init(&tty_sessions, avl_strcmp, false, NULL);
 
-    uloop_init();
-
     snprintf(server_url, sizeof(server_url), "ws%s://%s:%d/ws?device=1&devid=%s&description=%s",
         ssl ? "s" : "", host, port, devid, description ? description : "");
     free(description);
 
-    reconnect_timer.cb = do_connect;
-    uloop_timeout_set(&reconnect_timer, 100);
+    ev_timer_init(&reconnect_timer, do_connect, RECONNECT_INTERVAL, 0.0);
+    do_connect(loop, &reconnect_timer, 0);
 
     command_init();
 
-    uloop_run();
-    uloop_done();
+    ev_signal_init(&signal_watcher, signal_cb, SIGINT);
+    ev_signal_start(loop, &signal_watcher);
+
+    ev_run(loop, 0);
     
     return 0;
 }
