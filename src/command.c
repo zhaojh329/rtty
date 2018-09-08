@@ -32,7 +32,7 @@
 #include "avl.h"
 #include "command.h"
 
-#define FILE_MAX_SIZE   (4096 * 64)
+#define MAX_RUNNING   5
 
 struct command {
 	struct avl_node avl;
@@ -47,6 +47,7 @@ struct command {
     char cmd[0];
 };
 
+static int nrunning;
 static struct avl_tree cmd_tree;
 
 static int avl_strcmp(const void *k1, const void *k2, void *ptr)
@@ -132,8 +133,6 @@ static void command_free(struct command *c)
 
     rtty_message__free_unpacked(c->msg, NULL);
 
-	avl_delete(&cmd_tree, &c->avl);
-
     free(c);
 }
 
@@ -169,6 +168,8 @@ static void command_reply(struct command *c, int err)
 	command_free(c);
 }
 
+static void do_run_command(struct command *c);
+
 static void ev_command_exit(struct ev_loop *loop, struct ev_child *w, int revents)
 {
 	struct command *c = container_of(w, struct command, cw);
@@ -176,6 +177,13 @@ static void ev_command_exit(struct ev_loop *loop, struct ev_child *w, int revent
 	c->code = WEXITSTATUS(w->rstatus);
 
 	command_reply(c, 0);
+
+	nrunning--;
+
+	if (!avl_is_empty(&cmd_tree) && avl_first_element(&cmd_tree, c, avl)) {
+		avl_delete(&cmd_tree, &c->avl);
+		do_run_command(c);
+	}
 }
 
 static void ev_io_stdout_cb(struct ev_loop *loop, struct ev_io *w, int revents)
@@ -194,7 +202,7 @@ static void ev_io_stderr_cb(struct ev_loop *loop, struct ev_io *w, int revents)
 	buffer_put_fd(&c->eb, w->fd, -1, &eof, NULL, NULL);
 }
 
-static void add_command(struct command *c)
+static void do_run_command(struct command *c)
 {
 	RttyMessage *msg = c->msg;
 	int opipe[2];
@@ -203,9 +211,6 @@ static void add_command(struct command *c)
 	char arglen;
     char **args;
 	int i;
-
-	c->avl.key = c->msg;
-	avl_insert(&cmd_tree, &c->avl);
 
 	if (pipe2(opipe, O_CLOEXEC | O_NONBLOCK) < 0 ||
 		pipe2(epipe, O_CLOEXEC | O_NONBLOCK) < 0) {
@@ -256,7 +261,19 @@ static void add_command(struct command *c)
 
 		ev_io_init(&c->ioe, ev_io_stderr_cb, epipe[0], EV_READ);
 		ev_io_start(c->ws->loop, &c->ioe);
+
+		nrunning++;
 		break;
+	}
+}
+
+static void add_command(struct command *c)
+{
+	if (nrunning < MAX_RUNNING) {
+		do_run_command(c);
+	} else {
+		c->avl.key = c->msg;
+		avl_insert(&cmd_tree, &c->avl);
 	}
 }
 
