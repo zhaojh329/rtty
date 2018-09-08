@@ -32,20 +32,20 @@
 #include "list.h"
 #include "command.h"
 
-#define MAX_RUNNING   	5
-#define EXEC_TIMEOUT	5
+#define MAX_RUNNING     5
+#define EXEC_TIMEOUT    5
 
 struct command {
-	struct list_head list;
+    struct list_head list;
     struct uwsc_client *ws;
-	struct ev_child cw;
-	struct ev_timer timer;
-	struct ev_io ioo;	/* Watch stdout of child */
-	struct ev_io ioe;	/* Watch stderr of child */
-	struct buffer ob;	/* buffer for stdout */
-	struct buffer eb;	/* buffer for stderr */
+    struct ev_child cw;
+    struct ev_timer timer;
+    struct ev_io ioo;   /* Watch stdout of child */
+    struct ev_io ioe;   /* Watch stderr of child */
+    struct buffer ob;   /* buffer for stdout */
+    struct buffer eb;   /* buffer for stderr */
     int code;   /* The exit code of the child */
-	RttyMessage *msg;
+    RttyMessage *msg;
     char cmd[0];
 };
 
@@ -110,18 +110,18 @@ static const char *cmd_lookup(const char *cmd)
 
 static void command_free(struct command *c)
 {
-	if (c->ioo.fd > 0)
-	    close(c->ioo.fd);
-	if (c->ioe.fd > 0)
-	    close(c->ioe.fd);
+    if (c->ioo.fd > 0)
+        close(c->ioo.fd);
+    if (c->ioe.fd > 0)
+        close(c->ioe.fd);
 
-	ev_timer_stop(c->ws->loop, &c->timer);
-	ev_io_stop(c->ws->loop, &c->ioo);
-	ev_io_stop(c->ws->loop, &c->ioe);
-	ev_child_stop(c->ws->loop, &c->cw);
+    ev_timer_stop(c->ws->loop, &c->timer);
+    ev_io_stop(c->ws->loop, &c->ioo);
+    ev_io_stop(c->ws->loop, &c->ioe);
+    ev_child_stop(c->ws->loop, &c->cw);
 
-	buffer_free(&c->ob);
-	buffer_free(&c->eb);
+    buffer_free(&c->ob);
+    buffer_free(&c->eb);
 
     rtty_message__free_unpacked(c->msg, NULL);
 
@@ -140,108 +140,108 @@ static void command_reply_error(struct uwsc_client *ws, int id, int err)
 
 static void command_reply(struct command *c, int err)
 {
-	RttyMessage *msg = rtty_message_init(RTTY_MESSAGE__TYPE__COMMAND, NULL);
+    RttyMessage *msg = rtty_message_init(RTTY_MESSAGE__TYPE__COMMAND, NULL);
 
-	rtty_message_set_id(msg, c->msg->id);
-	rtty_message_set_err(msg, err);
+    rtty_message_set_id(msg, c->msg->id);
+    rtty_message_set_err(msg, err);
 
-	if (err == RTTY_MESSAGE__COMMAND_ERR__NONE) {
-		rtty_message_set_code(msg, c->code);
+    if (err == RTTY_MESSAGE__COMMAND_ERR__NONE) {
+        rtty_message_set_code(msg, c->code);
 
-		buffer_put_zero(&c->ob, 1);
-		buffer_put_zero(&c->eb, 1);
+        buffer_put_zero(&c->ob, 1);
+        buffer_put_zero(&c->eb, 1);
 
-		msg->std_out = buffer_data(&c->ob);
-		msg->std_err = buffer_data(&c->eb);
-	}
+        msg->std_out = buffer_data(&c->ob);
+        msg->std_err = buffer_data(&c->eb);
+    }
 
-	rtty_message_send(c->ws, msg);
+    rtty_message_send(c->ws, msg);
 
-	command_free(c);
+    command_free(c);
 }
 
 static void do_run_command(struct command *c);
 
 static void ev_command_exit(struct ev_loop *loop, struct ev_child *w, int revents)
 {
-	struct command *c = container_of(w, struct command, cw);
+    struct command *c = container_of(w, struct command, cw);
 
-	c->code = WEXITSTATUS(w->rstatus);
+    c->code = WEXITSTATUS(w->rstatus);
 
-	command_reply(c, 0);
+    command_reply(c, 0);
 
-	nrunning--;
+    nrunning--;
 
-	if (list_empty(&cmd_pending))
-		return;
+    if (list_empty(&cmd_pending))
+        return;
 
-	c = list_first_entry(&cmd_pending, struct command, list);
-	if (c) {
-		list_del(&c->list);
-		do_run_command(c);
-	}
+    c = list_first_entry(&cmd_pending, struct command, list);
+    if (c) {
+        list_del(&c->list);
+        do_run_command(c);
+    }
 }
 
 static void ev_timer_cb(struct ev_loop *loop, struct ev_timer *w, int revents)
 {
-	struct command *c = container_of(w, struct command, timer);
+    struct command *c = container_of(w, struct command, timer);
 
-	uwsc_log_err("exec '%s' timeout\n", c->cmd);
+    uwsc_log_err("exec '%s' timeout\n", c->cmd);
 
-	command_reply_error(c->ws, c->msg->id, RTTY_MESSAGE__COMMAND_ERR__TIMEOUT);
-	command_free(c);
+    command_reply_error(c->ws, c->msg->id, RTTY_MESSAGE__COMMAND_ERR__TIMEOUT);
+    command_free(c);
 }
 
 static void ev_io_stdout_cb(struct ev_loop *loop, struct ev_io *w, int revents)
 {
-	struct command *c = container_of(w, struct command, ioo);
-	bool eof;
+    struct command *c = container_of(w, struct command, ioo);
+    bool eof;
 
-	buffer_put_fd(&c->ob, w->fd, -1, &eof, NULL, NULL);
+    buffer_put_fd(&c->ob, w->fd, -1, &eof, NULL, NULL);
 }
 
 static void ev_io_stderr_cb(struct ev_loop *loop, struct ev_io *w, int revents)
 {
-	struct command *c = container_of(w, struct command, ioe);
-	bool eof;
+    struct command *c = container_of(w, struct command, ioe);
+    bool eof;
 
-	buffer_put_fd(&c->eb, w->fd, -1, &eof, NULL, NULL);
+    buffer_put_fd(&c->eb, w->fd, -1, &eof, NULL, NULL);
 }
 
 static void do_run_command(struct command *c)
 {
-	RttyMessage *msg = c->msg;
-	int opipe[2];
+    RttyMessage *msg = c->msg;
+    int opipe[2];
     int epipe[2];
-	pid_t pid;
-	char arglen;
+    pid_t pid;
+    char arglen;
     char **args;
-	int i;
+    int i;
 
-	if (pipe2(opipe, O_CLOEXEC | O_NONBLOCK) < 0 ||
-		pipe2(epipe, O_CLOEXEC | O_NONBLOCK) < 0) {
-		uwsc_log_err("pipe2 failed: %s\n", strerror(errno));
-		command_reply_error(c->ws, msg->id, RTTY_MESSAGE__COMMAND_ERR__SYSCALL);
-		command_free(c);
-		return;
-	}
+    if (pipe2(opipe, O_CLOEXEC | O_NONBLOCK) < 0 ||
+        pipe2(epipe, O_CLOEXEC | O_NONBLOCK) < 0) {
+        uwsc_log_err("pipe2 failed: %s\n", strerror(errno));
+        command_reply_error(c->ws, msg->id, RTTY_MESSAGE__COMMAND_ERR__SYSCALL);
+        command_free(c);
+        return;
+    }
 
-	pid = fork();
-	switch (pid) {
-	case -1:
-		uwsc_log_err("fork: %s\n", strerror(errno));
-		command_reply_error(c->ws, msg->id, RTTY_MESSAGE__COMMAND_ERR__SYSCALL);
-		command_free(c);
-		break;
-	case 0:
-		/* Close unused read end */
-		close(opipe[0]);
-		close(epipe[0]);
+    pid = fork();
+    switch (pid) {
+    case -1:
+        uwsc_log_err("fork: %s\n", strerror(errno));
+        command_reply_error(c->ws, msg->id, RTTY_MESSAGE__COMMAND_ERR__SYSCALL);
+        command_free(c);
+        break;
+    case 0:
+        /* Close unused read end */
+        close(opipe[0]);
+        close(epipe[0]);
 
-		dup2(opipe[1], 1);
-		dup2(epipe[1], 2);
+        dup2(opipe[1], 1);
+        dup2(epipe[1], 2);
 
-		arglen = 2 + msg->n_params;
+        arglen = 2 + msg->n_params;
         args = calloc(1, sizeof(char *) * arglen);
         if (!args)
             return;
@@ -255,37 +255,37 @@ static void do_run_command(struct command *c)
             setenv(msg->env[i]->key, msg->env[i]->value, 1);
 
         execv(c->cmd, args);
-		break;
-	default:
-		/* Close unused write end */
-		close(opipe[1]);
-		close(epipe[1]);
+        break;
+    default:
+        /* Close unused write end */
+        close(opipe[1]);
+        close(epipe[1]);
 
-		/* Watch child's status */
-		ev_child_init(&c->cw, ev_command_exit, pid, 0);
-		ev_child_start(c->ws->loop, &c->cw);
+        /* Watch child's status */
+        ev_child_init(&c->cw, ev_command_exit, pid, 0);
+        ev_child_start(c->ws->loop, &c->cw);
 
-		ev_io_init(&c->ioo, ev_io_stdout_cb, opipe[0], EV_READ);
-		ev_io_start(c->ws->loop, &c->ioo);
+        ev_io_init(&c->ioo, ev_io_stdout_cb, opipe[0], EV_READ);
+        ev_io_start(c->ws->loop, &c->ioo);
 
-		ev_io_init(&c->ioe, ev_io_stderr_cb, epipe[0], EV_READ);
-		ev_io_start(c->ws->loop, &c->ioe);
+        ev_io_init(&c->ioe, ev_io_stderr_cb, epipe[0], EV_READ);
+        ev_io_start(c->ws->loop, &c->ioe);
 
-		ev_timer_init(&c->timer, ev_timer_cb, EXEC_TIMEOUT, 0);
-		ev_timer_start(c->ws->loop, &c->timer);
+        ev_timer_init(&c->timer, ev_timer_cb, EXEC_TIMEOUT, 0);
+        ev_timer_start(c->ws->loop, &c->timer);
 
-		nrunning++;
-		break;
-	}
+        nrunning++;
+        break;
+    }
 }
 
 static void add_command(struct command *c)
 {
-	if (nrunning < MAX_RUNNING) {
-		do_run_command(c);
-	} else {
-		list_add_tail(&c->list, &cmd_pending);
-	}
+    if (nrunning < MAX_RUNNING) {
+        do_run_command(c);
+    } else {
+        list_add_tail(&c->list, &cmd_pending);
+    }
 }
 
 void run_command(struct uwsc_client *ws, RttyMessage *msg, void *data, uint32_t len)
@@ -315,5 +315,5 @@ void run_command(struct uwsc_client *ws, RttyMessage *msg, void *data, uint32_t 
 
     c->msg = rtty_message__unpack(NULL, len, data);
 
-	add_command(c);
+    add_command(c);
 }

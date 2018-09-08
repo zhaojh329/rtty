@@ -54,7 +54,7 @@ int rtty_message_file_init(RttyMessage__File **file, const char *name,
 
     rtty_message__file__init(n_file);
 
-	name_buf = (char *)n_file + sizeof(RttyMessage__File);
+    name_buf = (char *)n_file + sizeof(RttyMessage__File);
     n_file->name = strcpy(name_buf, name);
 
     n_file->has_dir = true;

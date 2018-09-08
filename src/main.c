@@ -57,8 +57,8 @@ struct tty_session {
     struct buffer wb;
     struct avl_node avl;
 
-	int downfile;
-	struct upfile_info upfile;
+    int downfile;
+    struct upfile_info upfile;
 };
 
 static char login[128];       /* /bin/login */
@@ -70,13 +70,13 @@ static struct avl_tree tty_sessions;
 
 static void del_tty_session(struct tty_session *tty)
 {
-	ev_io_stop(tty->loop, &tty->ior);
-	ev_io_stop(tty->loop, &tty->iow);
-	ev_timer_stop(tty->loop, &tty->timer);
-	ev_child_stop(tty->loop, &tty->cw);
+    ev_io_stop(tty->loop, &tty->ior);
+    ev_io_stop(tty->loop, &tty->iow);
+    ev_timer_stop(tty->loop, &tty->timer);
+    ev_child_stop(tty->loop, &tty->cw);
 
-	buffer_free(&tty->rb);
-	buffer_free(&tty->wb);
+    buffer_free(&tty->rb);
+    buffer_free(&tty->wb);
 
     avl_delete(&tty_sessions, &tty->avl);
 
@@ -113,8 +113,8 @@ static void pty_read_cb(struct ev_loop *loop, struct ev_io *w, int revents)
 
     len = buffer_put_fd(rb, w->fd, -1, &eof, NULL, NULL);
     if (len <= 0) {
-		if (errno != EIO)
-	        uwsc_log_err("Read from pty failed: %s\n", strerror(errno));
+        if (errno != EIO)
+            uwsc_log_err("Read from pty failed: %s\n", strerror(errno));
         return;
     }
 
@@ -170,7 +170,7 @@ static void new_tty_session(struct uwsc_client *cl, RttyMessage *msg)
     s->loop = cl->loop;
     strcpy(s->sid, msg->sid);
 
-	fcntl(pty, F_SETFL, fcntl(pty, F_GETFL, 0) | O_NONBLOCK);
+    fcntl(pty, F_SETFL, fcntl(pty, F_GETFL, 0) | O_NONBLOCK);
 
     ev_io_init(&s->ior, pty_read_cb, pty, EV_READ);
     ev_io_start(cl->loop, &s->ior);
@@ -191,11 +191,11 @@ static void pty_write(RttyMessage *msg)
     struct tty_session *tty = find_tty_session(msg->sid);
     ProtobufCBinaryData *data = &msg->data;
 
-	if (!tty)
-		return;
+    if (!tty)
+        return;
 
-	buffer_put_data(&tty->wb, data->data, data->len);
-	ev_io_start(tty->loop, &tty->iow);
+    buffer_put_data(&tty->wb, data->data, data->len);
+    ev_io_start(tty->loop, &tty->iow);
 }
 
 static void handle_upfile(RttyMessage *msg)
@@ -509,7 +509,7 @@ static void signal_cb(struct ev_loop *loop, ev_signal *w, int revents)
 
 static int avl_strcmp(const void *k1, const void *k2, void *ptr)
 {
-	return strcmp(k1, k2);
+    return strcmp(k1, k2);
 }
 
 static void usage(const char *prog)
@@ -616,7 +616,7 @@ int main(int argc, char **argv)
         usage(argv[0]);
     }
 
-	uwsc_log_info("libuwsc version %s\n", UWSC_VERSION_STRING);
+    uwsc_log_info("libuwsc version %s\n", UWSC_VERSION_STRING);
     uwsc_log_info("rtty version %s\n", RTTY_VERSION_STRING);
 
     if (getuid() > 0) {
