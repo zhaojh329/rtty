@@ -456,9 +456,7 @@ static void uwsc_onmessage(struct uwsc_client *cl, void *data, size_t len, bool 
 
 static void uwsc_onopen(struct uwsc_client *cl)
 {
-    uwsc_log_info("onopen\n");
-
-    cl->set_ping_interval(cl, ping_interval);
+    uwsc_log_info("Connect to server succeed\n");
 }
 
 static void uwsc_onerror(struct uwsc_client *cl, int err, const char *msg)
@@ -486,7 +484,7 @@ static void uwsc_onclose(struct uwsc_client *cl, int code, const char *reason)
 
 static void do_connect(struct ev_loop *loop, struct ev_timer *w, int revents)
 {
-    struct uwsc_client *cl = uwsc_new_ssl_v2(server_url, NULL, false, loop);
+    struct uwsc_client *cl = uwsc_new(loop, server_url, ping_interval);
     if (cl) {
         cl->onopen = uwsc_onopen;
         cl->onmessage = uwsc_onmessage;
@@ -618,6 +616,7 @@ int main(int argc, char **argv)
         usage(argv[0]);
     }
 
+	uwsc_log_info("libuwsc version %s\n", UWSC_VERSION_STRING);
     uwsc_log_info("rtty version %s\n", RTTY_VERSION_STRING);
 
     if (getuid() > 0) {
