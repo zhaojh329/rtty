@@ -117,12 +117,7 @@ check_tool git
 check_tool quilt
 
 check_lib_header ev.h > /dev/null || $INSTALL $PKG_LIBEV
-
-LIBSSL_INCLUDE=$(check_lib_header opensslv.h)
-[ -n "$LIBSSL_INCLUDE" ] || {
-	$INSTALL $PKG_SSL
-	LIBSSL_INCLUDE=$(check_lib_header opensslv.h)
-}
+check_lib_header ssl.h openssl > /dev/null || $INSTALL $PKG_SSL
 
 PBC_INCLUDE=$(check_lib_header protobuf-c.h)
 [ -n "$PBC_INCLUDE" ] || {
