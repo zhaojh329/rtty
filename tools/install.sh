@@ -105,7 +105,7 @@ detect_pkg_tool || {
 	exit 1
 }
 
-$UPDATE
+#$UPDATE
 
 [ "$LSB_ID" = "centos" ] && $INSTALL epel-release
 
