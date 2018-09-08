@@ -32,12 +32,14 @@
 #include "list.h"
 #include "command.h"
 
-#define MAX_RUNNING   5
+#define MAX_RUNNING   	5
+#define EXEC_TIMEOUT	5
 
 struct command {
 	struct list_head list;
     struct uwsc_client *ws;
 	struct ev_child cw;
+	struct ev_timer timer;
 	struct ev_io ioo;	/* Watch stdout of child */
 	struct ev_io ioe;	/* Watch stderr of child */
 	struct buffer ob;	/* buffer for stdout */
@@ -108,9 +110,12 @@ static const char *cmd_lookup(const char *cmd)
 
 static void command_free(struct command *c)
 {
-    close(c->ioo.fd);
-    close(c->ioe.fd);
+	if (c->ioo.fd > 0)
+	    close(c->ioo.fd);
+	if (c->ioe.fd > 0)
+	    close(c->ioe.fd);
 
+	ev_timer_stop(c->ws->loop, &c->timer);
 	ev_io_stop(c->ws->loop, &c->ioo);
 	ev_io_stop(c->ws->loop, &c->ioe);
 	ev_child_stop(c->ws->loop, &c->cw);
@@ -175,6 +180,16 @@ static void ev_command_exit(struct ev_loop *loop, struct ev_child *w, int revent
 		list_del(&c->list);
 		do_run_command(c);
 	}
+}
+
+static void ev_timer_cb(struct ev_loop *loop, struct ev_timer *w, int revents)
+{
+	struct command *c = container_of(w, struct command, timer);
+
+	uwsc_log_err("exec '%s' timeout\n", c->cmd);
+
+	command_reply_error(c->ws, c->msg->id, RTTY_MESSAGE__COMMAND_ERR__TIMEOUT);
+	command_free(c);
 }
 
 static void ev_io_stdout_cb(struct ev_loop *loop, struct ev_io *w, int revents)
@@ -253,6 +268,9 @@ static void do_run_command(struct command *c)
 
 		ev_io_init(&c->ioe, ev_io_stderr_cb, epipe[0], EV_READ);
 		ev_io_start(c->ws->loop, &c->ioe);
+
+		ev_timer_init(&c->timer, ev_timer_cb, EXEC_TIMEOUT, 0);
+		ev_timer_start(c->ws->loop, &c->timer);
 
 		nrunning++;
 		break;
