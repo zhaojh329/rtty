@@ -222,6 +222,7 @@ static void do_run_command(struct command *c)
 		pipe2(epipe, O_CLOEXEC | O_NONBLOCK) < 0) {
 		uwsc_log_err("pipe2 failed: %s\n", strerror(errno));
 		command_reply_error(c->ws, msg->id, RTTY_MESSAGE__COMMAND_ERR__SYSCALL);
+		command_free(c);
 		return;
 	}
 
@@ -230,6 +231,7 @@ static void do_run_command(struct command *c)
 	case -1:
 		uwsc_log_err("fork: %s\n", strerror(errno));
 		command_reply_error(c->ws, msg->id, RTTY_MESSAGE__COMMAND_ERR__SYSCALL);
+		command_free(c);
 		break;
 	case 0:
 		/* Close unused read end */
