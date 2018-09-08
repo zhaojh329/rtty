@@ -1,8 +1,8 @@
 add_definitions(-O -Wall -Werror --std=gnu99 -D_GNU_SOURCE)
 
 # The version number.
-set(RTTY_VERSION_MAJOR 5)
-set(RTTY_VERSION_MINOR 1)
+set(RTTY_VERSION_MAJOR 6)
+set(RTTY_VERSION_MINOR 0)
 set(RTTY_VERSION_PATCH 0)
 
 # Check the third party Libraries
