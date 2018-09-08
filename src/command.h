@@ -24,7 +24,6 @@
 
 #include "message.h"
 
-void command_init();
 void run_command(struct uwsc_client *ws, RttyMessage *msg, void *data, uint32_t len);
 struct blob_buf *make_command_reply(uint32_t id, int err);
 void send_command_reply(struct blob_buf *buf, struct uwsc_client *ws);

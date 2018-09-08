@@ -638,8 +638,6 @@ int main(int argc, char **argv)
     ev_timer_init(&reconnect_timer, do_connect, RECONNECT_INTERVAL, 0.0);
     do_connect(loop, &reconnect_timer, 0);
 
-    command_init();
-
     ev_signal_init(&signal_watcher, signal_cb, SIGINT);
     ev_signal_start(loop, &signal_watcher);
 

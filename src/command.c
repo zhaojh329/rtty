@@ -29,13 +29,13 @@
 #include <sys/wait.h>
 #include <uwsc/log.h>
 
-#include "avl.h"
+#include "list.h"
 #include "command.h"
 
 #define MAX_RUNNING   5
 
 struct command {
-	struct avl_node avl;
+	struct list_head list;
     struct uwsc_client *ws;
 	struct ev_child cw;
 	struct ev_io ioo;	/* Watch stdout of child */
@@ -48,20 +48,7 @@ struct command {
 };
 
 static int nrunning;
-static struct avl_tree cmd_tree;
-
-static int avl_strcmp(const void *k1, const void *k2, void *ptr)
-{
-	const RttyMessage *msg1 = k1;
-	const RttyMessage *msg2 = k2;
-
-	return msg1->id - msg2->id;
-}
-
-void command_init()
-{
-	avl_init(&cmd_tree, avl_strcmp, false, NULL);
-}
+static LIST_HEAD(cmd_pending);
 
 /* For execute command */
 static bool login_test(const char *username, const char *password)
@@ -180,8 +167,12 @@ static void ev_command_exit(struct ev_loop *loop, struct ev_child *w, int revent
 
 	nrunning--;
 
-	if (!avl_is_empty(&cmd_tree) && avl_first_element(&cmd_tree, c, avl)) {
-		avl_delete(&cmd_tree, &c->avl);
+	if (list_empty(&cmd_pending))
+		return;
+
+	c = list_first_entry(&cmd_pending, struct command, list);
+	if (c) {
+		list_del(&c->list);
 		do_run_command(c);
 	}
 }
@@ -223,6 +214,7 @@ static void do_run_command(struct command *c)
 	switch (pid) {
 	case -1:
 		uwsc_log_err("fork: %s\n", strerror(errno));
+		command_reply_error(c->ws, msg->id, RTTY_MESSAGE__COMMAND_ERR__SYSCALL);
 		break;
 	case 0:
 		/* Close unused read end */
@@ -272,8 +264,7 @@ static void add_command(struct command *c)
 	if (nrunning < MAX_RUNNING) {
 		do_run_command(c);
 	} else {
-		c->avl.key = c->msg;
-		avl_insert(&cmd_tree, &c->avl);
+		list_add_tail(&c->list, &cmd_pending);
 	}
 }
 
