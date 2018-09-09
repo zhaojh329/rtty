@@ -12,7 +12,6 @@ PKG_VERSION:=3.0.2
 PKG_RELEASE:=2
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
-PKG_SOURCE_SUBDIR:=$(PKG_NAME)-$(PKG_VERSION)
 PKG_SOURCE_VERSION:=v$(PKG_VERSION)
 PKG_SOURCE_URL=https://codeload.github.com/zhaojh329/libuwsc/tar.gz/v$(PKG_VERSION)?
 PKG_HASH:=b4f7bb75224983db595c188f8e5701b325c87cbc49efb288d88e098a79935a8d
@@ -36,39 +35,39 @@ define Package/libuwsc/default
   DEPENDS:=+libev
 endef
 
-define Package/libuwsc-cyassl
-  $(Package/libuwsc/default)
-  TITLE += (cyassl)
-  DEPENDS += +libcyassl
-  VARIANT:=cyassl
-  CONFLICTS:=libuwsc-mbedtls libuwsc-nossl libuwsc-openssl
-endef
-
 define Package/libuwsc-mbedtls
   $(Package/libuwsc/default)
+  VARIANT:=mbedtls
   TITLE += (mbedtls)
   DEPENDS += +libmbedtls
-  VARIANT:=mbedtls
-  CONFLICTS:=libuwsc-nossl libuwsc-openssl
+  CONFLICTS:=libuwsc-nossl libuwsc-openssl libuwsc-wolfssl
 endef
 
 define Package/libuwsc-nossl
   $(Package/libuwsc/default)
-  TITLE += (NO SSL)
   VARIANT:=nossl
-  CONFLICTS:=libuwsc-openssl
+  TITLE += (NO SSL)
+  CONFLICTS:=libuwsc-openssl libuwsc-wolfssl
 endef
 
 define Package/libuwsc-openssl
   $(Package/libuwsc/default)
   TITLE += (openssl)
-  DEPENDS += +libopenssl
   VARIANT:=openssl
+  DEPENDS += +libopenssl
+  CONFLICTS:=libuwsc-wolfssl
+endef
+
+define Package/libuwsc-wolfssl
+  $(Package/libuwsc/default)
+  TITLE += (wolfssl)
+  VARIANT:=wolfssl
+  DEPENDS += +libwolfssl
 endef
 
 ifeq ($(BUILD_VARIANT),openssl)
   CMAKE_OPTIONS += -DUWSC_USE_OPENSSL=ON
-else ifeq ($(BUILD_VARIANT),cyassl)
+else ifeq ($(BUILD_VARIANT),wolfssl)
   CMAKE_OPTIONS += -DUWSC_USE_WOLFSSL=ON
 else ifeq ($(BUILD_VARIANT),mbedtls)
   CMAKE_OPTIONS += -DUWSC_USE_MBEDTLS=ON
@@ -83,10 +82,10 @@ endef
 
 Package/libuwsc-nossl/install = $(Package/libuwsc/default/install)
 Package/libuwsc-openssl/install = $(Package/libuwsc/default/install)
-Package/libuwsc-cyassl/install = $(Package/libuwsc/default/install)
+Package/libuwsc-wolfssl/install = $(Package/libuwsc/default/install)
 Package/libuwsc-mbedtls/install = $(Package/libuwsc/default/install)
 
 $(eval $(call BuildPackage,libuwsc-nossl))
 $(eval $(call BuildPackage,libuwsc-mbedtls))
-$(eval $(call BuildPackage,libuwsc-cyassl))
+$(eval $(call BuildPackage,libuwsc-wolfssl))
 $(eval $(call BuildPackage,libuwsc-openssl))

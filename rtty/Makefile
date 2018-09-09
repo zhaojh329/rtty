@@ -12,7 +12,6 @@ PKG_VERSION:=6.0.0
 PKG_RELEASE:=2
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
-PKG_SOURCE_SUBDIR:=$(PKG_NAME)-$(PKG_VERSION)
 PKG_SOURCE_VERSION:=v$(PKG_VERSION)
 PKG_SOURCE_URL=https://codeload.github.com/zhaojh329/rtty/tar.gz/v$(PKG_VERSION)?
 PKG_HASH:=e99af81525bf2597cf71b79955a81e694633eec2785964b2338b5fbd32ba0139
@@ -33,19 +32,11 @@ define Package/rtty/default
   CATEGORY:=Utilities
   SUBMENU:=Terminal
   TITLE:=A reverse proxy WebTTY
-  DEPENDS:=+libprotobuf-c +@BUSYBOX_CUSTOM +@BUSYBOX_CONFIG_LOGIN
+  DEPENDS:=+libprotobuf-c
 endef
 
 define Package/rtty/default/description
 A reverse proxy WebTTY. This is the client part running on devices to be managed.
-endef
-
-define Package/rtty-cyassl
-  $(Package/rtty/default)
-  TITLE += (cyassl)
-  DEPENDS += +libuwsc-cyassl
-  VARIANT:=cyassl
-  CONFLICTS:=rtty-mbedtls rtty-nossl rtty-openssl
 endef
 
 define Package/rtty-mbedtls
@@ -53,7 +44,7 @@ define Package/rtty-mbedtls
   TITLE += (mbedtls)
   DEPENDS += +libuwsc-mbedtls
   VARIANT:=mbedtls
-  CONFLICTS:=rtty-nossl rtty-openssl
+  CONFLICTS:=rtty-nossl rtty-openssl rtty-wolfssl
 endef
 
 define Package/rtty-nossl
@@ -61,7 +52,7 @@ define Package/rtty-nossl
   TITLE += (NO SSL)
   DEPENDS += +libuwsc-nossl
   VARIANT:=nossl
-  CONFLICTS:=rtty-openssl
+  CONFLICTS:=rtty-openssl rtty-wolfssl
 endef
 
 define Package/rtty-openssl
@@ -69,11 +60,19 @@ define Package/rtty-openssl
   TITLE += (openssl)
   DEPENDS += +libuwsc-openssl
   VARIANT:=openssl
+  CONFLICTS:=rtty-wolfssl
+endef
+
+define Package/rtty-wolfssl
+  $(Package/rtty/default)
+  TITLE += (wolfssl)
+  DEPENDS += +libuwsc-wolfssl
+  VARIANT:=wolfssl
 endef
 
 Package/rtty-nossl/description = $(Package/rtty/default/description)
 Package/rtty-openssl/description = $(Package/rtty/default/description)
-Package/rtty-cyassl/description = $(Package/rtty/default/description)
+Package/rtty-wolfssl/description = $(Package/rtty/default/description)
 Package/rtty-mbedtls/description = $(Package/rtty/default/description)
 
 define Package/rtty/default/install
@@ -85,10 +84,10 @@ endef
 
 Package/rtty-nossl/install = $(Package/rtty/default/install)
 Package/rtty-openssl/install = $(Package/rtty/default/install)
-Package/rtty-cyassl/install = $(Package/rtty/default/install)
+Package/rtty-wolfssl/install = $(Package/rtty/default/install)
 Package/rtty-mbedtls/install = $(Package/rtty/default/install)
 
 $(eval $(call BuildPackage,rtty-nossl))
 $(eval $(call BuildPackage,rtty-mbedtls))
-$(eval $(call BuildPackage,rtty-cyassl))
+$(eval $(call BuildPackage,rtty-wolfssl))
 $(eval $(call BuildPackage,rtty-openssl))
