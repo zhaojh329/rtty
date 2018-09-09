@@ -20,11 +20,11 @@ Select rtty in menuconfig and compile new image
 	        < > rtty-openssl............................ A reverse proxy WebTTY (openssl)
 	        < > rtty-wolfssl............................ A reverse proxy WebTTY (wolfssl)
 
-## [For Openwrt 14.04](https://github.com/zhaojh329/rtty/blob/openwrt-14.04/README.md)
-
-## [For Openwrt 15.05](https://github.com/zhaojh329/rtty/blob/openwrt-15.05/README.md)
+## [For Openwrt 14.04 and 15.05](https://github.com/zhaojh329/rtty/blob/openwrt-14-15/README.md)
 
 ## [For Lede](https://github.com/zhaojh329/rtty/blob/openwrt-lede/README.md)
+
+## [For openwrt 18 and later](https://github.com/zhaojh329/rtty/blob/openwrt-18/README.md)
 
 # Configure
 Configuring the server parameter

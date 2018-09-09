@@ -20,11 +20,11 @@
             < > rtty-openssl............................ A reverse proxy WebTTY (openssl)
             < > rtty-wolfssl............................ A reverse proxy WebTTY (wolfssl)
 
-## [Openwrt 14.04](https://github.com/zhaojh329/rtty/blob/openwrt-14.04/README.md)
-
-## [Openwrt 15.05](https://github.com/zhaojh329/rtty/blob/openwrt-15.05/README.md)
+## [Openwrt 14.04 和 openwrt-15.05](https://github.com/zhaojh329/rtty/blob/openwrt-14-15/README.md)
 
 ## [Lede](https://github.com/zhaojh329/rtty/blob/openwrt-lede/README.md)
+
+## [openwrt-18 及更新版本](https://github.com/zhaojh329/rtty/blob/openwrt-18/README.md)
 
 # 配置
 配置服务器参数
