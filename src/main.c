@@ -36,6 +36,9 @@
 
 #define RECONNECT_INTERVAL  5
 
+/* Related to server check keep-alive mechanism */
+#define PING_INTERVAL		5
+
 struct upfile_info {
     int fd;
     int size;
@@ -64,7 +67,6 @@ struct tty_session {
 static char login[128];       /* /bin/login */
 static char server_url[512];
 static bool auto_reconnect;
-static int ping_interval;
 static struct ev_timer reconnect_timer;
 static struct avl_tree tty_sessions;
 
@@ -484,7 +486,7 @@ static void uwsc_onclose(struct uwsc_client *cl, int code, const char *reason)
 
 static void do_connect(struct ev_loop *loop, struct ev_timer *w, int revents)
 {
-    struct uwsc_client *cl = uwsc_new(loop, server_url, ping_interval);
+    struct uwsc_client *cl = uwsc_new(loop, server_url, PING_INTERVAL);
     if (cl) {
         cl->onopen = uwsc_onopen;
         cl->onmessage = uwsc_onmessage;
@@ -522,7 +524,6 @@ static void usage(const char *prog)
         "                          it will cover the MAC address(if you have specify the ifname)\n"
         "      -h host      # Server host\n"
         "      -p port      # Server port\n"
-        "      -P interval  # Set ping interval(s)\n"
         "      -a           # Auto reconnect to the server\n"
         "      -v           # verbose\n"
         "      -d           # Adding a description to the device(Maximum 126 bytes)\n"
@@ -545,7 +546,7 @@ int main(int argc, char **argv)
     bool verbose = false;
     bool ssl = false;
 
-    while ((opt = getopt(argc, argv, "i:h:p:I:avd:sP:V")) != -1) {
+    while ((opt = getopt(argc, argv, "i:h:p:I:avd:sV")) != -1) {
         switch (opt)
         {
         case 'i':
@@ -558,9 +559,6 @@ int main(int argc, char **argv)
             break;
         case 'p':
             port = atoi(optarg);
-            break;
-        case 'P':
-            ping_interval = atoi(optarg);
             break;
         case 'I':
             strncpy(devid, optarg, sizeof(devid) - 1);
