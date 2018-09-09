@@ -7,15 +7,15 @@
 
 include $(TOPDIR)/rules.mk
 
-PKG_NAME:=libprotobuf-c
-PKG_VERSION:=v1.2.1
-PKG_RELEASE:=$(PKG_SOURCE_VERSION)
+PKG_NAME:=protobuf-c
+PKG_VERSION:=1.3.1
+PKG_RELEASE:=1
 
-PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.bz2
-PKG_SOURCE_SUBDIR:=$(PKG_NAME)-$(PKG_VERSION)
-PKG_SOURCE_URL:=git://github.com/protobuf-c/protobuf-c.git
-PKG_SOURCE_PROTO:=git
-PKG_SOURCE_VERSION:=$(PKG_VERSION)
+PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
+PKG_SOURCE_VERSION:=v$(PKG_VERSION)
+PKG_SOURCE_URL=https://codeload.github.com/protobuf-c/protobuf-c/tar.gz/v$(PKG_VERSION)?
+PKG_HASH:=5eeec797d7ff1d4b1e507925a1780fad5dd8dd11163203d8832e5a9f20a79b08
+CMAKE_INSTALL:=1
 
 PKG_INSTALL:=1
 PKG_FIXUP:=autoreconf
