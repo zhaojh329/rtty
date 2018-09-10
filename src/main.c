@@ -464,7 +464,13 @@ static void uwsc_onopen(struct uwsc_client *cl)
 static void uwsc_onerror(struct uwsc_client *cl, int err, const char *msg)
 {
     uwsc_log_err("onerror:%d: %s\n", err, msg);
+
     free(cl);
+
+	if (auto_reconnect)
+        ev_timer_again(cl->loop, &reconnect_timer);
+    else
+        ev_break(cl->loop, EVBREAK_ALL);
 }
 
 static void uwsc_onclose(struct uwsc_client *cl, int code, const char *reason)
@@ -476,12 +482,12 @@ static void uwsc_onclose(struct uwsc_client *cl, int code, const char *reason)
     avl_for_each_element_safe(&tty_sessions, tty, avl, tmp)
         del_tty_session(tty);
 
+    free(cl);
+
     if (auto_reconnect)
-        ev_timer_start(cl->loop, &reconnect_timer);
+        ev_timer_again(cl->loop, &reconnect_timer);
     else
         ev_break(cl->loop, EVBREAK_ALL);
-
-    free(cl);
 }
 
 static void do_connect(struct ev_loop *loop, struct ev_timer *w, int revents)
@@ -492,13 +498,12 @@ static void do_connect(struct ev_loop *loop, struct ev_timer *w, int revents)
         cl->onmessage = uwsc_onmessage;
         cl->onerror = uwsc_onerror;
         cl->onclose = uwsc_onclose;
+        ev_timer_stop(cl->loop, &reconnect_timer);
         return;
     }
 
     if (!auto_reconnect)
-        ev_break(cl->loop, EVBREAK_ALL);
-    else
-        ev_timer_start(loop, w);
+   	    ev_break(cl->loop, EVBREAK_ALL);
 }
 
 static void signal_cb(struct ev_loop *loop, ev_signal *w, int revents)
@@ -633,8 +638,8 @@ int main(int argc, char **argv)
         ssl ? "s" : "", host, port, devid, description ? description : "");
     free(description);
 
-    ev_timer_init(&reconnect_timer, do_connect, RECONNECT_INTERVAL, 0.0);
-    do_connect(loop, &reconnect_timer, 0);
+    ev_timer_init(&reconnect_timer, do_connect, 0.0, RECONNECT_INTERVAL);
+	ev_timer_start(loop, &reconnect_timer);
 
     ev_signal_init(&signal_watcher, signal_cb, SIGINT);
     ev_signal_start(loop, &signal_watcher);
