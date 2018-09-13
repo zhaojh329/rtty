@@ -27,7 +27,7 @@
 [iview]: https://github.com/iview/iview
 [protobuf-c]: https://github.com/protobuf-c/protobuf-c
 
-根据您的终端的macaddr，通过Web访问您的处在NAT或防火墙里面的终端。
+根据您的终端的MAC地址，通过Web访问您的处在NAT或防火墙里面的终端。
 
 它由客户端和[服务端](https://github.com/zhaojh329/rttys)组成。服务端采用GO语言实现，
 以及使用了[vue]+[iview]。你可以基于你设置的设备ID（不设置则为设备的MAC地址）通过Web浏览器访问你的任意一台终端。
