@@ -26,29 +26,27 @@
 [vue]: https://github.com/vuejs/vue
 [iview]: https://github.com/iview/iview
 [protobuf-c]: https://github.com/protobuf-c/protobuf-c
+[server]: https://github.com/zhaojh329/rttys
 
-Access your terminal behind a NAT or firewall over the web based on your terminal's macaddr.
+It is composed of a client and a [server]. The [server] is written in go language and the front-end interface
+is written in [iview] & [Vue].
 
-It is composed of the client and the [server](https://github.com/zhaojh329/rttys). The server is written in go
-language and uses the [vue]+[iview]. You can access any of your terminals through a web browser based on the
-device ID you set(If the ID is not set, the MAC address of the device is used).
+You can access your terminals from anywhere via the web. Differentiate your different terminals by device ID(If
+the ID is not set, the MAC address of your device is used).
 
 rtty is very suitable for remote maintenance your or your company's thousands of Linux devices deployed around
 the world.
 
-**Keep Watching for More Actions on This Space**
-
-**For your security, it is strongly recommended that you use SSL**
-
 # Features
 * Simple to deployment and easy to use
-* Reverse Proxy
-* Connect your device according to the ID you set up
+* Access different devices based on device ID
+* Provide a dashboard to visualize online devices
 * Fully-featured terminal based on [Xterm.js]
 * SSL support: openssl, mbedtls, CyaSSl(wolfssl)
 * Support upload file to device
 * Support download file from devices
 * Support Execute a command remote
+* The client written in pure C, suitable for embedded Linux
 * Cross platform: Linux, OpenWrt/LEDE
 
 ![](/rtty.svg)

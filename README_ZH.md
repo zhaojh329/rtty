@@ -26,27 +26,24 @@
 [vue]: https://github.com/vuejs/vue
 [iview]: https://github.com/iview/iview
 [protobuf-c]: https://github.com/protobuf-c/protobuf-c
+[服务端]: https://github.com/zhaojh329/rttys
 
-根据您的终端的MAC地址，通过Web访问您的处在NAT或防火墙里面的终端。
+它由客户端和[服务端]组成。[服务端]采用GO语言实现，前端界面采用[iview]和[vue]实现。
 
-它由客户端和[服务端](https://github.com/zhaojh329/rttys)组成。服务端采用GO语言实现，
-以及使用了[vue]+[iview]。你可以基于你设置的设备ID（不设置则为设备的MAC地址）通过Web浏览器访问你的任意一台终端。
+你可以在任何地方通过Web访问你的终端。通过设备ID（如果不设置则使用设备的MAC地址）来区分你的不同的终端。
 
 rtty非常适合远程维护你的或者你公司的部署在全球各地的成千上万的Linux设备。
 
-**请保持关注以获取最新的项目动态**
-
-**为了您的安全，强烈建议您使用SSL**
-
 # 特性
 * 部署简单，使用方便
-* 反向代理
-* 根据你设置的ID连接你的设备
+* 根据设备ID访问不同的设备
+* 提供dashboard，直观的展示在线设备
 * 基于[Xterm.js]的全功能终端
 * 支持SSL: openssl, mbedtls, CyaSSl(wolfssl)
 * 支持上传文件到设备
 * 支持从设备下载文件
 * 支持远程执行命令
+* 客户端采用纯C实现，适合嵌入式Linux
 * 跨平台: Linux, OpenWrt/LEDE
 
 ![](/rtty.svg)
