@@ -120,10 +120,14 @@ static void pty_read_cb(struct ev_loop *loop, struct ev_io *w, int revents)
         return;
     }
 
-    rtty_message_set_data(msg, buffer_data(rb), buffer_length(rb));
-    rtty_message_send(cl, msg);
-
-    buffer_pull(rb, NULL, buffer_length(rb));
+    while (buffer_length(rb)) {
+        len = buffer_length(rb);
+        if (len > 65000)
+            len = 65000;
+        rtty_message_set_data(msg, buffer_data(rb), len);
+        rtty_message_send(cl, msg);
+        buffer_pull(rb, NULL, len);
+    }
 }
 
 static void pty_write_cb(struct ev_loop *loop, struct ev_io *w, int revents)
