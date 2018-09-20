@@ -28,7 +28,7 @@
 [protobuf-c]: https://github.com/protobuf-c/protobuf-c
 [服务端]: https://github.com/zhaojh329/rttys
 
-它由客户端和[服务端]组成。[服务端]采用GO语言实现，前端界面采用[iview]和[vue]实现。
+它由客户端和[服务端]组成。客户端采用纯C实现。[服务端]采用GO语言实现，前端界面采用[iview]和[vue]实现。
 
 你可以在任何地方通过Web访问你的终端。通过设备ID（如果不设置则使用设备的MAC地址）来区分你的不同的终端。
 
@@ -43,8 +43,7 @@ rtty非常适合远程维护你的或者你公司的部署在全球各地的成�
 * 支持上传文件到设备
 * 支持从设备下载文件
 * 支持远程执行命令
-* 客户端采用纯C实现，适合嵌入式Linux
-* 跨平台: Linux, OpenWrt/LEDE
+* 客户端非常小，适合嵌入式Linux: rtty(24K) + libev(48.5K) + libuwsc(24K) + libwolfssl(595.9K) = 692.4K
 
 ![](/rtty.svg)
 ![](/rtty-zh.f30806d.gif)
@@ -64,6 +63,22 @@ rtty非常适合远程维护你的或者你公司的部署在全球各地的成�
 安装
 
     wget -qO- https://raw.githubusercontent.com/zhaojh329/rtty/master/tools/install.sh | sudo bash
+
+查看命令行选项
+
+    Usage: rtty [option]
+      -i ifname    # Network interface name - Using the MAC address of
+                          the interface as the device ID
+      -I id        # Set an ID for the device(Maximum 63 bytes, valid character:letters
+                          and numbers and underlines and short lines) - If set,
+                          it will cover the MAC address(if you have specify the ifname)
+      -h host      # Server host
+      -p port      # Server port
+      -a           # Auto reconnect to the server
+      -v           # verbose
+      -d           # Adding a description to the device(Maximum 126 bytes)
+      -s           # SSL on
+      -V           # Show version
 
 运行RTTY(将下面的参数替换为你自己的参数)
 

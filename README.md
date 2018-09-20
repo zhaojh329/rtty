@@ -28,8 +28,8 @@
 [protobuf-c]: https://github.com/protobuf-c/protobuf-c
 [server]: https://github.com/zhaojh329/rttys
 
-It is composed of a client and a [server]. The [server] is written in go language and the front-end interface
-is written in [iview] & [Vue].
+It is composed of a client and a [server]. The client is written in pure C. The [server] is written in go language
+and the front-end interface is written in [iview] & [Vue].
 
 You can access your terminals from anywhere via the web. Differentiate your different terminals by device ID(If
 the ID is not set, the MAC address of your device is used).
@@ -46,8 +46,7 @@ the world.
 * Support upload file to device
 * Support download file from devices
 * Support Execute a command remote
-* The client written in pure C, suitable for embedded Linux
-* Cross platform: Linux, OpenWrt/LEDE
+* The client is very small, suitable for embedded Linux: rtty(24K) + libev(48.5K) + libuwsc(24K) + libwolfssl(595.9K) = 692.4K
 
 ![](/rtty.svg)
 ![](/rtty.f30806d.gif)
@@ -67,6 +66,22 @@ the world.
 Install
 
     wget -qO- https://raw.githubusercontent.com/zhaojh329/rtty/master/tools/install.sh | sudo bash
+
+Command-line Options
+
+    Usage: rtty [option]
+      -i ifname    # Network interface name - Using the MAC address of
+                          the interface as the device ID
+      -I id        # Set an ID for the device(Maximum 63 bytes, valid character:letters
+                          and numbers and underlines and short lines) - If set,
+                          it will cover the MAC address(if you have specify the ifname)
+      -h host      # Server host
+      -p port      # Server port
+      -a           # Auto reconnect to the server
+      -v           # verbose
+      -d           # Adding a description to the device(Maximum 126 bytes)
+      -s           # SSL on
+      -V           # Show version
 
 Run RTTY(Replace the following parameters with your own parameters)
 
