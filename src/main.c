@@ -34,6 +34,7 @@
 #include "message.h"
 #include "command.h"
 
+#define RTTY_PROTO_VERSION  1
 #define RECONNECT_INTERVAL  5
 
 /* Related to server check keep-alive mechanism */
@@ -638,8 +639,8 @@ int main(int argc, char **argv)
 
     avl_init(&tty_sessions, avl_strcmp, false, NULL);
 
-    snprintf(server_url, sizeof(server_url), "ws%s://%s:%d/ws?device=1&devid=%s&description=%s",
-        ssl ? "s" : "", host, port, devid, description ? description : "");
+    snprintf(server_url, sizeof(server_url), "ws%s://%s:%d/ws?device=1&devid=%s&description=%s&proto=%d",
+        ssl ? "s" : "", host, port, devid, description ? description : "", RTTY_PROTO_VERSION);
     free(description);
 
     ev_timer_init(&reconnect_timer, do_connect, 0.0, RECONNECT_INTERVAL);
