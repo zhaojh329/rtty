@@ -81,6 +81,7 @@ Command-line Options
       -v           # verbose
       -d           # Adding a description to the device(Maximum 126 bytes)
       -s           # SSL on
+      -k keepalive # keep alive in seconds for this client. Defaults to 5
       -V           # Show version
 
 Run RTTY(Replace the following parameters with your own parameters)

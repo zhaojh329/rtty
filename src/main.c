@@ -37,9 +37,6 @@
 #define RTTY_PROTO_VERSION  1
 #define RECONNECT_INTERVAL  5
 
-/* Related to server check keep-alive mechanism */
-#define PING_INTERVAL		5
-
 struct upfile_info {
     int fd;
     int size;
@@ -68,6 +65,7 @@ struct tty_session {
 static char login[128];       /* /bin/login */
 static char server_url[512];
 static bool auto_reconnect;
+static int keepalive = 5;       /* second */
 static struct ev_timer reconnect_timer;
 static struct avl_tree tty_sessions;
 
@@ -497,7 +495,7 @@ static void uwsc_onclose(struct uwsc_client *cl, int code, const char *reason)
 
 static void do_connect(struct ev_loop *loop, struct ev_timer *w, int revents)
 {
-    struct uwsc_client *cl = uwsc_new(loop, server_url, PING_INTERVAL);
+    struct uwsc_client *cl = uwsc_new(loop, server_url, keepalive);
     if (cl) {
         cl->onopen = uwsc_onopen;
         cl->onmessage = uwsc_onmessage;
@@ -538,6 +536,7 @@ static void usage(const char *prog)
         "      -v           # verbose\n"
         "      -d           # Adding a description to the device(Maximum 126 bytes)\n"
         "      -s           # SSL on\n"
+        "      -k keepalive # keep alive in seconds for this client. Defaults to 5\n"
         "      -V           # Show version\n"
         , prog);
     exit(1);
@@ -556,7 +555,7 @@ int main(int argc, char **argv)
     bool verbose = false;
     bool ssl = false;
 
-    while ((opt = getopt(argc, argv, "i:h:p:I:avd:sV")) != -1) {
+    while ((opt = getopt(argc, argv, "i:h:p:I:avd:sk:V")) != -1) {
         switch (opt)
         {
         case 'i':
@@ -593,6 +592,9 @@ int main(int argc, char **argv)
             break;
         case 's':
             ssl = true;
+            break;
+        case 'k':
+            keepalive = atoi(optarg);
             break;
         case 'V':
             uwsc_log_info("rtty version %s\n", RTTY_VERSION_STRING);
@@ -639,8 +641,9 @@ int main(int argc, char **argv)
 
     avl_init(&tty_sessions, avl_strcmp, false, NULL);
 
-    snprintf(server_url, sizeof(server_url), "ws%s://%s:%d/ws?device=1&devid=%s&description=%s&proto=%d",
-        ssl ? "s" : "", host, port, devid, description ? description : "", RTTY_PROTO_VERSION);
+    snprintf(server_url, sizeof(server_url), "ws%s://%s:%d/ws?device=1&devid=%s&description=%s&proto=%d"
+            "&keepalive=%d", ssl ? "s" : "", host, port, devid, description ? description : "",
+            RTTY_PROTO_VERSION, keepalive);
     free(description);
 
     ev_timer_init(&reconnect_timer, do_connect, 0.0, RECONNECT_INTERVAL);

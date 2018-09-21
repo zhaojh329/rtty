@@ -78,6 +78,7 @@ rtty非常适合远程维护你的或者你公司的部署在全球各地的成�
       -v           # verbose
       -d           # Adding a description to the device(Maximum 126 bytes)
       -s           # SSL on
+      -k keepalive # keep alive in seconds for this client. Defaults to 5
       -V           # Show version
 
 运行RTTY(将下面的参数替换为你自己的参数)
