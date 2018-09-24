@@ -54,8 +54,6 @@ static inline void rtty_message_set_err(RttyMessage *msg, int err)
 }
 
 RttyMessage *rtty_message_init(RttyMessage__Type type, const char *sid);
-int rtty_message_file_init(RttyMessage__File **file, const char *name,
-    bool dir, uint64_t mtime, uint64_t size);
 void rtty_message_send(struct uwsc_client *cl, RttyMessage *msg);
 
 #endif

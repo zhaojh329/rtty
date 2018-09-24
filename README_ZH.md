@@ -18,6 +18,7 @@
 [![Build Status][9]][10]
 
 [Xterm.js]: https://github.com/xtermjs/xterm.js
+[lrzsz]: https://ohse.de/uwe/software/lrzsz.html
 [libev]: http://software.schmorp.de/pkg/libev.html
 [libuwsc]: https://github.com/zhaojh329/libuwsc
 [openssl]: https://github.com/openssl/openssl
@@ -39,9 +40,8 @@ rtty非常适合远程维护你的或者你公司的部署在全球各地的成�
 * 根据设备ID访问不同的设备
 * 提供dashboard，直观的展示在线设备
 * 基于[Xterm.js]的全功能终端
+* 支持使用[lrzsz]传输文件
 * 支持SSL: openssl, mbedtls, CyaSSl(wolfssl)
-* 支持上传文件到设备
-* 支持从设备下载文件
 * 支持远程执行命令
 * 客户端非常小，适合嵌入式Linux: rtty(24K) + libev(48.5K) + libuwsc(24K) + libwolfssl(595.9K) = 692.4K
 

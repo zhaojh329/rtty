@@ -1,67 +1,51 @@
+// protoc-c --c_out=. rtty.proto 
+// protoc --go_out=. rtty.proto
+
 syntax = "proto3";
 
-
 message rtty_message {
-	enum Type {
-		UNKNOWN = 0;
-		LOGIN = 1;
-	    LOGINACK = 2;
-	    LOGOUT = 3;
-	    TTY = 4;
-	    UPFILE = 5;
-	    DOWNFILE = 6;
-	    COMMAND = 7;
-	    WINSIZE = 8;
-	}
-
-	enum LoginCode {
-		OK = 0;
-		OFFLINE = 1;
-	}
-
-	enum FileCode {
-		START = 0;
-		RATELIMIT = 1;
-		FILEDATA = 2;
-		CANCELED = 3;
-		END = 4;
-	}
-
-	enum CommandErr {
-		NONE = 0;
-		TIMEOUT = 1;
-		NOTFOUND = 2;
-		READ = 3;
-		PERMISSION = 4;
-		SYSCALL = 5;
-		DEV_OFFLINE = 6;
-		CMD_REQUIRED = 7;
-		DEVID_REQUIRED = 8;
-	}
-
-    message File {
-        string name = 1;
-        bool dir = 2;
-        uint64 mtime = 3;
-        uint64 size = 4;
+    enum Type {
+        UNKNOWN = 0;
+        LOGIN = 1;
+        LOGINACK = 2;
+        LOGOUT = 3;
+        TTY = 4;
+        COMMAND = 5;
+        WINSIZE = 6;
     }
 
-	uint32 version = 1;
-	Type type = 2;
-	string sid = 3;
-	int32 code = 4;
-	bytes data = 5;
-	string name = 6;
-	uint32 size = 7;
-	uint32 id = 8;
-	int32 err = 9;
-	string username = 10;
-	string password = 11;
-	string std_out = 12;
-	string std_err = 13;
-	repeated string params = 14;
-	map<string, string> env = 15;
-	repeated File filelist = 16;
-	uint32 cols = 17;
-	uint32 rows = 18;
+    enum LoginCode {
+        OK = 0;
+        OFFLINE = 1;
+    }
+
+    enum CommandErr {
+        NONE = 0;
+        TIMEOUT = 1;
+        NOTFOUND = 2;
+        READ = 3;
+        PERMISSION = 4;
+        SYSCALL = 5;
+        DEV_OFFLINE = 6;
+        CMD_REQUIRED = 7;
+        DEVID_REQUIRED = 8;
+    }
+
+    uint32 version = 1;
+    Type type = 2;
+    string sid = 3;
+    int32 code = 4;
+    bytes data = 5;
+    string name = 6;
+    uint32 size = 7;
+    uint32 id = 8;
+    int32 err = 9;
+    string username = 10;
+    string password = 11;
+    string std_out = 12;
+    string std_err = 13;
+    repeated string params = 14;
+    map<string, string> env = 15;
+    uint32 cols = 16;
+    uint32 rows = 17;
 }

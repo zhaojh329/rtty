@@ -7,12 +7,6 @@
 #endif
 
 #include "rtty.pb-c.h"
-void   rtty_message__file__init
-                     (RttyMessage__File         *message)
-{
-  static RttyMessage__File init_value = RTTY_MESSAGE__FILE__INIT;
-  *message = init_value;
-}
 void   rtty_message__env_entry__init
                      (RttyMessage__EnvEntry         *message)
 {
@@ -62,83 +56,6 @@ void   rtty_message__free_unpacked
   assert(message->base.descriptor == &rtty_message__descriptor);
   protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
 }
-static const ProtobufCFieldDescriptor rtty_message__file__field_descriptors[4] =
-{
-  {
-    "name",
-    1,
-    PROTOBUF_C_LABEL_OPTIONAL,
-    PROTOBUF_C_TYPE_STRING,
-    0,   /* quantifier_offset */
-    offsetof(RttyMessage__File, name),
-    NULL,
-    NULL,
-    0,             /* flags */
-    0,NULL,NULL    /* reserved1,reserved2, etc */
-  },
-  {
-    "dir",
-    2,
-    PROTOBUF_C_LABEL_OPTIONAL,
-    PROTOBUF_C_TYPE_BOOL,
-    offsetof(RttyMessage__File, has_dir),
-    offsetof(RttyMessage__File, dir),
-    NULL,
-    NULL,
-    0,             /* flags */
-    0,NULL,NULL    /* reserved1,reserved2, etc */
-  },
-  {
-    "mtime",
-    3,
-    PROTOBUF_C_LABEL_OPTIONAL,
-    PROTOBUF_C_TYPE_UINT64,
-    offsetof(RttyMessage__File, has_mtime),
-    offsetof(RttyMessage__File, mtime),
-    NULL,
-    NULL,
-    0,             /* flags */
-    0,NULL,NULL    /* reserved1,reserved2, etc */
-  },
-  {
-    "size",
-    4,
-    PROTOBUF_C_LABEL_OPTIONAL,
-    PROTOBUF_C_TYPE_UINT64,
-    offsetof(RttyMessage__File, has_size),
-    offsetof(RttyMessage__File, size),
-    NULL,
-    NULL,
-    0,             /* flags */
-    0,NULL,NULL    /* reserved1,reserved2, etc */
-  },
-};
-static const unsigned rtty_message__file__field_indices_by_name[] = {
-  1,   /* field[1] = dir */
-  2,   /* field[2] = mtime */
-  0,   /* field[0] = name */
-  3,   /* field[3] = size */
-};
-static const ProtobufCIntRange rtty_message__file__number_ranges[1 + 1] =
-{
-  { 1, 0 },
-  { 0, 4 }
-};
-const ProtobufCMessageDescriptor rtty_message__file__descriptor =
-{
-  PROTOBUF_C__MESSAGE_DESCRIPTOR_MAGIC,
-  "rtty_message.File",
-  "File",
-  "RttyMessage__File",
-  "",
-  sizeof(RttyMessage__File),
-  4,
-  rtty_message__file__field_descriptors,
-  rtty_message__file__field_indices_by_name,
-  1,  rtty_message__file__number_ranges,
-  (ProtobufCMessageInit) rtty_message__file__init,
-  NULL,NULL,NULL    /* reserved[123] */
-};
 static const ProtobufCFieldDescriptor rtty_message__env_entry__field_descriptors[2] =
 {
   {
@@ -190,32 +107,28 @@ const ProtobufCMessageDescriptor rtty_message__env_entry__descriptor =
   (ProtobufCMessageInit) rtty_message__env_entry__init,
   NULL,NULL,NULL    /* reserved[123] */
 };
-static const ProtobufCEnumValue rtty_message__type__enum_values_by_number[9] =
+static const ProtobufCEnumValue rtty_message__type__enum_values_by_number[7] =
 {
   { "UNKNOWN", "RTTY_MESSAGE__TYPE__UNKNOWN", 0 },
   { "LOGIN", "RTTY_MESSAGE__TYPE__LOGIN", 1 },
   { "LOGINACK", "RTTY_MESSAGE__TYPE__LOGINACK", 2 },
   { "LOGOUT", "RTTY_MESSAGE__TYPE__LOGOUT", 3 },
   { "TTY", "RTTY_MESSAGE__TYPE__TTY", 4 },
-  { "UPFILE", "RTTY_MESSAGE__TYPE__UPFILE", 5 },
-  { "DOWNFILE", "RTTY_MESSAGE__TYPE__DOWNFILE", 6 },
-  { "COMMAND", "RTTY_MESSAGE__TYPE__COMMAND", 7 },
-  { "WINSIZE", "RTTY_MESSAGE__TYPE__WINSIZE", 8 },
+  { "COMMAND", "RTTY_MESSAGE__TYPE__COMMAND", 5 },
+  { "WINSIZE", "RTTY_MESSAGE__TYPE__WINSIZE", 6 },
 };
 static const ProtobufCIntRange rtty_message__type__value_ranges[] = {
-{0, 0},{0, 9}
+{0, 0},{0, 7}
 };
-static const ProtobufCEnumValueIndex rtty_message__type__enum_values_by_name[9] =
+static const ProtobufCEnumValueIndex rtty_message__type__enum_values_by_name[7] =
 {
-  { "COMMAND", 7 },
-  { "DOWNFILE", 6 },
+  { "COMMAND", 5 },
   { "LOGIN", 1 },
   { "LOGINACK", 2 },
   { "LOGOUT", 3 },
   { "TTY", 4 },
   { "UNKNOWN", 0 },
-  { "UPFILE", 5 },
-  { "WINSIZE", 8 },
+  { "WINSIZE", 6 },
 };
 const ProtobufCEnumDescriptor rtty_message__type__descriptor =
 {
@@ -224,9 +137,9 @@ const ProtobufCEnumDescriptor rtty_message__type__descriptor =
   "Type",
   "RttyMessage__Type",
   "",
-  9,
+  7,
   rtty_message__type__enum_values_by_number,
-  9,
+  7,
   rtty_message__type__enum_values_by_name,
   1,
   rtty_message__type__value_ranges,
@@ -258,40 +171,6 @@ const ProtobufCEnumDescriptor rtty_message__login_code__descriptor =
   rtty_message__login_code__enum_values_by_name,
   1,
   rtty_message__login_code__value_ranges,
-  NULL,NULL,NULL,NULL   /* reserved[1234] */
-};
-static const ProtobufCEnumValue rtty_message__file_code__enum_values_by_number[5] =
-{
-  { "START", "RTTY_MESSAGE__FILE_CODE__START", 0 },
-  { "RATELIMIT", "RTTY_MESSAGE__FILE_CODE__RATELIMIT", 1 },
-  { "FILEDATA", "RTTY_MESSAGE__FILE_CODE__FILEDATA", 2 },
-  { "CANCELED", "RTTY_MESSAGE__FILE_CODE__CANCELED", 3 },
-  { "END", "RTTY_MESSAGE__FILE_CODE__END", 4 },
-};
-static const ProtobufCIntRange rtty_message__file_code__value_ranges[] = {
-{0, 0},{0, 5}
-};
-static const ProtobufCEnumValueIndex rtty_message__file_code__enum_values_by_name[5] =
-{
-  { "CANCELED", 3 },
-  { "END", 4 },
-  { "FILEDATA", 2 },
-  { "RATELIMIT", 1 },
-  { "START", 0 },
-};
-const ProtobufCEnumDescriptor rtty_message__file_code__descriptor =
-{
-  PROTOBUF_C__ENUM_DESCRIPTOR_MAGIC,
-  "rtty_message.FileCode",
-  "FileCode",
-  "RttyMessage__FileCode",
-  "",
-  5,
-  rtty_message__file_code__enum_values_by_number,
-  5,
-  rtty_message__file_code__enum_values_by_name,
-  1,
-  rtty_message__file_code__value_ranges,
   NULL,NULL,NULL,NULL   /* reserved[1234] */
 };
 static const ProtobufCEnumValue rtty_message__command_err__enum_values_by_number[9] =
@@ -336,7 +215,7 @@ const ProtobufCEnumDescriptor rtty_message__command_err__descriptor =
   rtty_message__command_err__value_ranges,
   NULL,NULL,NULL,NULL   /* reserved[1234] */
 };
-static const ProtobufCFieldDescriptor rtty_message__field_descriptors[18] =
+static const ProtobufCFieldDescriptor rtty_message__field_descriptors[17] =
 {
   {
     "version",
@@ -519,20 +398,8 @@ static const ProtobufCFieldDescriptor rtty_message__field_descriptors[18] =
     0,NULL,NULL    /* reserved1,reserved2, etc */
   },
   {
-    "filelist",
-    16,
-    PROTOBUF_C_LABEL_REPEATED,
-    PROTOBUF_C_TYPE_MESSAGE,
-    offsetof(RttyMessage, n_filelist),
-    offsetof(RttyMessage, filelist),
-    &rtty_message__file__descriptor,
-    NULL,
-    0,             /* flags */
-    0,NULL,NULL    /* reserved1,reserved2, etc */
-  },
-  {
     "cols",
-    17,
+    16,
     PROTOBUF_C_LABEL_OPTIONAL,
     PROTOBUF_C_TYPE_UINT32,
     offsetof(RttyMessage, has_cols),
@@ -544,7 +411,7 @@ static const ProtobufCFieldDescriptor rtty_message__field_descriptors[18] =
   },
   {
     "rows",
-    18,
+    17,
     PROTOBUF_C_LABEL_OPTIONAL,
     PROTOBUF_C_TYPE_UINT32,
     offsetof(RttyMessage, has_rows),
@@ -557,16 +424,15 @@ static const ProtobufCFieldDescriptor rtty_message__field_descriptors[18] =
 };
 static const unsigned rtty_message__field_indices_by_name[] = {
   3,   /* field[3] = code */
-  16,   /* field[16] = cols */
+  15,   /* field[15] = cols */
   4,   /* field[4] = data */
   14,   /* field[14] = env */
   8,   /* field[8] = err */
-  15,   /* field[15] = filelist */
   7,   /* field[7] = id */
   5,   /* field[5] = name */
   13,   /* field[13] = params */
   10,   /* field[10] = password */
-  17,   /* field[17] = rows */
+  16,   /* field[16] = rows */
   2,   /* field[2] = sid */
   6,   /* field[6] = size */
   12,   /* field[12] = std_err */
@@ -578,7 +444,7 @@ static const unsigned rtty_message__field_indices_by_name[] = {
 static const ProtobufCIntRange rtty_message__number_ranges[1 + 1] =
 {
   { 1, 0 },
-  { 0, 18 }
+  { 0, 17 }
 };
 const ProtobufCMessageDescriptor rtty_message__descriptor =
 {
@@ -588,7 +454,7 @@ const ProtobufCMessageDescriptor rtty_message__descriptor =
   "RttyMessage",
   "",
   sizeof(RttyMessage),
-  18,
+  17,
   rtty_message__field_descriptors,
   rtty_message__field_indices_by_name,
   1,  rtty_message__number_ranges,

@@ -37,12 +37,6 @@
 #define RTTY_PROTO_VERSION  1
 #define RECONNECT_INTERVAL  5
 
-struct upfile_info {
-    int fd;
-    int size;
-    int uploaded;
-};
-
 struct tty_session {
     pid_t pid;
     int pty;
@@ -57,9 +51,6 @@ struct tty_session {
     struct buffer rb;
     struct buffer wb;
     struct avl_node avl;
-
-    int downfile;
-    struct upfile_info upfile;
 };
 
 static char login[128];       /* /bin/login */
@@ -84,7 +75,6 @@ static void del_tty_session(struct tty_session *tty)
     close(tty->pty);
     kill(tty->pid, SIGTERM);
     waitpid(tty->pid, NULL, 0);
-    close(tty->upfile.fd);
     uwsc_log_info("Del session:%s\n", tty->sid);
     free(tty);
 }
@@ -203,212 +193,6 @@ static void pty_write(RttyMessage *msg)
     ev_io_start(tty->loop, &tty->iow);
 }
 
-static void handle_upfile(RttyMessage *msg)
-{
-    struct tty_session *tty = find_tty_session(msg->sid);
-    struct upfile_info *upfile;
-    ProtobufCBinaryData *data = &msg->data;
-
-    if (!tty)
-        return;
-
-    upfile = &tty->upfile;
-
-    if (msg->code == RTTY_MESSAGE__FILE_CODE__START) {
-        char path[512] = "";
-        if (upfile->fd > 0) {
-            uwsc_log_err("Only one file can be uploading at the same time\n");
-            return;
-        }
-
-        if (!msg->name || msg->size == 0) {
-            uwsc_log_err("Upfile failed: name and size required\n");
-            return;
-        }
-
-        snprintf(path, sizeof(path) - 1, "/tmp/%s", msg->name);
-        upfile->fd = open(path, O_CREAT | O_RDWR, 0644);
-        if (upfile->fd < 0) {
-            uwsc_log_err("open upfile failed: %s\n", strerror(errno));
-            return;
-        }
-
-        upfile->size = msg->size;
-        upfile->uploaded = 0;
-
-        uwsc_log_info("Begin upload:%s %d\n", msg->name, msg->size);
-    }
-
-    if (upfile->fd > 0) {
-        if (msg->code == RTTY_MESSAGE__FILE_CODE__FILEDATA && data && data->len) {
-            if (write(upfile->fd, data->data, data->len) < 0) {
-                uwsc_log_err("upfile failed:%s\n", strerror(errno));
-                close(upfile->fd);
-                upfile->fd = 0;
-                return;
-            }
-
-            upfile->uploaded += data->len;
-        }
-
-        if (msg->code == RTTY_MESSAGE__FILE_CODE__CANCELED ||
-            upfile->uploaded == upfile->size)  {
-            close(upfile->fd);
-            upfile->fd = 0;
-            uwsc_log_info("Upload file %s\n",
-                (msg->code == RTTY_MESSAGE__FILE_CODE__FILEDATA) ? "finish" : "canceled");
-        }
-    }
-}
-
-static void send_filelist(struct uwsc_client *cl, const char *sid, const char *path)
-{
-    RttyMessage *msg = rtty_message_init(RTTY_MESSAGE__TYPE__DOWNFILE, sid);
-    RttyMessage__File **filelist = NULL;
-    struct dirent *dentry;
-    int n_filelist = 0;
-    char buf[512];
-    DIR *dir = NULL;
-
-    dir = opendir(path);
-    if (!dir) {
-        uwsc_log_err("opendir '%s' failed\n", path);
-        goto done;
-    }
-
-    filelist = calloc(FILE_LIST_MAX, sizeof(RttyMessage__File *));
-    if (!filelist) {
-        uwsc_log_err("calloc failed\n");
-        goto done;
-    }
-
-    if (rtty_message_file_init(&filelist[n_filelist], "..", true, 0, 0) < 0)
-        goto done;
-    n_filelist++;
-
-    while((dentry = readdir(dir))) {
-        const char *name = dentry->d_name;
-        int type = dentry->d_type;
-        struct stat st;
-
-        if(!strncmp(name, ".", 1))
-            continue;
-
-        if(!strcmp(path, "/") &&
-            (!strcmp(name, "dev") || !strcmp(name, "proc") || !strcmp(name, "sys")))
-            continue;
-
-        if (type != DT_DIR && type != DT_REG)
-            continue;
-
-        snprintf(buf, sizeof(buf) - 1, "%s%s", path, name);
-        if (stat(buf, &st) < 0) {
-            uwsc_log_err("stat '%s': %s\n", buf, strerror(errno));
-            continue;
-        }
-
-        if (type == DT_REG && st.st_size > INT_MAX)
-            continue;
-
-        if (rtty_message_file_init(&filelist[n_filelist], name, type == DT_DIR,
-            st.st_mtime, st.st_size) < 0)
-            break;
-
-        if (n_filelist++ == FILE_LIST_MAX)
-            break;
-    }
-
-done:
-    if (dir)
-        closedir(dir);
-
-    msg->n_filelist = n_filelist;
-    msg->filelist = filelist;
-
-    rtty_message_send(cl, msg);
-
-    if (filelist) {
-        for (int i = 0; i < n_filelist; i++)
-            free(filelist[i]);
-
-        free(filelist);
-    }
-}
-
-static void send_file_cb(struct ev_loop *loop, struct ev_timer *w, int revents)
-{
-    struct tty_session *tty = container_of(w, struct tty_session, timer);
-    RttyMessage *msg = rtty_message_init(RTTY_MESSAGE__TYPE__DOWNFILE, tty->sid);
-
-    if (tty->downfile > 0) {
-        int len;
-        char buf[4096];
-
-        len = read(tty->downfile, buf, sizeof(buf));
-        if (len > 0) {
-            rtty_message_set_code(msg, RTTY_MESSAGE__FILE_CODE__FILEDATA);
-            rtty_message_set_data(msg, buf, len);
-
-            ev_timer_start(loop, w);
-        } else {
-            close(tty->downfile);
-            tty->downfile = 0;
-
-            rtty_message_set_code(msg, RTTY_MESSAGE__FILE_CODE__END);
-
-            uwsc_log_info("Down file finish\n");
-        }
-
-        rtty_message_send(tty->cl, msg);
-    }
-}
-
-static void handle_downfile(struct uwsc_client *cl, RttyMessage *msg)
-{
-    struct stat st;
-    const char *name = "/";
-    struct tty_session *tty = find_tty_session(msg->sid);
-
-    if (!tty)
-        return;
-
-    if (msg->code == RTTY_MESSAGE__FILE_CODE__CANCELED) {
-        if (tty->downfile > 0) {
-            close(tty->downfile);
-            tty->downfile = 0;
-            uwsc_log_info("Down file canceled\n");
-        }
-        return;
-    }
-
-    if (msg->name)
-        name = msg->name;
-
-    if (stat(name, &st) < 0) {
-        uwsc_log_err("down (%s) failed:%s\n", name, strerror(errno));
-        return;
-    }
-
-    if (S_ISDIR(st.st_mode)) {
-        send_filelist(cl, msg->sid, name);
-    } else {
-        if (tty->downfile > 0) {
-            uwsc_log_err("Only one file can be downloading at the same time\n");
-            return;
-        }
-
-        tty->downfile = open(name, O_RDONLY);
-        if (tty->downfile < 0) {
-            uwsc_log_err("open downfile failed: %s\n", strerror(errno));
-            return;
-        }
-
-        uwsc_log_info("Begin down file:%s %d\n", msg->name, st.st_size);
-        ev_timer_init(&tty->timer, send_file_cb, 5.0, 0.0);
-        send_file_cb(tty->loop, &tty->timer, 0);
-    }
-}
-
 static void change_winsize(RttyMessage *msg)
 {
     struct tty_session *tty = find_tty_session(msg->sid);
@@ -439,12 +223,6 @@ static void uwsc_onmessage(struct uwsc_client *cl, void *data, size_t len, bool 
         break;
     case RTTY_MESSAGE__TYPE__TTY:
         pty_write(msg);
-        break;
-    case RTTY_MESSAGE__TYPE__UPFILE:
-        handle_upfile(msg);
-        break;
-    case RTTY_MESSAGE__TYPE__DOWNFILE:
-        handle_downfile(cl, msg);
         break;
     case RTTY_MESSAGE__TYPE__COMMAND:
         run_command(cl, msg, data, len);

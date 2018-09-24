@@ -18,6 +18,7 @@
 [![Build Status][9]][10]
 
 [Xterm.js]: https://github.com/xtermjs/xterm.js
+[lrzsz]: https://ohse.de/uwe/software/lrzsz.html
 [libev]: http://software.schmorp.de/pkg/libev.html
 [libuwsc]: https://github.com/zhaojh329/libuwsc
 [openssl]: https://github.com/openssl/openssl
@@ -42,9 +43,8 @@ the world.
 * Access different devices based on device ID
 * Provide a dashboard to visualize online devices
 * Fully-featured terminal based on [Xterm.js]
+* Support transfer file with [lrzsz]
 * SSL support: openssl, mbedtls, CyaSSl(wolfssl)
-* Support upload file to device
-* Support download file from devices
 * Support Execute a command remote
 * The client is very small, suitable for embedded Linux: rtty(24K) + libev(48.5K) + libuwsc(24K) + libwolfssl(595.9K) = 692.4K
 
