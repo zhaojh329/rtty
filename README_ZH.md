@@ -45,8 +45,8 @@ rtty非常适合远程维护你的或者你公司的部署在全球各地的成�
 * 支持远程执行命令
 * 客户端非常小，适合嵌入式Linux: rtty(24K) + libev(48.5K) + libuwsc(24K) + libwolfssl(595.9K) = 692.4K
 
-![](/rtty.svg)
-![](/rtty-zh.f30806d.gif)
+![](https://raw.githubusercontent.com/zhaojh329/rtty/doc/rtty.svg)
+![](https://raw.githubusercontent.com/zhaojh329/rtty/doc/rtty.f30806d.gif)
 
 # 客户端依赖
 * [libev] - 高性能的事件循环库

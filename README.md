@@ -48,8 +48,8 @@ the world.
 * Support Execute a command remote
 * The client is very small, suitable for embedded Linux: rtty(24K) + libev(48.5K) + libuwsc(24K) + libwolfssl(595.9K) = 692.4K
 
-![](/rtty.svg)
-![](/rtty.f30806d.gif)
+![](https://raw.githubusercontent.com/zhaojh329/rtty/doc/rtty.svg)
+![](https://raw.githubusercontent.com/zhaojh329/rtty/doc/rtty-zh.f30806d.gif)
 
 # Dependencies for Client side
 * [libev] - A full-featured and high-performance event loop
