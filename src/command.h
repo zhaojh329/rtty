@@ -22,10 +22,33 @@
 
 #include <uwsc/uwsc.h>
 
-#include "message.h"
+#include "json.h"
 
-void run_command(struct uwsc_client *ws, RttyMessage *msg, void *data, uint32_t len);
-struct blob_buf *make_command_reply(uint32_t id, int err);
-void send_command_reply(struct blob_buf *buf, struct uwsc_client *ws);
+#define RTTY_CMD_MAX_RUNNING     5
+#define RTTY_CMD_EXEC_TIMEOUT    5
+
+enum {
+	RTTY_CMD_ERR_PERMIT = 1,
+	RTTY_CMD_ERR_NOT_FOUND,
+	RTTY_CMD_ERR_NOMEM,
+	RTTY_CMD_ERR_SYSERR
+};
+
+struct task {
+    struct list_head list;
+    struct uwsc_client *ws;
+    struct ev_child cw;
+    struct ev_timer timer;
+    struct ev_io ioo;   /* Watch stdout of child */
+    struct ev_io ioe;   /* Watch stderr of child */
+    struct buffer ob;   /* buffer for stdout */
+    struct buffer eb;   /* buffer for stderr */
+    const json_value *msg;  /* message from server */
+    const json_value *attrs;
+    int id;
+    char cmd[0];
+};
+
+void run_command(struct uwsc_client *ws, const json_value *msg);
 
 #endif

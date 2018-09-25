@@ -24,23 +24,25 @@
 #include <stdlib.h>
 #include <dirent.h>
 #include <unistd.h>
+#include <stdint.h>
 #include <sys/wait.h>
 #include <sys/stat.h>
 #include <uwsc/uwsc.h>
 
-#include "avl.h"
+#include "list.h"
+#include "json.h"
 #include "config.h"
 #include "utils.h"
-#include "message.h"
 #include "command.h"
 
 #define RTTY_PROTO_VERSION  1
 #define RECONNECT_INTERVAL  5
+#define MAX_SESSIONS        5
 
 struct tty_session {
     pid_t pid;
     int pty;
-    char sid[33];
+    int sid;
 
     struct ev_loop *loop;
     struct ev_timer timer;
@@ -48,9 +50,7 @@ struct tty_session {
     struct ev_io ior;
     struct ev_io iow;
     struct ev_child cw;
-    struct buffer rb;
     struct buffer wb;
-    struct avl_node avl;
 };
 
 static char login[128];       /* /bin/login */
@@ -58,7 +58,7 @@ static char server_url[512];
 static bool auto_reconnect;
 static int keepalive = 5;       /* second */
 static struct ev_timer reconnect_timer;
-static struct avl_tree tty_sessions;
+static struct tty_session *sessions[MAX_SESSIONS + 1];
 
 static void del_tty_session(struct tty_session *tty)
 {
@@ -67,26 +67,27 @@ static void del_tty_session(struct tty_session *tty)
     ev_timer_stop(tty->loop, &tty->timer);
     ev_child_stop(tty->loop, &tty->cw);
 
-    buffer_free(&tty->rb);
     buffer_free(&tty->wb);
-
-    avl_delete(&tty_sessions, &tty->avl);
 
     close(tty->pty);
     kill(tty->pid, SIGTERM);
-    waitpid(tty->pid, NULL, 0);
-    uwsc_log_info("Del session:%s\n", tty->sid);
+
+    sessions[tty->sid] = NULL;
+
+    uwsc_log_info("Del session: %d\n", tty->sid);
+
     free(tty);
 }
 
-static inline struct tty_session *find_tty_session(const char *sid)
+static inline struct tty_session *find_tty_session(int sid)
 {
-    struct tty_session *tty;
+    if (sid > MAX_SESSIONS)
+        return NULL;
 
-    return avl_find_element(&tty_sessions, sid, tty, avl);
+    return sessions[sid];
 }
 
-static inline void del_tty_session_by_sid(const char *sid)
+static inline void del_tty_session_by_sid(int sid)
 {
     struct tty_session *tty = find_tty_session(sid);
     if (tty)
@@ -96,27 +97,30 @@ static inline void del_tty_session_by_sid(const char *sid)
 static void pty_read_cb(struct ev_loop *loop, struct ev_io *w, int revents)
 {
     struct tty_session *tty = container_of(w, struct tty_session, ior);
-    RttyMessage *msg = rtty_message_init(RTTY_MESSAGE__TYPE__TTY, tty->sid);
     struct uwsc_client *cl = tty->cl;
-    struct buffer *rb = &cl->rb;
-    bool eof;
+    static uint8_t buf[4096 + 1];
     int len;
 
-    len = buffer_put_fd(rb, w->fd, -1, &eof, NULL, NULL);
-    if (len <= 0) {
-        if (errno != EIO)
-            uwsc_log_err("Read from pty failed: %s\n", strerror(errno));
-        return;
+    buf[0] = tty->sid;
+
+    while (1) {
+        len = read(w->fd, buf + 1, sizeof(buf) - 1);
+        if (likely(len > 0))
+            break;
+
+        if (len < 0) {
+            if (errno == EINTR)
+                continue;
+            if (errno != EIO)
+                uwsc_log_err("Read from pty failed: %s\n", strerror(errno));
+            return;
+        }
+
+        if (len == 0)
+            return;
     }
 
-    while (buffer_length(rb)) {
-        len = buffer_length(rb);
-        if (len > 65000)
-            len = 65000;
-        rtty_message_set_data(msg, buffer_data(rb), len);
-        rtty_message_send(cl, msg);
-        buffer_pull(rb, NULL, len);
-    }
+    cl->send(cl, buf, len + 1, UWSC_OP_BINARY);
 }
 
 static void pty_write_cb(struct ev_loop *loop, struct ev_io *w, int revents)
@@ -138,18 +142,21 @@ static void pty_write_cb(struct ev_loop *loop, struct ev_io *w, int revents)
 static void pty_on_exit(struct ev_loop *loop, struct ev_child *w, int revents)
 {
     struct tty_session *tty = container_of(w, struct tty_session, cw);
-    RttyMessage *msg = rtty_message_init(RTTY_MESSAGE__TYPE__LOGOUT, tty->sid);
+    char str[128] = "";
 
-    rtty_message_send(tty->cl, msg);
+    snprintf(str, sizeof(str) - 1, "{\"type\":\"logout\",\"sid\":%d}", tty->sid);
+
+    tty->cl->send(tty->cl, str, strlen(str), UWSC_OP_TEXT);
 
     del_tty_session(tty);
 }
 
-static void new_tty_session(struct uwsc_client *cl, RttyMessage *msg)
+static void new_tty_session(struct uwsc_client *cl, int sid)
 {
     struct tty_session *s;
-    int pty;
+    char str[128] = "";
     pid_t pid;
+    int pty;
 
     s = calloc(1, sizeof(struct tty_session));
     if (!s)
@@ -160,10 +167,10 @@ static void new_tty_session(struct uwsc_client *cl, RttyMessage *msg)
         execl(login, login, NULL);
 
     s->cl = cl;
+    s->sid = sid;
     s->pid = pid;
     s->pty = pty;
     s->loop = cl->loop;
-    strcpy(s->sid, msg->sid);
 
     fcntl(pty, F_SETFL, fcntl(pty, F_GETFL, 0) | O_NONBLOCK);
 
@@ -175,30 +182,21 @@ static void new_tty_session(struct uwsc_client *cl, RttyMessage *msg)
     ev_child_init(&s->cw, pty_on_exit, pid, 0);
     ev_child_start(cl->loop, &s->cw);
 
-    s->avl.key = s->sid;
-    avl_insert(&tty_sessions, &s->avl);
+    sessions[sid] = s;
 
-    uwsc_log_info("New session:%s\n", msg->sid);
+    /* Notifying the user that the session was successfully created */
+    snprintf(str, sizeof(str) - 1, "{\"type\":\"login\",\"sid\":%d,\"code\":0}", sid);
+    cl->send(cl, str, strlen(str), UWSC_OP_TEXT);
+
+    uwsc_log_info("New session:%llu\n", sid);
 }
 
-static void pty_write(RttyMessage *msg)
+static void change_winsize(int sid, int cols, int rows)
 {
-    struct tty_session *tty = find_tty_session(msg->sid);
-    ProtobufCBinaryData *data = &msg->data;
-
-    if (!tty)
-        return;
-
-    buffer_put_data(&tty->wb, data->data, data->len);
-    ev_io_start(tty->loop, &tty->iow);
-}
-
-static void change_winsize(RttyMessage *msg)
-{
-    struct tty_session *tty = find_tty_session(msg->sid);
+    struct tty_session *tty = find_tty_session(sid);
     struct winsize size = {
-        .ws_col = msg->cols,
-        .ws_row = msg->rows
+        .ws_col = cols,
+        .ws_row = rows
     };
 
     if(ioctl(tty->pty, TIOCSWINSZ, &size) < 0)
@@ -207,34 +205,64 @@ static void change_winsize(RttyMessage *msg)
 
 static void uwsc_onmessage(struct uwsc_client *cl, void *data, size_t len, bool binary)
 {
-    RttyMessage *msg;
+    if (binary) {
+        int sid = (*(uint8_t *)data);
+        struct tty_session *tty = find_tty_session(sid);
 
-    if (!binary)
+        if (!tty) {
+            uwsc_log_err("non-existent sid: %d\n", sid);
+            return;
+        }
+
+        buffer_put_data(&tty->wb, data + 1, len - 1);
+        ev_io_start(tty->loop, &tty->iow);
         return;
+    } else {
+        const json_value *json;
+        const char *type;
+        int sid;
+       
+        json = json_parse((char *)data, len);
+        if (!json) {
+            uwsc_log_err("Invalid format: [%.*s]\n", len, (char *)data);
+            return;
+        }
 
-    msg = rtty_message__unpack(NULL, len, data);
+        type = json_get_string(json, "type");
+        if (!type || !type[0]) {
+            uwsc_log_err("Invalid format, not found type\n");
+            goto done;
+        }
 
-    switch (msg->type) {
-    case RTTY_MESSAGE__TYPE__LOGIN:
-        new_tty_session(cl, msg);
-        break;
-    case RTTY_MESSAGE__TYPE__LOGOUT:
-        del_tty_session_by_sid(msg->sid);
-        break;
-    case RTTY_MESSAGE__TYPE__TTY:
-        pty_write(msg);
-        break;
-    case RTTY_MESSAGE__TYPE__COMMAND:
-        run_command(cl, msg, data, len);
-        break;
-    case RTTY_MESSAGE__TYPE__WINSIZE:
-        change_winsize(msg);
-        break;
-    default:
-        break;
+        sid = json_get_int(json, "sid");
+
+        if (!strcmp(type, "register")) {
+            uwsc_log_err("register failed: %s\n", json_get_string(json, "msg"));
+            ev_break(cl->loop, EVBREAK_ALL);
+        } else if (!strcmp(type, "login")) {
+            if (sid > MAX_SESSIONS) {
+                char str[128] = "";
+                /* Notifies the user that the session creation failed  */
+                snprintf(str, sizeof(str) - 1, "{\"type\":\"login\",\"sid\":%d,\"err\":2,\"msg\":\"sessions is full\"}", sid);
+                cl->send(cl, str, strlen(str), UWSC_OP_TEXT);
+                uwsc_log_err("Can only run up to 5 sessions at the same time\n");
+                goto done;
+            }
+            new_tty_session(cl, sid);
+        } if (!strcmp(type, "logout")) {
+            del_tty_session_by_sid(sid);
+        } if (!strcmp(type, "cmd")) {
+            run_command(cl, json);
+            return;
+        } if (!strcmp(type, "winsize")) {
+            int cols = json_get_int(json, "cols");
+            int rows = json_get_int(json, "rows");
+            change_winsize(sid, cols, rows);
+        }
+
+done:
+        json_value_free((json_value *)json);
     }
-
-    rtty_message__free_unpacked(msg, NULL);
 }
 
 static void uwsc_onopen(struct uwsc_client *cl)
@@ -256,12 +284,13 @@ static void uwsc_onerror(struct uwsc_client *cl, int err, const char *msg)
 
 static void uwsc_onclose(struct uwsc_client *cl, int code, const char *reason)
 {
-    struct tty_session *tty, *tmp;
+    int i;
 
     uwsc_log_err("onclose:%d: %s\n", code, reason);
 
-    avl_for_each_element_safe(&tty_sessions, tty, avl, tmp)
-        del_tty_session(tty);
+    for (i = 0; i < MAX_SESSIONS + 1; i++)
+        if (sessions[i])
+            del_tty_session(sessions[i]);
 
     free(cl);
 
@@ -293,11 +322,6 @@ static void signal_cb(struct ev_loop *loop, ev_signal *w, int revents)
         ev_break(loop, EVBREAK_ALL);
         uwsc_log_info("Normal quit\n");
     }
-}
-
-static int avl_strcmp(const void *k1, const void *k2, void *ptr)
-{
-    return strcmp(k1, k2);
 }
 
 static void usage(const char *prog)
@@ -416,8 +440,6 @@ int main(int argc, char **argv)
         uwsc_log_err("The program 'login' is not found\n");
         return -1;
     }
-
-    avl_init(&tty_sessions, avl_strcmp, false, NULL);
 
     snprintf(server_url, sizeof(server_url), "ws%s://%s:%d/ws?device=1&devid=%s&description=%s&proto=%d"
             "&keepalive=%d", ssl ? "s" : "", host, port, devid, description ? description : "",

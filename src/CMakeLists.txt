@@ -8,12 +8,11 @@ set(RTTY_VERSION_PATCH 0)
 # Check the third party Libraries
 find_package(Libev REQUIRED)
 find_package(Libuwsc 3.0 REQUIRED)
-find_package(Libprotobuf-c 1.2 REQUIRED)
 
-include_directories(${CMAKE_CURRENT_BINARY_DIR} ${LIBUWSC_INCLUDE_DIR} ${LIBEV_INCLUDE_DIR} ${LIBPROTOBUFC_INCLUDE_DIR})
-set(EXTRA_LIBS ${LIBUWSC_LIBRARY} ${LIBEV_LIBRARY} ${LIBPROTOBUFC_LIBRARY} util crypt)
+include_directories(${CMAKE_CURRENT_BINARY_DIR} ${LIBUWSC_INCLUDE_DIR} ${LIBEV_INCLUDE_DIR})
+set(EXTRA_LIBS ${LIBUWSC_LIBRARY} ${LIBEV_LIBRARY} util crypt m)
 
-add_executable(rtty main.c utils.c command.c rtty.pb-c.c message.c avl.c)
+add_executable(rtty main.c utils.c json.c command.c)
 target_link_libraries(rtty ${EXTRA_LIBS})
 
 # configure a header file to pass some of the CMake settings to the source code
