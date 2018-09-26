@@ -77,7 +77,7 @@ endif
 
 define Package/libuwsc/default/install
 	$(INSTALL_DIR) $(1)/usr/lib/
-	$(INSTALL_DATA) $(PKG_INSTALL_DIR)/usr/lib/libuwsc.so* $(1)/usr/lib/
+	$(CP) $(PKG_INSTALL_DIR)/usr/lib/libuwsc.so* $(1)/usr/lib/
 endef
 
 Package/libuwsc-nossl/install = $(Package/libuwsc/default/install)
