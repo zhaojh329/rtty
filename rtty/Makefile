@@ -9,7 +9,7 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=rtty
 PKG_VERSION:=6.2.0
-PKG_RELEASE:=2
+PKG_RELEASE:=1
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 PKG_SOURCE_VERSION:=v$(PKG_VERSION)
@@ -27,68 +27,30 @@ PKG_MAINTAINER:=Jianhui Zhao <jianhuizhao329@gmail.com>
 include $(INCLUDE_DIR)/package.mk
 include $(INCLUDE_DIR)/cmake.mk
 
-define Package/rtty/default
+define Package/rtty/Default
+  TITLE:=Access your terminals from anywhere via the web
   SECTION:=utils
   CATEGORY:=Utilities
   SUBMENU:=Terminal
-  TITLE:=Access your terminals from anywhere via the web
-  DEPENDS:=+libprotobuf-c
+  URL:=https://github.com/zhaojh329/rtty
+  DEPENDS:=+libprotobuf-c $(2)
+  VARIANT:=$(1)
+  PROVIDES:=rtty
 endef
 
-define Package/rtty/default/description
-Access your terminals from anywhere via the web. This is the client part running
-on devices to be managed.
-endef
+Package/rtty-openssl=$(call Package/rtty/Default,openssl,+PACKAGE_rtty-openssl:libuwsc-openssl)
+Package/rtty-wolfssl=$(call Package/rtty/Default,wolfssl,+PACKAGE_rtty-wolfssl:libuwsc-wolfssl)
+Package/rtty-mbedtls=$(call Package/rtty/Default,mbedtls,+PACKAGE_rtty-mbedtls:libuwsc-mbedtls)
+Package/rtty-nossl=$(call Package/rtty/Default,nossl,+PACKAGE_rtty-nossl:libuwsc-nossl)
 
-define Package/rtty-mbedtls
-  $(Package/rtty/default)
-  TITLE += (mbedtls)
-  DEPENDS += +libuwsc-mbedtls
-  VARIANT:=mbedtls
-  CONFLICTS:=rtty-nossl rtty-openssl rtty-wolfssl
-endef
-
-define Package/rtty-nossl
-  $(Package/rtty/default)
-  TITLE += (NO SSL)
-  DEPENDS += +libuwsc-nossl
-  VARIANT:=nossl
-  CONFLICTS:=rtty-openssl rtty-wolfssl
-endef
-
-define Package/rtty-openssl
-  $(Package/rtty/default)
-  TITLE += (openssl)
-  DEPENDS += +libuwsc-openssl
-  VARIANT:=openssl
-  CONFLICTS:=rtty-wolfssl
-endef
-
-define Package/rtty-wolfssl
-  $(Package/rtty/default)
-  TITLE += (wolfssl)
-  DEPENDS += +libuwsc-wolfssl
-  VARIANT:=wolfssl
-endef
-
-Package/rtty-nossl/description = $(Package/rtty/default/description)
-Package/rtty-openssl/description = $(Package/rtty/default/description)
-Package/rtty-wolfssl/description = $(Package/rtty/default/description)
-Package/rtty-mbedtls/description = $(Package/rtty/default/description)
-
-define Package/rtty/default/install
+define Package/rtty-$(BUILD_VARIANT)/install
 	$(INSTALL_DIR) $(1)/usr/sbin $(1)/etc/init.d $(1)/etc/config
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/src/rtty $(1)/usr/sbin
 	$(INSTALL_BIN) ./files/rtty.init $(1)/etc/init.d/rtty
 	$(INSTALL_CONF) ./files/rtty.config $(1)/etc/config/rtty
 endef
 
-Package/rtty-nossl/install = $(Package/rtty/default/install)
-Package/rtty-openssl/install = $(Package/rtty/default/install)
-Package/rtty-wolfssl/install = $(Package/rtty/default/install)
-Package/rtty-mbedtls/install = $(Package/rtty/default/install)
-
-$(eval $(call BuildPackage,rtty-nossl))
-$(eval $(call BuildPackage,rtty-mbedtls))
-$(eval $(call BuildPackage,rtty-wolfssl))
 $(eval $(call BuildPackage,rtty-openssl))
+$(eval $(call BuildPackage,rtty-wolfssl))
+$(eval $(call BuildPackage,rtty-mbedtls))
+$(eval $(call BuildPackage,rtty-nossl))
