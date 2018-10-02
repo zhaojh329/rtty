@@ -28,6 +28,9 @@
 [iview]: https://github.com/iview/iview
 [server]: https://github.com/zhaojh329/rttys
 
+![](https://raw.githubusercontent.com/zhaojh329/rtty/doc/screen.gif)
+![](https://raw.githubusercontent.com/zhaojh329/rtty/doc/lrzsz.gif)
+
 It is composed of a client and a [server]. The client is written in pure C. The [server] is written in go language
 and the front-end interface is written in [iview] & [Vue].
 
@@ -46,9 +49,6 @@ the world.
 * SSL support: openssl, mbedtls, CyaSSl(wolfssl)
 * Support Execute a command remote
 * The client is very small, suitable for embedded Linux: rtty(24K) + libev(48.5K) + libuwsc(24K) + libwolfssl(595.9K) = 692.4K
-
-![](https://raw.githubusercontent.com/zhaojh329/rtty/doc/rtty.svg)
-![](https://raw.githubusercontent.com/zhaojh329/rtty/doc/rtty-zh.f30806d.gif)
 
 # Dependencies for Client side
 * [libev] - A full-featured and high-performance event loop

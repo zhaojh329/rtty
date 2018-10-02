@@ -28,6 +28,9 @@
 [iview]: https://github.com/iview/iview
 [服务端]: https://github.com/zhaojh329/rttys
 
+![](https://raw.githubusercontent.com/zhaojh329/rtty/doc/screen.gif)
+![](https://raw.githubusercontent.com/zhaojh329/rtty/doc/lrzsz.gif)
+
 它由客户端和[服务端]组成。客户端采用纯C实现。[服务端]采用GO语言实现，前端界面采用[iview]和[vue]实现。
 
 你可以在任何地方通过Web访问你的终端。通过设备ID（如果不设置则使用设备的MAC地址）来区分你的不同的终端。
@@ -43,9 +46,6 @@ rtty非常适合远程维护你的或者你公司的部署在全球各地的成�
 * 支持SSL: openssl, mbedtls, CyaSSl(wolfssl)
 * 支持远程执行命令
 * 客户端非常小，适合嵌入式Linux: rtty(24K) + libev(48.5K) + libuwsc(24K) + libwolfssl(595.9K) = 692.4K
-
-![](https://raw.githubusercontent.com/zhaojh329/rtty/doc/rtty.svg)
-![](https://raw.githubusercontent.com/zhaojh329/rtty/doc/rtty.f30806d.gif)
 
 # 客户端依赖
 * [libev] - 高性能的事件循环库
