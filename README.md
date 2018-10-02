@@ -26,7 +26,6 @@
 [CyaSSl(wolfssl)]: https://github.com/wolfSSL/wolfssl
 [vue]: https://github.com/vuejs/vue
 [iview]: https://github.com/iview/iview
-[protobuf-c]: https://github.com/protobuf-c/protobuf-c
 [server]: https://github.com/zhaojh329/rttys
 
 It is composed of a client and a [server]. The client is written in pure C. The [server] is written in go language
@@ -54,7 +53,6 @@ the world.
 # Dependencies for Client side
 * [libev] - A full-featured and high-performance event loop
 * [libuwsc] - A Lightweight and fully asynchronous WebSocket client library based on libev
-* [protobuf-c]: - Protocol Buffers implementation in C
 * [mbedtls(polarssl)] - If you choose mbedtls as your SSL backend
 * [CyaSSl(wolfssl)] - If you choose wolfssl as your SSL backend
 * [openssl] - If you choose openssl as your SSL backend

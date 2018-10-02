@@ -26,7 +26,6 @@
 [CyaSSl(wolfssl)]: https://github.com/wolfSSL/wolfssl
 [vue]: https://github.com/vuejs/vue
 [iview]: https://github.com/iview/iview
-[protobuf-c]: https://github.com/protobuf-c/protobuf-c
 [服务端]: https://github.com/zhaojh329/rttys
 
 它由客户端和[服务端]组成。客户端采用纯C实现。[服务端]采用GO语言实现，前端界面采用[iview]和[vue]实现。
@@ -51,7 +50,6 @@ rtty非常适合远程维护你的或者你公司的部署在全球各地的成�
 # 客户端依赖
 * [libev] - 高性能的事件循环库
 * [libuwsc] - 一个轻量的针对嵌入式Linux的基于libev的WebSocket客户端C库。
-* [protobuf-c]: - Protocol Buffers的C语言实现
 * [mbedtls(polarssl)] - 如果你选择mbedtls作为你的SSL后端
 * [CyaSSl(wolfssl)] - 如果你选择wolfssl作为你的SSL后端
 * [openssl] - 如果你选择openssl作为你的SSL后端
