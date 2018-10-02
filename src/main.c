@@ -271,18 +271,21 @@ static void uwsc_onopen(struct uwsc_client *cl)
 
 static void uwsc_onerror(struct uwsc_client *cl, int err, const char *msg)
 {
+    struct ev_loop *loop = cl->loop;
+
     uwsc_log_err("onerror:%d: %s\n", err, msg);
 
     free(cl);
 
 	if (auto_reconnect)
-        ev_timer_again(cl->loop, &reconnect_timer);
+        ev_timer_again(loop, &reconnect_timer);
     else
-        ev_break(cl->loop, EVBREAK_ALL);
+        ev_break(loop, EVBREAK_ALL);
 }
 
 static void uwsc_onclose(struct uwsc_client *cl, int code, const char *reason)
 {
+    struct ev_loop *loop = cl->loop;
     int i;
 
     uwsc_log_err("onclose:%d: %s\n", code, reason);
@@ -294,9 +297,9 @@ static void uwsc_onclose(struct uwsc_client *cl, int code, const char *reason)
     free(cl);
 
     if (auto_reconnect)
-        ev_timer_again(cl->loop, &reconnect_timer);
+        ev_timer_again(loop, &reconnect_timer);
     else
-        ev_break(cl->loop, EVBREAK_ALL);
+        ev_break(loop, EVBREAK_ALL);
 }
 
 static void do_connect(struct ev_loop *loop, struct ev_timer *w, int revents)
@@ -311,8 +314,10 @@ static void do_connect(struct ev_loop *loop, struct ev_timer *w, int revents)
         return;
     }
 
-    if (!auto_reconnect)
+    if (!auto_reconnect) {
    	    ev_break(cl->loop, EVBREAK_ALL);
+        free(cl);
+    }
 }
 
 static void signal_cb(struct ev_loop *loop, ev_signal *w, int revents)
