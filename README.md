@@ -53,9 +53,7 @@ the world.
 # Dependencies for Client side
 * [libev] - A full-featured and high-performance event loop
 * [libuwsc] - A Lightweight and fully asynchronous WebSocket client library based on libev
-* [mbedtls(polarssl)] - If you choose mbedtls as your SSL backend
-* [CyaSSl(wolfssl)] - If you choose wolfssl as your SSL backend
-* [openssl] - If you choose openssl as your SSL backend
+* [mbedtls(polarssl)], [CyaSSl(wolfssl)] or [openssl] - If you want to support SSL
 
 # [Deploying the server side](https://github.com/zhaojh329/rttys)
 
@@ -97,9 +95,6 @@ Use your web browser to access your server: `https://your-server-host:5912`, the
 You can easily embed RTTY into your existing platform: `https://your-server-host:5912/#/?id=your-id`
 
 Automatic login: `https://your-server:5912/#/?id=device-id&username=device-username&password=device-password`
-
-## Other functions
-Please click the right mouse button
 
 ## Execute a command remote
 ### Shell

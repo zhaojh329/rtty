@@ -50,9 +50,7 @@ rtty非常适合远程维护你的或者你公司的部署在全球各地的成�
 # 客户端依赖
 * [libev] - 高性能的事件循环库
 * [libuwsc] - 一个轻量的针对嵌入式Linux的基于libev的WebSocket客户端C库。
-* [mbedtls(polarssl)] - 如果你选择mbedtls作为你的SSL后端
-* [CyaSSl(wolfssl)] - 如果你选择wolfssl作为你的SSL后端
-* [openssl] - 如果你选择openssl作为你的SSL后端
+* [mbedtls(polarssl)]、[CyaSSl(wolfssl)]或者[openssl] - 如果你需要支持SSL
 
 # [部署服务端](https://github.com/zhaojh329/rttys/blob/master/README_ZH.md)
 
@@ -94,9 +92,6 @@ rtty非常适合远程维护你的或者你公司的部署在全球各地的成�
 你可以非常方便的将RTTY嵌入到你现有的平台： `https://your-server-host:5912/#/?id=your-id`
 
 自动登录: `https://your-server:5912/#/?id=device-id&username=device-username&password=device-password`
-
-## 其他功能
-请点击鼠标右键
 
 ## 远程执行命令
 ### Shell
