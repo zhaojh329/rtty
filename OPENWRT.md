@@ -1,17 +1,36 @@
-# Install directly inside the device
+# Install directly inside the device(master)
 
     opkg update
     opkg list | grep rtty
     opkg install rtty-nossl
 
 # Compile it yourself
-## For Openwrt master
-Update feeds
+## Add feed for openwrt 14.04,15.05,Lede and openwrt 18
+Openwrt 14.04
+
+    echo 'src-git rtty https://github.com/zhaojh329/rtty.git;openwrt-14-15' >> feeds.conf.default
+
+Openwrt 15.05
+
+    echo 'src-git rtty https://github.com/zhaojh329/rtty.git;openwrt-lede' >> feeds.conf.default
+
+openwrt 18
+
+    echo 'src-git rtty https://github.com/zhaojh329/rtty.git;openwrt-18' >> feeds.conf.default
+
+## install feed for openwrt 14.04,15.05,Lede and openwrt 18
+
+    ./scripts/feeds uninstall -a
+    ./scripts/feeds update rtty
+    ./scripts/feeds install -a -f -p rtty
+    ./scripts/feeds install -a
+
+## install feed for master
 
 	./scripts/feeds update -a
 	./scripts/feeds install -a
 
-Select rtty in menuconfig and compile new image
+## Select rtty in menuconfig and compile new image
 
     Utilities  --->
 	    Terminal  --->
@@ -19,12 +38,6 @@ Select rtty in menuconfig and compile new image
 	        < > rtty-nossl............................... A reverse proxy WebTTY (NO SSL)
 	        < > rtty-openssl............................ A reverse proxy WebTTY (openssl)
 	        < > rtty-wolfssl............................ A reverse proxy WebTTY (wolfssl)
-
-## [For Openwrt 14.04 and 15.05](https://github.com/zhaojh329/rtty/blob/openwrt-14-15/README.md)
-
-## [For Lede](https://github.com/zhaojh329/rtty/blob/openwrt-lede/README.md)
-
-## [For openwrt 18 and later](https://github.com/zhaojh329/rtty/blob/openwrt-18/README.md)
 
 # Configure
 Configuring the server parameter

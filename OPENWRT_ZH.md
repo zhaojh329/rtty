@@ -5,13 +5,32 @@
     opkg install rtty-nossl
 
 # 自己编译
-## Openwrt master
-更新feeds:
+## 添加feed（openwrt 14.04,15.05,Lede and openwrt 18）
+Openwrt 14.04
+
+    echo 'src-git rtty https://github.com/zhaojh329/rtty.git;openwrt-14-15' >> feeds.conf.default
+
+Openwrt 15.05
+
+    echo 'src-git rtty https://github.com/zhaojh329/rtty.git;openwrt-lede' >> feeds.conf.default
+
+openwrt 18
+
+    echo 'src-git rtty https://github.com/zhaojh329/rtty.git;openwrt-18' >> feeds.conf.default
+
+## 安装feed（openwrt 14.04,15.05,Lede and openwrt 18）
+
+    ./scripts/feeds uninstall -a
+    ./scripts/feeds update rtty
+    ./scripts/feeds install -a -f -p rtty
+    ./scripts/feeds install -a
+
+## 安装feed（master）
 
     ./scripts/feeds update -a
     ./scripts/feeds install -a
 
-在menuconfig中选择rtty，然后重新编译固件。
+## 在menuconfig中选择rtty，然后重新编译固件。
 
     Utilities  --->
         Terminal  --->
@@ -19,12 +38,6 @@
             < > rtty-nossl............................... A reverse proxy WebTTY (NO SSL)
             < > rtty-openssl............................ A reverse proxy WebTTY (openssl)
             < > rtty-wolfssl............................ A reverse proxy WebTTY (wolfssl)
-
-## [Openwrt 14.04 和 openwrt-15.05](https://github.com/zhaojh329/rtty/blob/openwrt-14-15/README.md)
-
-## [Lede](https://github.com/zhaojh329/rtty/blob/openwrt-lede/README.md)
-
-## [openwrt-18 及更新版本](https://github.com/zhaojh329/rtty/blob/openwrt-18/README.md)
 
 # 配置
 配置服务器参数
