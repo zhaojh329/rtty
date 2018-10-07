@@ -79,6 +79,7 @@ Command-line Options
       -s           # SSL on
       -k keepalive # keep alive in seconds for this client. Defaults to 5
       -V           # Show version
+      -D           # Run in the background
 
 Run RTTY(Replace the following parameters with your own parameters)
 

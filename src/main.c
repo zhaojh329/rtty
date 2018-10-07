@@ -344,6 +344,7 @@ static void usage(const char *prog)
         "      -s           # SSL on\n"
         "      -k keepalive # keep alive in seconds for this client. Defaults to 5\n"
         "      -V           # Show version\n"
+        "      -D           # Run in the background\n"
         , prog);
     exit(1);
 }
@@ -358,10 +359,11 @@ int main(int argc, char **argv)
     const char *host = NULL;
     int port = 0;
     char *description = NULL;
+    bool background = false;
     bool verbose = false;
     bool ssl = false;
 
-    while ((opt = getopt(argc, argv, "i:h:p:I:avd:sk:V")) != -1) {
+    while ((opt = getopt(argc, argv, "i:h:p:I:avd:sk:VD")) != -1) {
         switch (opt)
         {
         case 'i':
@@ -406,10 +408,16 @@ int main(int argc, char **argv)
             uwsc_log_info("rtty version %s\n", RTTY_VERSION_STRING);
             exit(0);
             break;
+        case 'D':
+            background = true;
+            break;
         default: /* '?' */
             usage(argv[0]);
         }
     }
+
+    if (background && daemon(0, 0))
+        uwsc_log_err("Can't run in the background: %s\n", strerror(errno));
 
     if (!verbose)
         uwsc_log_threshold(LOG_ERR);

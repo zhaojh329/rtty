@@ -76,6 +76,7 @@ rtty非常适合远程维护你的或者你公司的部署在全球各地的成�
       -s           # SSL on
       -k keepalive # keep alive in seconds for this client. Defaults to 5
       -V           # Show version
+      -D           # Run in the background
 
 运行RTTY(将下面的参数替换为你自己的参数)
 
