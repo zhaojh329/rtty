@@ -8,7 +8,6 @@ UPDATE=
 
 PKG_LIBEV="libev-dev"
 PKG_SSL="libssl-dev"
-PKG_LIBPROTOBUF_C="libprotobuf-c0-dev"
 
 show_distribution() {
 	local pretty_name=""
@@ -55,7 +54,6 @@ detect_pkg_tool() {
 		REMOVE="yum "
 		PKG_LIBEV="libev-devel"
 		PKG_SSL="openssl-devel"
-		PKG_LIBPROTOBUF_C="protobuf-c-devel"
 		return 0
 	}
 
@@ -65,7 +63,6 @@ detect_pkg_tool() {
 		REMOVE="pacman -R --noconfirm --noprogressbar"
 		PKG_LIBEV="libev"
 		PKG_SSL="openssl"
-		PKG_LIBPROTOBUF_C="protobuf-c"
 		return 0
 	}
 
@@ -119,44 +116,16 @@ check_tool quilt
 check_lib_header ev.h > /dev/null || $INSTALL $PKG_LIBEV
 check_lib_header ssl.h openssl > /dev/null || $INSTALL $PKG_SSL
 
-PBC_INCLUDE=$(check_lib_header protobuf-c.h)
-[ -n "$PBC_INCLUDE" ] || {
-	$INSTALL $PKG_LIBPROTOBUF_C
-	PBC_INCLUDE=$(check_lib_header protobuf-c.h)
-}
-
-PBC_VER=$(cat $PBC_INCLUDE/protobuf-c.h | grep PROTOBUF_C_VERSION_NUMBER | grep -o '[0-9x]\+')
-[ -n "$PBC_VER" ] || PBC_VER="0000000"
-
 rm -rf /tmp/rtty-build
 mkdir /tmp/rtty-build
 pushd /tmp/rtty-build
-
-if [ $PBC_VER -lt 1002000 ];
-then
-	$REMOVE $PKG_LIBPROTOBUF_C
-
-	check_tool autoconf
-	check_tool libtool
-
-	git clone https://github.com/protobuf-c/protobuf-c.git || {
-		echo "Clone protobuf-c failed"
-		exit 1
-	}
-
-	cd protobuf-c && ./autogen.sh && ./configure --disable-protoc
-	[ $? -eq 0 ] || exit 1
-
-	make && make install && cd -
-	[ $? -eq 0 ] || exit 1
-fi
 
 git clone https://github.com/zhaojh329/libuwsc.git || {
 	echo "Clone libuwsc failed"
 	exit 1
 }
 
-sleep 5
+sleep 2
 
 git clone https://github.com/zhaojh329/rtty.git || {
 	echo "Clone rtty failed"
