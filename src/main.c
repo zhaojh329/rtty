@@ -453,9 +453,9 @@ int main(int argc, char **argv)
         return -1;
     }
 
-    snprintf(server_url, sizeof(server_url), "ws%s://%s:%d/ws?device=1&devid=%s&description=%s&ver=%d"
-            "&keepalive=%d", ssl ? "s" : "", host, port, devid, description ? description : "",
-            (RTTY_VERSION_MAJOR << 16) | (RTTY_VERSION_MINOR << 8) | RTTY_VERSION_PATCH, keepalive);
+    snprintf(server_url, sizeof(server_url),
+        "ws%s://%s:%d/ws?device=1&devid=%s&description=%s&keepalive=%d",
+        ssl ? "s" : "", host, port, devid, description ? description : "", keepalive);
     free(description);
 
     ev_timer_init(&reconnect_timer, do_connect, 0.0, RECONNECT_INTERVAL);
