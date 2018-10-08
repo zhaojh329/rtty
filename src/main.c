@@ -35,8 +35,8 @@
 #include "utils.h"
 #include "command.h"
 
-#define RECONNECT_INTERVAL  5
-#define MAX_SESSIONS        5
+#define RTTY_RECONNECT_INTERVAL  5
+#define RTTY_MAX_SESSIONS        5
 
 struct tty_session {
     pid_t pid;
@@ -57,7 +57,7 @@ static char server_url[512];
 static bool auto_reconnect;
 static int keepalive = 5;       /* second */
 static struct ev_timer reconnect_timer;
-static struct tty_session *sessions[MAX_SESSIONS + 1];
+static struct tty_session *sessions[RTTY_MAX_SESSIONS + 1];
 
 static void del_tty_session(struct tty_session *tty)
 {
@@ -80,7 +80,7 @@ static void del_tty_session(struct tty_session *tty)
 
 static inline struct tty_session *find_tty_session(int sid)
 {
-    if (sid > MAX_SESSIONS)
+    if (sid > RTTY_MAX_SESSIONS)
         return NULL;
 
     return sessions[sid];
@@ -239,7 +239,7 @@ static void uwsc_onmessage(struct uwsc_client *cl, void *data, size_t len, bool 
             uwsc_log_err("register failed: %s\n", json_get_string(json, "msg"));
             ev_break(cl->loop, EVBREAK_ALL);
         } else if (!strcmp(type, "login")) {
-            if (sid > MAX_SESSIONS) {
+            if (sid > RTTY_MAX_SESSIONS) {
                 char str[128] = "";
                 /* Notifies the user that the session creation failed  */
                 snprintf(str, sizeof(str) - 1, "{\"type\":\"login\",\"sid\":%d,\"err\":2,\"msg\":\"sessions is full\"}", sid);
@@ -290,7 +290,7 @@ static void uwsc_onclose(struct uwsc_client *cl, int code, const char *reason)
 
     uwsc_log_err("onclose:%d: %s\n", code, reason);
 
-    for (i = 0; i < MAX_SESSIONS + 1; i++)
+    for (i = 0; i < RTTY_MAX_SESSIONS + 1; i++)
         if (sessions[i])
             del_tty_session(sessions[i]);
 
@@ -458,7 +458,7 @@ int main(int argc, char **argv)
         ssl ? "s" : "", host, port, devid, description ? description : "", keepalive);
     free(description);
 
-    ev_timer_init(&reconnect_timer, do_connect, 0.0, RECONNECT_INTERVAL);
+    ev_timer_init(&reconnect_timer, do_connect, 0.0, RTTY_RECONNECT_INTERVAL);
 	ev_timer_start(loop, &reconnect_timer);
 
     ev_signal_init(&signal_watcher, signal_cb, SIGINT);
