@@ -37,6 +37,7 @@
 
 #define RTTY_RECONNECT_INTERVAL  5
 #define RTTY_MAX_SESSIONS        5
+#define RTTY_BUFFER_PERSISTENT_SIZE 4096
 
 struct tty_session {
     pid_t pid;
@@ -180,6 +181,8 @@ static void new_tty_session(struct uwsc_client *cl, int sid)
 
     ev_child_init(&s->cw, pty_on_exit, pid, 0);
     ev_child_start(cl->loop, &s->cw);
+
+    buffer_set_persistent_size(&s->wb, RTTY_BUFFER_PERSISTENT_SIZE);
 
     sessions[sid] = s;
 
