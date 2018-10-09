@@ -317,10 +317,8 @@ static void do_connect(struct ev_loop *loop, struct ev_timer *w, int revents)
         return;
     }
 
-    if (!auto_reconnect) {
-   	    ev_break(cl->loop, EVBREAK_ALL);
-        free(cl);
-    }
+    if (!auto_reconnect)
+        ev_break(loop, EVBREAK_ALL);
 }
 
 static void signal_cb(struct ev_loop *loop, ev_signal *w, int revents)
