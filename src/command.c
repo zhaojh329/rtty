@@ -237,20 +237,28 @@ static void run_task(struct task *t)
         close(opipe[1]);
         close(epipe[1]);
 
-        arglen = 2 + params->u.array.length;
+        arglen = 2;
+        if (params)
+            arglen += params->u.array.length;
+
         args = calloc(1, sizeof(char *) * arglen);
         if (!args)
             exit(1);
 
         args[0] = t->cmd;
-        for (i = 0; i < params->u.array.length; i++)
-            args[i + 1] = (char *)json_get_array_string(params, i);
 
-        if (env->type == json_object) {
-            for (i = 0; i < env->u.object.length; i++) {
-                json_value *v = env->u.object.values[i].value;
-                if (v->type == json_string)
-                    setenv(env->u.object.values[i].name, v->u.string.ptr, 1);
+        if (params) {
+            for (i = 0; i < params->u.array.length; i++)
+                args[i + 1] = (char *)json_get_array_string(params, i);
+        }
+
+        if (env) {
+            if (env->type == json_object) {
+                for (i = 0; i < env->u.object.length; i++) {
+                    json_value *v = env->u.object.values[i].value;
+                    if (v->type == json_string)
+                        setenv(env->u.object.values[i].name, v->u.string.ptr, 1);
+                }
             }
         }
 
