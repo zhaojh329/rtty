@@ -231,8 +231,11 @@ static void run_task(struct task *t)
         close(opipe[0]);
         close(epipe[0]);
 
-        dup2(opipe[1], 1);
-        dup2(epipe[1], 2);
+        /* Redirect */
+        dup2(opipe[1], STDOUT_FILENO);
+        dup2(epipe[1], STDERR_FILENO);
+        close(opipe[1]);
+        close(epipe[1]);
 
         arglen = 2 + params->u.array.length;
         args = calloc(1, sizeof(char *) * arglen);
