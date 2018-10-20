@@ -75,26 +75,6 @@ check_tool() {
 	check_cmd $tool || $INSTALL $tool
 }
 
-check_lib_header() {
-	local header=$1
-	local prefix=$2
-	local path search
-
-	search="/usr/include/$prefix"
-	path=$(find $search -type f -name $header 2>/dev/null)
-	[ -n "$path" ] && {
-		echo ${path%/*} | cut -d' ' -f1
-		return
-	}
-
-	search="/usr/local/include/$prefix"
-	path=$(find $search -type f -name $header 2>/dev/null)
-	[ -n "$path" ] && {
-		echo ${path%/*} | cut -d' ' -f1
-		return
-	}
-}
-
 show_distribution
 
 detect_pkg_tool || {
@@ -111,10 +91,9 @@ check_tool gcc
 check_tool make
 check_tool cmake
 check_tool git
-check_tool quilt
 
-check_lib_header ev.h > /dev/null || $INSTALL $PKG_LIBEV
-check_lib_header ssl.h openssl > /dev/null || $INSTALL $PKG_SSL
+$INSTALL $PKG_LIBEV
+$INSTALL $PKG_SSL
 
 rm -rf /tmp/rtty-build
 mkdir /tmp/rtty-build
@@ -133,6 +112,7 @@ git clone https://github.com/zhaojh329/rtty.git || {
 }
 
 # libuwsc
+rm -f /usr/local/lib/libuwsc.*
 cd libuwsc && cmake . && make install && cd -
 [ $? -eq 0 ] || exit 1
 
