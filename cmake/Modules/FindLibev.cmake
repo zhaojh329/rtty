@@ -4,7 +4,7 @@
 #  LIBEV_INCLUDE_DIR    - The libev include directories
 #  LIBEV_LIBRARY        - The libraries needed to use libev
 
-find_path(LIBEV_INCLUDE_DIR ev.h)
+find_path(LIBEV_INCLUDE_DIR ev.h PATH_SUFFIXES libev)
 find_library(LIBEV_LIBRARY ev PATH_SUFFIXES lib64)
 
 if(LIBEV_INCLUDE_DIR)
