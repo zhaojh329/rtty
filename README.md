@@ -85,10 +85,9 @@ Run RTTY(Replace the following parameters with your own parameters)
 
     sudo rtty -I 'My-device-ID' -h 'your-server' -p 5912 -a -v -s -d 'My Device Description'
 
-## For Embedded Linux Platform
-You need to cross compiling by yourself
-
 ## [For OpenWRT](/OPENWRT.md)
+
+## [For Other Embedded Linux Platform](/CROSS_COMPILE.md)
 
 # Usage
 Use your web browser to access your server: `https://your-server-host:5912`, then click the connection button

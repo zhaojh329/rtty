@@ -82,10 +82,9 @@ rtty非常适合远程维护你的或者你公司的部署在全球各地的成�
 
     sudo rtty -I 'My-device-ID' -h 'your-server' -p 5912 -a -v -s -d 'My Device Description'
 
-## 嵌入式Linux平台
-你需要自行交叉编译
-
 ## [如何在OpenWRT中使用](/OPENWRT_ZH.md)
+
+## [其它嵌入式Linux平台](/CROSS_COMPILE.md)
 
 # 如何使用
 使用你的Web浏览器访问你的服务器: `https://your-server-host:5912`，然后点击连接按钮。
