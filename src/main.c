@@ -30,6 +30,7 @@
 #include <uwsc/uwsc.h>
 
 #include "list.h"
+#include "file.h"
 #include "json.h"
 #include "config.h"
 #include "utils.h"
@@ -346,6 +347,8 @@ static void usage(const char *prog)
         "      -k keepalive # keep alive in seconds for this client. Defaults to 5\n"
         "      -V           # Show version\n"
         "      -D           # Run in the background\n"
+        "      -R           # Receive file\n"
+        "      -S file      # Send file\n"
         , prog);
     exit(1);
 }
@@ -364,7 +367,7 @@ int main(int argc, char **argv)
     bool verbose = false;
     bool ssl = false;
 
-    while ((opt = getopt(argc, argv, "i:h:p:I:avd:sk:VD")) != -1) {
+    while ((opt = getopt(argc, argv, "i:h:p:I:avd:sk:VDRS:")) != -1) {
         switch (opt)
         {
         case 'i':
@@ -411,6 +414,12 @@ int main(int argc, char **argv)
             break;
         case 'D':
             background = true;
+            break;
+        case 'R':
+            transfer_file(NULL);
+            break;
+        case 'S':
+            transfer_file(optarg);
             break;
         default: /* '?' */
             usage(argv[0]);

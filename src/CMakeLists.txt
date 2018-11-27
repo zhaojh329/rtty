@@ -12,7 +12,7 @@ find_package(Libuwsc 3.0 REQUIRED)
 include_directories(${CMAKE_CURRENT_BINARY_DIR} ${LIBUWSC_INCLUDE_DIR} ${LIBEV_INCLUDE_DIR})
 set(EXTRA_LIBS ${LIBUWSC_LIBRARY} ${LIBEV_LIBRARY} util crypt m)
 
-add_executable(rtty main.c utils.c json.c command.c)
+add_executable(rtty main.c utils.c json.c command.c file.c)
 target_link_libraries(rtty ${EXTRA_LIBS})
 
 # configure a header file to pass some of the CMake settings to the source code
