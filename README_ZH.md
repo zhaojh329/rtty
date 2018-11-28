@@ -1,99 +1,125 @@
-# xTerminal([github](https://github.com/zhaojh329/xterminal))
+# rtty
 
-![](https://img.shields.io/badge/license-GPLV3-brightgreen.svg?style=plastic "License")
+[1]: https://img.shields.io/badge/license-LGPL2-brightgreen.svg?style=plastic
+[2]: /LICENSE
+[3]: https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=plastic
+[4]: https://github.com/zhaojh329/rtty/pulls
+[5]: https://img.shields.io/badge/Issues-welcome-brightgreen.svg?style=plastic
+[6]: https://github.com/zhaojh329/rtty/issues/new
+[7]: https://img.shields.io/badge/release-6.3.1-blue.svg?style=plastic
+[8]: https://github.com/zhaojh329/rtty/releases
+[9]: https://travis-ci.org/zhaojh329/rtty.svg?branch=master
+[10]: https://travis-ci.org/zhaojh329/rtty
 
-xTerminal是一个多终端的远程Web Shell工具。有了它，你可以在任何一台能上网的设备上通过浏览器访问你的任何一台能上网的设备的Shell。它非常适合公司
-对公司部署在全球各地的成千上万的Linux设备进行远程调试。它基于[evmongoose](https://github.com/zhaojh329/evmongoose)实现，由客户端和服务器两部分构成。
+[![license][1]][2]
+[![PRs Welcome][3]][4]
+[![Issue Welcome][5]][6]
+[![Release Version][7]][8]
+[![Build Status][9]][10]
 
-![](https://github.com/zhaojh329/image/blob/master/xterminal_zh.png)
+[Xterm.js]: https://github.com/xtermjs/xterm.js
+[lrzsz]: https://ohse.de/uwe/software/lrzsz.html
+[libev]: http://software.schmorp.de/pkg/libev.html
+[libuwsc]: https://github.com/zhaojh329/libuwsc
+[openssl]: https://github.com/openssl/openssl
+[mbedtls(polarssl)]: https://github.com/ARMmbed/mbedtls
+[CyaSSl(wolfssl)]: https://github.com/wolfSSL/wolfssl
+[vue]: https://github.com/vuejs/vue
+[iview]: https://github.com/iview/iview
+[服务端]: https://github.com/zhaojh329/rttys
 
-# [在线体验](https://jianhuizhao.f3322.net:8443)
-	用户名: xterminal
-	密码: xterminal
-	macaddr: 66:09:80:01:22:15
-	
+![](https://raw.githubusercontent.com/zhaojh329/rtty/doc/screen.gif)
+![](https://raw.githubusercontent.com/zhaojh329/rtty/doc/lrzsz.gif)
+
+它由客户端和[服务端]组成。客户端采用纯C实现。[服务端]采用GO语言实现，前端界面采用[iview]和[vue]实现。
+
+你可以在任何地方通过Web访问你的终端。通过设备ID（如果不设置则使用设备的MAC地址）来区分你的不同的终端。
+
+rtty非常适合远程维护你的或者你公司的部署在全球各地的成千上万的Linux设备。
+
 # 特性
-* 基于Web，使用简单
-* 支持同时连接多个终端
-* 支持上传文件到终端设备
-	
-# 安装
-## 在Ubuntu上安装Server
-### 安装依赖
-* [evmongoose](https://github.com/zhaojh329/evmongoose/blob/master/README_ZH.md)
+* 部署简单，使用方便
+* 根据设备ID访问不同的设备
+* 提供dashboard，直观的展示在线设备
+* 基于[Xterm.js]的全功能终端
+* 支持使用[lrzsz]传输文件
+* 支持SSL: openssl, mbedtls, CyaSSl(wolfssl)
+* 支持远程执行命令
+* 客户端非常小，适合嵌入式Linux: rtty(20.1K) + libev(48.5K) + libuwsc(24.4K) + libwolfssl(595.9K) = 688.9K
 
-* lua-cjson mosquitto
+# 客户端依赖
+* [libev] - 高性能的事件循环库
+* [libuwsc] - 一个轻量的针对嵌入式Linux的基于libev的WebSocket客户端C库。
+* [mbedtls(polarssl)]、[CyaSSl(wolfssl)]或者[openssl] - 如果你需要支持SSL
 
-		sudo apt install lua-cjson mosquitto
-	
-### 安装 xTerminal Server
-    git clone https://github.com/zhaojh329/xterminal.git
-    cd xterminal/ubuntu
-	sudo make install
+# [部署服务端](https://github.com/zhaojh329/rttys/blob/master/README_ZH.md)
 
-### 修改配置(/etc/xterminal/xterminal.conf)
-	mqtt-port=1883
-	http-port=8443
-	document=/etc/xterminal/web
-	http-username=xterminal
-	http-password=xterminal
-	ssl-cert=/etc/xterminal/server.pem
-	ssl-key=/etc/xterminal/server.key
-	
-### 在Ubuntu上运行服务器
-	sudo /etc/init.d/xterminal start
-	
-## 安装客户端 OpenWRT/LEDE
-### 下载/编译
-	git clone https://github.com/zhaojh329/evmongoose.git
-	cp -r evmongoose/openwrt openwrt_dir/package/evmongoose
-	
-	git clone https://github.com/zhaojh329/xterminal.git
-	cp -r xterminal/openwrt openwrt_dir/package/xterminal
-	
-	cd openwrt_dir
-	./scripts/feeds update -a
-	./scripts/feeds install -a
-	
-	make menuconfig
-	Utilities  --->
-		Terminal  --->
-			<*> xterminal
-	
-	make package/xterminal/compile V=s
+# 如何安装和运行rtty客户端
+## 针对Linux发行版：Ubuntu, Debian, ArchLinux, Centos
+安装
 
-### 修改配置(/etc/config/xterminal)
-	config base
-        option  mqtt_hostname   'jianhuizhao.f3322.net'
-        option  mqtt_port       '8883'
-	
-# 使用
-# 查询在线设备
-	https://server:8443/list
-	
-# 连接设备
-在浏览器中输入服务器地址，https协议，默认端口号8443（https://server:8443），然后在出现的页面中输入要连接的设备MAC地址，MAC地址的格式可以是：
-xx:xx:xx:xx:xx:xx, xx-xx-xx-xx-xx-xx, xxxxxxxxxxxxx
+    wget -qO- https://raw.githubusercontent.com/zhaojh329/rtty/master/tools/install.sh | sudo bash
 
-# 断开连接
-在终端Shell环境执行exit命令
+查看命令行选项
+
+    Usage: rtty [option]
+      -i ifname    # Network interface name - Using the MAC address of
+                          the interface as the device ID
+      -I id        # Set an ID for the device(Maximum 63 bytes, valid character:letters
+                          and numbers and underlines and short lines) - If set,
+                          it will cover the MAC address(if you have specify the ifname)
+      -h host      # Server host
+      -p port      # Server port
+      -a           # Auto reconnect to the server
+      -v           # verbose
+      -d           # Adding a description to the device(Maximum 126 bytes)
+      -s           # SSL on
+      -k keepalive # keep alive in seconds for this client. Defaults to 5
+      -V           # Show version
+      -D           # Run in the background
+
+运行RTTY(将下面的参数替换为你自己的参数)
+
+    sudo rtty -I 'My-device-ID' -h 'your-server' -p 5912 -a -v -s -d 'My Device Description'
+
+## [如何在OpenWRT中使用](/OPENWRT_ZH.md)
+
+## [其它嵌入式Linux平台](/CROSS_COMPILE.md)
+
+# 如何使用
+使用你的Web浏览器访问你的服务器: `https://your-server-host:5912`，然后点击连接按钮。
+
+你可以非常方便的将RTTY嵌入到你现有的平台： `https://your-server-host:5912/#/?id=your-id`
+
+自动登录: `https://your-server:5912/#/?id=device-id&username=device-username&password=device-password`
+
+## 远程执行命令
+### Shell
+
+    curl -k https://your-server:5912/cmd -d '{"devid":"test","username":"test","password":"123456","cmd":"ls","params":["/"],"env":{}}'
+
+    {"Err":0,"msg":"","code":0,"stdout":"bin\ndev\netc\nlib\nmnt\noverlay\nproc\nrom\nroot\nsbin\nsys\ntmp\nusr\nvar\nwww\n","stderr":""}
+
+### Jquery
+
+    var data = {devid: 'test', username: 'test', password: '123456', cmd: 'ls', params: ['/'], env: {}};
+    $.post('https://your-server:5912/cmd', JSON.stringify(data), function(r) {console.log(r)});
+
+
+### Axios
+
+    var data = {devid: 'test', username: 'test', password: '123456', cmd: 'ls', params: ['/'], env: {}};
+    axios.post('https://your-server:5912/cmd', JSON.stringify(data)).then(function (response) {
+        console.log(response.data);
+    }).catch(function (error) {
+        console.log(error);
+    });
+
+# [捐赠](https://gitee.com/zhaojh329/rtty#project-donate-overview)
 
 # 贡献代码
-
-xTerminal使用github托管其源代码，贡献代码使用github的PR(Pull Request)的流程，十分的强大与便利:
-
-1. [创建 Issue](https://github.com/zhaojh329/xterminal/issues/new) - 对于较大的
-	改动(如新功能，大型重构等)最好先开issue讨论一下，较小的improvement(如文档改进，bugfix等)直接发PR即可
-2. Fork [xterminal](https://github.com/zhaojh329/xterminal) - 点击右上角**Fork**按钮
-3. Clone你自己的fork: ```git clone https://github.com/$userid/xterminal.git```
-4. 创建dev分支，在**dev**修改并将修改push到你的fork上
-5. 创建从你的fork的**dev**分支到主项目的**dev**分支的[Pull Request] -  
-	[在此](https://github.com/zhaojh329/xterminal)点击**Compare & pull request**
-6. 等待review, 需要继续改进，或者被Merge!
-	
-## 感谢以下项目提供帮助
-* [evmongoose](https://github.com/zhaojh329/evmongoose)
-* [xterm.js](https://github.com/sourcelair/xterm.js)
+如果你想帮助[rtty](https://github.com/zhaojh329/rtty)变得更好，请参考
+[CONTRIBUTING_ZH.md](https://github.com/zhaojh329/rtty/blob/master/CONTRIBUTING_ZH.md)。
 
 # 技术交流
 QQ群：153530783

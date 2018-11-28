@@ -1,7 +1,7 @@
 Contributing
 ================================================================================
 
-If you want to contribute to [xterminal](https://github.com/zhaojh329/xterminal), please follow these simple rules:
+If you want to contribute to [rtty](https://github.com/zhaojh329/rtty), please follow these simple rules:
 
 1. Press the fork button:
 
@@ -10,26 +10,24 @@ If you want to contribute to [xterminal](https://github.com/zhaojh329/xterminal)
 2. Clone the repository from your account with:
 
     ```
-    git clone git@github.com:your_github_username/xterminal.git
+    git clone https://github.com/your_github_username/rtty.git
     ```
 
 3. Create a new branch with:
 
     ```
-    git checkout -b "xterminal-1-fix"
+    git checkout -b "rtty-1-fix"
     ```
     You can name it however you want.
 
 4. Make your changes
 
-5. Don't forget to add yourself in `contributors.md`.
+5. Commit and push your changes, then make a pull request from Github.
 
-6. Commit and push your changes, then make a pull request from Github.
-
-    git commit --signoff  
-    git push
-    
-7. Awaiting review, if accepted, merged!
+    git commit --signoff
+    git push origin rtty-1-fix
+ 
+6. Awaiting review, if accepted, merged!
 
 **IMPORTANT**
 
