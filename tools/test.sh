@@ -1,7 +1,7 @@
 #!/bin/sh
 
 port=5912
-host="192.168.0.100"
+host="localhost"
 
 cnt=$1
 
