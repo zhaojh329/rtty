@@ -96,6 +96,8 @@ static bool parse_file_data(struct transfer_context *tc)
 {
     struct buffer *b = &tc->b;
     ev_tstamp n = ev_time();
+    char unit = 'K';
+    float offset;
     int len;
 
     if (buffer_length(b) < 3)
@@ -117,9 +119,15 @@ static bool parse_file_data(struct transfer_context *tc)
     }
 
     tc->offset += len;
+    offset = tc->offset / 1024.0;
 
-    printf("  %d%%   %.2f KB    %.3fs\r",
-        (int)(tc->offset * 1.0 / tc->size * 100), tc->offset / 1024.0, n - tc->ts);
+    if ((int)offset / 1024 > 0) {
+        offset = offset / 1024;
+        unit = 'M';
+    }
+
+    printf("  %d%%   %.3f %cB    %.3fs\r",
+        (int)(tc->offset * 1.0 / tc->size * 100), offset, unit, n - tc->ts);
     fflush(stdout);
 
     return true;
