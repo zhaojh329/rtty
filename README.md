@@ -45,12 +45,12 @@ the world.
 * Access different devices based on device ID
 * Provide a dashboard to visualize online devices
 * Fully-featured terminal based on [Xterm.js]
-* Support transfer file with [lrzsz]
+* Support transfer file
 * SSL support: openssl, mbedtls, CyaSSl(wolfssl)
 * Support Execute a command remote
 * The client is very small, suitable for embedded Linux: rtty(20.1K) + libev(48.5K) + libuwsc(24.4K) + libwolfssl(595.9K) = 688.9K
 
-# Dependencies for Client side
+# Dependencies of the Client side
 * [libev] - A full-featured and high-performance event loop
 * [libuwsc] - A Lightweight and fully asynchronous WebSocket client library based on libev
 * [mbedtls(polarssl)], [CyaSSl(wolfssl)] or [openssl] - If you want to support SSL
@@ -95,6 +95,15 @@ Use your web browser to access your server: `https://your-server-host:5912`, the
 You can easily embed RTTY into your existing platform: `https://your-server-host:5912/#/?id=your-id`
 
 Automatic login: `https://your-server:5912/#/?id=device-id&username=device-username&password=device-password`
+
+## Transfer file
+Transfer file from local to remote device
+
+	rtty -R
+
+Transfer file from remote device to the local
+
+	rtty -S test.txt
 
 ## Execute a command remote
 ### Shell
