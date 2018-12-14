@@ -29,7 +29,7 @@
 [server]: https://github.com/zhaojh329/rttys
 
 ![](https://raw.githubusercontent.com/zhaojh329/rtty/doc/screen.gif)
-![](https://raw.githubusercontent.com/zhaojh329/rtty/doc/lrzsz.gif)
+![](https://raw.githubusercontent.com/zhaojh329/rtty/doc/file.gif)
 
 It is composed of a client and a [server]. The client is written in pure C. The [server] is written in go language
 and the front-end interface is written in [iview] & [Vue].

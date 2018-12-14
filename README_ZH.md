@@ -29,7 +29,7 @@
 [服务端]: https://github.com/zhaojh329/rttys
 
 ![](https://raw.githubusercontent.com/zhaojh329/rtty/doc/screen.gif)
-![](https://raw.githubusercontent.com/zhaojh329/rtty/doc/lrzsz.gif)
+![](https://raw.githubusercontent.com/zhaojh329/rtty/doc/file.gif)
 
 它由客户端和[服务端]组成。客户端采用纯C实现。[服务端]采用GO语言实现，前端界面采用[iview]和[vue]实现。
 
