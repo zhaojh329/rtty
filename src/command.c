@@ -104,6 +104,8 @@ static const char *cmderr2str(int err)
         return "no mem";
     case RTTY_CMD_ERR_SYSERR:
         return "sys error";
+    case RTTY_CMD_ERR_RESP_TOOBIG:
+        return "stdout+stderr is too big";
     default:
         return "";
     }
@@ -145,14 +147,28 @@ static void cmd_err_reply(struct uwsc_client *ws, int id, int err)
 
 static void cmd_reply(struct task *t, int code)
 {
-    char str[4096];
+    int stdoelen = buffer_length(&t->ob) + buffer_length(&t->eb);
+    char *str;
 
-    snprintf(str, sizeof(str) - 1, "{\"type\":\"cmd\",\"id\":%d,"
+    if (stdoelen > 65000) {
+        cmd_err_reply(t->ws, t->id, RTTY_CMD_ERR_RESP_TOOBIG);
+        return;
+    }
+
+    str = malloc(stdoelen + 100);
+    if (!str) {
+        cmd_err_reply(t->ws, t->id, RTTY_CMD_ERR_NOMEM);
+        return;
+    }
+
+    snprintf(str, stdoelen + 100 - 1, "{\"type\":\"cmd\",\"id\":%d,"
             "\"attrs\":{\"stdout\":\"%.*s\",\"stderr\":\"%.*s\",\"code\":%d}}", t->id,
             (int)buffer_length(&t->ob), (char *)buffer_data(&t->ob),
             (int)buffer_length(&t->eb), (char *)buffer_data(&t->eb),
             code);
+
     t->ws->send(t->ws, str, strlen(str), UWSC_OP_TEXT);
+    free(str);
 }
 
 static void ev_child_exit(struct ev_loop *loop, struct ev_child *w, int revents)
