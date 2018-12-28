@@ -7,7 +7,7 @@ set(RTTY_VERSION_PATCH 1)
 
 # Check the third party Libraries
 find_package(Libev REQUIRED)
-find_package(Libuwsc 3.0 REQUIRED)
+find_package(Libuwsc 3.2 REQUIRED)
 
 include_directories(${CMAKE_CURRENT_BINARY_DIR} ${LIBUWSC_INCLUDE_DIR} ${LIBEV_INCLUDE_DIR})
 set(EXTRA_LIBS ${LIBUWSC_LIBRARY} ${LIBEV_LIBRARY} util crypt m)
