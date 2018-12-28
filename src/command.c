@@ -147,21 +147,16 @@ static void cmd_err_reply(struct uwsc_client *ws, int id, int err)
 
 static void cmd_reply(struct task *t, int code)
 {
-    int stdoelen = buffer_length(&t->ob) + buffer_length(&t->eb);
+    int len = buffer_length(&t->ob) + buffer_length(&t->eb) + 100;
     char *str;
 
-    if (stdoelen > 65000) {
-        cmd_err_reply(t->ws, t->id, RTTY_CMD_ERR_RESP_TOOBIG);
-        return;
-    }
-
-    str = malloc(stdoelen + 100);
+    str = malloc(len);
     if (!str) {
         cmd_err_reply(t->ws, t->id, RTTY_CMD_ERR_NOMEM);
         return;
     }
 
-    snprintf(str, stdoelen + 100 - 1, "{\"type\":\"cmd\",\"id\":%d,"
+    snprintf(str, len, "{\"type\":\"cmd\",\"id\":%d,"
             "\"attrs\":{\"stdout\":\"%.*s\",\"stderr\":\"%.*s\",\"code\":%d}}", t->id,
             (int)buffer_length(&t->ob), (char *)buffer_data(&t->ob),
             (int)buffer_length(&t->eb), (char *)buffer_data(&t->eb),
