@@ -28,8 +28,10 @@
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <uwsc/log.h>
+#include <math.h>
 
 #include "list.h"
+#include "utils.h"
 #include "command.h"
 
 static int nrunning;
@@ -147,22 +149,43 @@ static void cmd_err_reply(struct uwsc_client *ws, const char *token, int err)
 
 static void cmd_reply(struct task *t, int code)
 {
-    int len = buffer_length(&t->ob) + buffer_length(&t->eb) + 100;
-    char *str;
+    size_t len = buffer_length(&t->ob) + buffer_length(&t->eb);
+    int ret;
+    char *str, *pos;
 
-    str = malloc(len);
+    len = ceil(len * 4.0 / 3) + 200;
+
+    str = calloc(1, len);
     if (!str) {
         cmd_err_reply(t->ws, t->token, RTTY_CMD_ERR_NOMEM);
         return;
     }
 
-    snprintf(str, len, "{\"type\":\"cmd\",\"token\":\"%s\","
-            "\"attrs\":{\"stdout\":\"%.*s\",\"stderr\":\"%.*s\",\"code\":%d}}", t->token,
-            (int)buffer_length(&t->ob), (char *)buffer_data(&t->ob),
-            (int)buffer_length(&t->eb), (char *)buffer_data(&t->eb),
-            code);
+    pos = str;
 
-    t->ws->send(t->ws, str, strlen(str), UWSC_OP_TEXT);
+    ret = snprintf(pos, len, "{\"type\":\"cmd\",\"token\":\"%s\","
+            "\"attrs\":{\"code\":%d,\"stdout\":\"", t->token, code);
+
+    len -= ret;
+    pos += ret;
+
+    ret = b64_encode(buffer_data(&t->ob), buffer_length(&t->ob), pos, len);
+    len -= ret;
+    pos += ret;
+
+    ret = snprintf(pos, len, "\",\"stderr\":\"");
+    len -= ret;
+    pos += ret;
+
+    ret = b64_encode(buffer_data(&t->eb), buffer_length(&t->eb), pos, len);
+    len -= ret;
+    pos += ret;
+
+    ret = snprintf(pos, len, "\"}}");
+    len -= ret;
+    pos += ret;
+
+    t->ws->send(t->ws, str, pos - str, UWSC_OP_TEXT);
     free(str);
 }
 

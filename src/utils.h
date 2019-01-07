@@ -21,6 +21,7 @@
 #define _UTILS_H
 
 #include <stdbool.h>
+#include <sys/types.h>
 
 int get_iface_mac(const char *ifname, char *dst, int len);
 
@@ -29,5 +30,7 @@ int urlencode(char *buf, int blen, const char *src, int slen);
 int find_login(char *buf, int len);
 
 bool valid_id(const char *id);
+
+int b64_encode(const void *src, size_t srclen, void *dest, size_t destlen);
 
 #endif
