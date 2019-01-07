@@ -68,21 +68,15 @@ int urlencode(char *buf, int blen, const char *src, int slen)
     int len = 0;
     static const char hex[] = "0123456789abcdef";
 
-    for (i = 0; (i < slen) && (len < blen); i++)
-    {
+    for (i = 0; (i < slen) && (len < blen); i++) {
         if( isalnum(src[i]) || (src[i] == '-') || (src[i] == '_') ||
-            (src[i] == '.') || (src[i] == '~') )
-        {
+            (src[i] == '.') || (src[i] == '~') ) {
             buf[len++] = src[i];
-        }
-        else if ((len+3) <= blen)
-        {
+        } else if ((len + 3) <= blen) {
             buf[len++] = '%';
             buf[len++] = hex[(src[i] >> 4) & 15];
             buf[len++] = hex[ src[i]       & 15];
-        }
-        else
-        {
+        } else {
             len = -1;
             break;
         }
