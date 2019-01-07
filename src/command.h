@@ -25,7 +25,7 @@
 #include "json.h"
 
 #define RTTY_CMD_MAX_RUNNING     5
-#define RTTY_CMD_EXEC_TIMEOUT    5
+#define RTTY_CMD_EXEC_TIMEOUT    30
 
 enum {
 	RTTY_CMD_ERR_PERMIT = 1,
@@ -46,7 +46,7 @@ struct task {
     struct buffer eb;   /* buffer for stderr */
     const json_value *msg;  /* message from server */
     const json_value *attrs;
-    int id;
+    char token[33];
     char cmd[0];
 };
 
