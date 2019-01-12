@@ -1,6 +1,12 @@
 # How to operate
 
-You first need to send a command to the server through POST, then the server returns a unique token.
+You first need to send a command to the server through POST, the message format is as follows.
+
+    {"devid": "test", "username": "test", "password": "test", "cmd": "echo", "params": ["hello rtty"], "env": {"x": "12"}}
+
+The devid, username, cmd in the message must be provided. Password, params, and env are optional. Params is a JSON array and env is a JSON object.
+
+Then the server returns a unique token.
 
     {"token":"7fb8dcfe3fee2129427276b692987338"}
 

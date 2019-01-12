@@ -1,16 +1,22 @@
 # 如何操作
 
-首先要通过POST方式向服务器发送一条命令，然后服务器返回一个唯一的token。
+首先要通过POST方式向服务器发送一条命令,消息格式如下所示：
+
+    {"devid": "test", "username": "test", "password": "test", "cmd": "echo", "params": ["hello rtty"], "env": {"x": "12"}}
+
+其中devid、username、cmd必须提供。password、params和env为可选项。params为一个JSON数组，env为一个JSON对象。
+
+然后服务器返回一个唯一的token：
 
     {"token":"7fb8dcfe3fee2129427276b692987338"}
 
-然后以该token作为参数向服务器查询命令执行结果。如果命令被执行，服务器将返回json格式的命令执行结果。
+然后以该token作为参数向服务器查询命令执行结果。如果命令被执行，服务器将返回json格式的命令执行结果：
 
     {"code":0,"stdout":"aGVsbG8gcnR0eQo=","stderr":""}
 
 响应中的stdout和stderr是经过base64编码的。
 
-如果任何一步操作失败，服务器都将返回json格式的错误信息。
+如果任何一步操作失败，服务器都将返回json格式的错误信息：
     
     {"err": 1002, "msg":"device offline"}
 
