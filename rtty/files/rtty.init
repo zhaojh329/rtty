@@ -57,3 +57,6 @@ start_service() {
     config_foreach start_rtty rtty
 }
 
+service_triggers() {
+    procd_add_reload_trigger "rtty"
+}
