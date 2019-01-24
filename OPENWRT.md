@@ -1,4 +1,4 @@
-# Install directly inside the device(master)
+# Install directly in the device(master)
 
     opkg update
     opkg list | grep rtty
