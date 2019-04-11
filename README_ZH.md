@@ -111,7 +111,3 @@ rtty非常适合远程维护你的或者你公司的部署在全球各地的成�
 如果你想帮助[rtty](https://github.com/zhaojh329/rtty)变得更好，请参考
 [CONTRIBUTING_ZH.md](https://github.com/zhaojh329/rtty/blob/master/CONTRIBUTING_ZH.md)。
 
-# 技术交流
-QQ群：153530783
-
-# 如果该项目对您有帮助，请随手star，谢谢！
