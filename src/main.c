@@ -202,6 +202,11 @@ static void change_winsize(int sid, int cols, int rows)
         .ws_row = rows
     };
 
+    if (!tty) {
+        uwsc_log_err("non-existent sid: %d\n", sid);
+        return;
+    }
+
     if(ioctl(tty->pty, TIOCSWINSZ, &size) < 0)
         uwsc_log_err("ioctl TIOCSWINSZ error\n");
 }
