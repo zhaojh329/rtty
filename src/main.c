@@ -344,7 +344,7 @@ static void usage(const char *prog)
         "                          and numbers and underlines and short lines) - If set,\n"
         "                          it will cover the MAC address(if you have specify the ifname)\n"
         "      -h host      # Server host\n"
-        "      -p port      # Server port\n"
+        "      -p port      # Server port(Default is 5912)\n"
         "      -a           # Auto reconnect to the server\n"
         "      -v           # verbose\n"
         "      -d           # Adding a description to the device(Maximum 126 bytes)\n"
@@ -366,7 +366,7 @@ int main(int argc, char **argv)
     char mac[13] = "";
     char devid[64] = "";
     const char *host = NULL;
-    int port = 0;
+    int port = 5912;
     char *description = NULL;
     bool background = false;
     bool verbose = false;

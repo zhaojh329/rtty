@@ -70,7 +70,7 @@ rtty非常适合远程维护你的或者你公司的部署在全球各地的成�
                           and numbers and underlines and short lines) - If set,
                           it will cover the MAC address(if you have specify the ifname)
       -h host      # Server host
-      -p port      # Server port
+      -p port      # Server port(Default is 5912)
       -a           # Auto reconnect to the server
       -v           # verbose
       -d           # Adding a description to the device(Maximum 126 bytes)
