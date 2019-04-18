@@ -373,8 +373,7 @@ int main(int argc, char **argv)
     bool ssl = false;
 
     while ((opt = getopt(argc, argv, "i:h:p:I:avd:sk:VDRS:")) != -1) {
-        switch (opt)
-        {
+        switch (opt) {
         case 'i':
             if (get_iface_mac(optarg, mac, sizeof(mac)) < 0) {
                 return -1;
