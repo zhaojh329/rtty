@@ -56,6 +56,7 @@ struct tty_session {
 
 static char login[128];       /* /bin/login */
 static char server_url[512];
+static char extra_header[128];  /* authorization token */
 static bool auto_reconnect;
 static int keepalive = 5;       /* second */
 static struct ev_timer reconnect_timer;
@@ -313,7 +314,7 @@ static void uwsc_onclose(struct uwsc_client *cl, int code, const char *reason)
 
 static void do_connect(struct ev_loop *loop, struct ev_timer *w, int revents)
 {
-    struct uwsc_client *cl = uwsc_new(loop, server_url, keepalive);
+    struct uwsc_client *cl = uwsc_new(loop, server_url, keepalive, extra_header);
     if (cl) {
         cl->onopen = uwsc_onopen;
         cl->onmessage = uwsc_onmessage;
@@ -354,6 +355,7 @@ static void usage(const char *prog)
         "      -D           # Run in the background\n"
         "      -R           # Receive file\n"
         "      -S file      # Send file\n"
+        "      -t token     # Authorization token\n"
         , prog);
     exit(1);
 }
@@ -372,7 +374,7 @@ int main(int argc, char **argv)
     bool verbose = false;
     bool ssl = false;
 
-    while ((opt = getopt(argc, argv, "i:h:p:I:avd:sk:VDRS:")) != -1) {
+    while ((opt = getopt(argc, argv, "i:h:p:I:avd:sk:VDRS:t:")) != -1) {
         switch (opt) {
         case 'i':
             if (get_iface_mac(optarg, mac, sizeof(mac)) < 0) {
@@ -424,6 +426,9 @@ int main(int argc, char **argv)
             break;
         case 'S':
             transfer_file(optarg);
+            break;
+        case 't':
+            snprintf(extra_header, sizeof(extra_header) - 1, "Authorization: %s\r\n", optarg);
             break;
         default: /* '?' */
             usage(argv[0]);
