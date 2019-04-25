@@ -22,4 +22,6 @@ o = s:option(Flag, "ssl", translate("SSL"))
 o = s:option(Value, "description", translate("Description"))
 
 
+o = s:option(Value, "token", translate("Token"))
+
 return m
