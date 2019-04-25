@@ -48,6 +48,7 @@ the world.
 * Fully-featured terminal based on [Xterm.js]
 * Support transfer file
 * SSL support: openssl, mbedtls, CyaSSl(wolfssl)
+* Support device authorization
 * Support Execute a command remote
 * The client is very small, suitable for embedded Linux: rtty(20.1K) + libev(48.5K) + libuwsc(24.4K) + libwolfssl(595.9K) = 688.9K
 
@@ -81,10 +82,15 @@ Command-line Options
       -k keepalive # keep alive in seconds for this client. Defaults to 5
       -V           # Show version
       -D           # Run in the background
+      -t token     # Authorization token
 
 Run RTTY(Replace the following parameters with your own parameters)
 
     sudo rtty -I 'My-device-ID' -h 'your-server' -p 5912 -a -v -s -d 'My Device Description'
+
+If your rttys is configured with a token, add the following parameter(Replace the following token with your own)
+
+    -t 34762d07637276694b938d23f10d7164
 
 ## [For OpenWRT](/OPENWRT.md)
 

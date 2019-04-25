@@ -45,6 +45,7 @@ rtty非常适合远程维护你的或者你公司的部署在全球各地的成�
 * 基于[Xterm.js]的全功能终端
 * 支持传输文件
 * 支持SSL: openssl, mbedtls, CyaSSl(wolfssl)
+* 支持设备认证
 * 支持远程执行命令
 * 客户端非常小，适合嵌入式Linux: rtty(20.1K) + libev(48.5K) + libuwsc(24.4K) + libwolfssl(595.9K) = 688.9K
 
@@ -78,10 +79,15 @@ rtty非常适合远程维护你的或者你公司的部署在全球各地的成�
       -k keepalive # keep alive in seconds for this client. Defaults to 5
       -V           # Show version
       -D           # Run in the background
+      -t token     # Authorization token
 
 运行RTTY(将下面的参数替换为你自己的参数)
 
     sudo rtty -I 'My-device-ID' -h 'your-server' -p 5912 -a -v -s -d 'My Device Description'
+
+如果你的rttys配置了一个token，请加上如下参数（将下面的token替换为你自己生成的）
+
+    -t 34762d07637276694b938d23f10d7164
 
 ## [如何在OpenWRT中使用](/OPENWRT_ZH.md)
 
