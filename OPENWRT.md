@@ -59,6 +59,10 @@ Use SSL
 
     uci set rtty.@rtty[0].ssl='1'
 
+Authorization
+
+    uci set rtty.@rtty[0].token='your-token'
+
 Save configuration and apply
 
     uci commit

@@ -58,6 +58,10 @@ openwrt 18
 
     uci set rtty.@rtty[0].ssl='1'
 
+认证
+
+    uci set rtty.@rtty[0].token='your-token'
+
 保存配置并应用
 
     uci commit
