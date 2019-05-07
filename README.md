@@ -1,6 +1,6 @@
 # rtty([中文](/README_ZH.md))
 
-[1]: https://img.shields.io/badge/license-LGPL2-brightgreen.svg?style=plastic
+[1]: https://img.shields.io/badge/license-MIT-brightgreen.svg?style=plastic
 [2]: /LICENSE
 [3]: https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=plastic
 [4]: https://github.com/zhaojh329/rtty/pulls
