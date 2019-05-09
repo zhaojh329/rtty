@@ -33,6 +33,7 @@
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <uwsc/log.h>
+#include <uwsc/utils.h>
 #include <math.h>
 
 #include "list.h"
