@@ -99,7 +99,7 @@ rm -rf /tmp/rtty-build
 mkdir /tmp/rtty-build
 pushd /tmp/rtty-build
 
-git clone https://github.com/zhaojh329/libuwsc.git || {
+git clone --recursive https://github.com/zhaojh329/libuwsc.git || {
 	echo "Clone libuwsc failed"
 	exit 1
 }
