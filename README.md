@@ -50,7 +50,8 @@ the world.
 * SSL support: openssl, mbedtls, CyaSSl(wolfssl)
 * Support device authorization
 * Support Execute a command remote
-* The client is very small, suitable for embedded Linux: rtty(20.1K) + libev(48.5K) + libuwsc(24.4K) + libwolfssl(595.9K) = 688.9K
+* The client is very small, suitable for embedded Linux: rtty(20.1K) + libev(48.5K) + libuwsc(24.4K) = 93K. If you want
+  to support ssl, +libwolfssl(595.9K) = 688.9K
 
 # Dependencies of the Client side
 * [libev] - A full-featured and high-performance event loop
