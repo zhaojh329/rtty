@@ -5,7 +5,10 @@
     opkg install rtty-nossl
 
 # 自己编译
-## 添加feed（openwrt 14.04,15.05,Lede and openwrt 18）
+## 添加feed（openwrt 14.04,15.05,Lede,openwrt 18或者更高版本）
+
+**如果你的OpenWrt根目录存在feeds.conf,则使用feeds.conf，而不是feeds.conf.default**
+
 Openwrt 14.04
 
     echo 'src-git rtty https://github.com/zhaojh329/rtty.git;openwrt-14-15' >> feeds.conf.default
@@ -14,7 +17,7 @@ Openwrt 15.05
 
     echo 'src-git rtty https://github.com/zhaojh329/rtty.git;openwrt-lede' >> feeds.conf.default
 
-openwrt 18
+openwrt 18或者更高版本
 
     echo 'src-git rtty https://github.com/zhaojh329/rtty.git;openwrt-18' >> feeds.conf.default
 

@@ -5,7 +5,10 @@
     opkg install rtty-nossl
 
 # Compile it yourself
-## Add feed for openwrt 14.04,15.05,Lede and openwrt 18
+## Add feed for openwrt 14.04,15.05,Lede,openwrt 18 and higher version
+
+**If you have feeds.conf in your Openwrt root directory, use feeds.conf instead of feeds.conf.default**
+
 Openwrt 14.04
 
     echo 'src-git rtty https://github.com/zhaojh329/rtty.git;openwrt-14-15' >> feeds.conf.default
@@ -14,7 +17,7 @@ Openwrt 15.05
 
     echo 'src-git rtty https://github.com/zhaojh329/rtty.git;openwrt-lede' >> feeds.conf.default
 
-openwrt 18
+openwrt 18 or higher version
 
     echo 'src-git rtty https://github.com/zhaojh329/rtty.git;openwrt-18' >> feeds.conf.default
 
