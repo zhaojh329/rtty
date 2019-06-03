@@ -117,8 +117,8 @@ Transfer file from remote device to the local
 
 # [Donate](https://gitee.com/zhaojh329/rtty#project-donate-overview)
 
+* シ乄BB~★ - 150¥
 * 许玉善(Tim Xu) - 100¥
-* シ乄BB~★ - 100¥
 * just_doing - 20¥
 
 # Contributing
