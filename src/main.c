@@ -344,11 +344,8 @@ static void signal_cb(struct ev_loop *loop, ev_signal *w, int revents)
 static void usage(const char *prog)
 {
     fprintf(stderr, "Usage: %s [option]\n"
-        "      -i ifname    # Network interface name - Using the MAC address of\n"
-        "                          the interface as the device ID\n"
         "      -I id        # Set an ID for the device(Maximum 63 bytes, valid character:letters\n"
-        "                          and numbers and underlines and short lines) - If set,\n"
-        "                          it will cover the MAC address(if you have specify the ifname)\n"
+        "                          and numbers and underlines and short lines)\n"
         "      -h host      # Server host\n"
         "      -p port      # Server port(Default is 5912)\n"
         "      -a           # Auto reconnect to the server\n"
@@ -370,7 +367,6 @@ int main(int argc, char **argv)
     int opt;
     struct ev_loop *loop = EV_DEFAULT;
     struct ev_signal signal_watcher;
-    char mac[13] = "";
     char devid[64] = "";
     const char *host = NULL;
     int port = 5912;
@@ -379,13 +375,8 @@ int main(int argc, char **argv)
     bool verbose = false;
     bool ssl = false;
 
-    while ((opt = getopt(argc, argv, "i:h:p:I:avd:sk:VDRS:t:")) != -1) {
+    while ((opt = getopt(argc, argv, "h:p:I:avd:sk:VDRS:t:")) != -1) {
         switch (opt) {
-        case 'i':
-            if (get_iface_mac(optarg, mac, sizeof(mac)) < 0) {
-                return -1;
-            }
-            break;
         case 'h':
             host = optarg;
             break;
@@ -447,11 +438,8 @@ int main(int argc, char **argv)
         uwsc_log_threshold(LOG_ERR);
 
     if (!devid[0]) {
-        if (!mac[0]) {
-            uwsc_log_err("You must specify the ifname or id\n");
-            usage(argv[0]);
-        }
-        strcpy(devid, mac);
+        uwsc_log_err("You must specify an id\n");
+        usage(argv[0]);
     }
 
     if (!valid_id(devid)) {

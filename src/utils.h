@@ -28,8 +28,6 @@
 #include <stdbool.h>
 #include <sys/types.h>
 
-int get_iface_mac(const char *ifname, char *dst, int len);
-
 int urlencode(char *buf, int blen, const char *src, int slen);
 
 int find_login(char *buf, int len);

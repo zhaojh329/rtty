@@ -35,8 +35,7 @@
 It is composed of a client and a [server]. The client is written in pure C. The [server] is written in go language
 and the front-end interface is written in [iview] & [Vue].
 
-You can access your device's terminal from anywhere via the web. Differentiate your different device by device ID(If
-the ID is not set, the MAC address of your device is used).
+You can access your device's terminal from anywhere via the web. Differentiate your different device by device ID.
 
 rtty is very suitable for remote maintenance your or your company's thousands of Linux devices deployed around
 the world.
@@ -69,11 +68,8 @@ Install
 Command-line Options
 
     Usage: rtty [option]
-      -i ifname    # Network interface name - Using the MAC address of
-                          the interface as the device ID
       -I id        # Set an ID for the device(Maximum 63 bytes, valid character:letters
-                          and numbers and underlines and short lines) - If set,
-                          it will cover the MAC address(if you have specify the ifname)
+                          and numbers and underlines and short lines)
       -h host      # Server host
       -p port      # Server port(Default is 5912)
       -a           # Auto reconnect to the server

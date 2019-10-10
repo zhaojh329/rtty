@@ -34,7 +34,7 @@
 
 它由客户端和[服务端]组成。客户端采用纯C实现。[服务端]采用GO语言实现，前端界面采用[iview]和[vue]实现。
 
-你可以在任何地方通过Web访问你的设备的终端。通过设备ID（如果不设置则使用设备的MAC地址）来区分你的不同的设备。
+你可以在任何地方通过Web访问你的设备的终端。通过设备ID来区分你的不同的设备。
 
 rtty非常适合远程维护你的或者你公司的部署在全球各地的成千上万的Linux设备。
 
@@ -65,11 +65,8 @@ rtty非常适合远程维护你的或者你公司的部署在全球各地的成�
 查看命令行选项
 
     Usage: rtty [option]
-      -i ifname    # Network interface name - Using the MAC address of
-                          the interface as the device ID
       -I id        # Set an ID for the device(Maximum 63 bytes, valid character:letters
-                          and numbers and underlines and short lines) - If set,
-                          it will cover the MAC address(if you have specify the ifname)
+                          and numbers and underlines and short lines)
       -h host      # Server host
       -p port      # Server port(Default is 5912)
       -a           # Auto reconnect to the server
