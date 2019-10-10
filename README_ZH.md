@@ -65,9 +65,9 @@ rtty非常适合远程维护你的或者你公司的部署在全球各地的成�
 查看命令行选项
 
     Usage: rtty [option]
-      -I id        # Set an ID for the device(Maximum 63 bytes, valid character:letters
-                          and numbers and underlines and short lines)
-      -h host      # Server host
+      -I id        # Set an ID for the device(Maximum 63 bytes, valid character:letter,
+                          number, underline and short line)
+      -h host      # Server's host or ipaddr
       -p port      # Server port(Default is 5912)
       -a           # Auto reconnect to the server
       -v           # verbose

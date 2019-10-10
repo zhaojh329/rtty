@@ -344,9 +344,9 @@ static void signal_cb(struct ev_loop *loop, ev_signal *w, int revents)
 static void usage(const char *prog)
 {
     fprintf(stderr, "Usage: %s [option]\n"
-        "      -I id        # Set an ID for the device(Maximum 63 bytes, valid character:letters\n"
-        "                          and numbers and underlines and short lines)\n"
-        "      -h host      # Server host\n"
+        "      -I id        # Set an ID for the device(Maximum 63 bytes, valid character:letter,\n"
+        "                          number, underline and short line)\n"
+        "      -h host      # Server's host or ipaddr\n"
         "      -p port      # Server port(Default is 5912)\n"
         "      -a           # Auto reconnect to the server\n"
         "      -v           # verbose\n"
