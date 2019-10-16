@@ -353,6 +353,7 @@ static void usage(const char *prog)
         "      -d           # Adding a description to the device(Maximum 126 bytes)\n"
         "      -s           # SSL on\n"
         "      -k keepalive # keep alive in seconds for this client. Defaults to 5\n"
+        "      -b baseurl   # Set a base url\n"
         "      -V           # Show version\n"
         "      -D           # Run in the background\n"
         "      -R           # Receive file\n"
@@ -368,6 +369,7 @@ int main(int argc, char **argv)
     struct ev_loop *loop = EV_DEFAULT;
     struct ev_signal signal_watcher;
     char devid[64] = "";
+    const char *baseurl = NULL;
     const char *host = NULL;
     int port = 5912;
     char *description = NULL;
@@ -375,10 +377,13 @@ int main(int argc, char **argv)
     bool verbose = false;
     bool ssl = false;
 
-    while ((opt = getopt(argc, argv, "h:p:I:avd:sk:VDRS:t:")) != -1) {
+    while ((opt = getopt(argc, argv, "h:b:p:I:avd:sk:VDRS:t:")) != -1) {
         switch (opt) {
         case 'h':
             host = optarg;
+            break;
+        case 'b':
+            baseurl = optarg;
             break;
         case 'p':
             port = atoi(optarg);
@@ -466,8 +471,9 @@ int main(int argc, char **argv)
     }
 
     snprintf(server_url, sizeof(server_url),
-        "ws%s://%s:%d/ws?device=1&devid=%s&description=%s&keepalive=%d",
-        ssl ? "s" : "", host, port, devid, description ? description : "", keepalive);
+        "ws%s://%s:%d%s/ws?device=1&devid=%s&description=%s&keepalive=%d",
+        ssl ? "s" : "", host, port, baseurl ? baseurl : "", devid, description ? description : "", keepalive);
+
     free(description);
 
     ev_timer_init(&reconnect_timer, do_connect, 0.0, RTTY_RECONNECT_INTERVAL);
