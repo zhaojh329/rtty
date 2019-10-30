@@ -62,6 +62,7 @@ struct tty_session {
 static char login[128];       /* /bin/login */
 static char server_url[512];
 static char extra_header[128];  /* authorization token */
+static char *username = NULL;
 static bool auto_reconnect;
 static int keepalive = 5;       /* second */
 static struct ev_timer reconnect_timer;
@@ -170,9 +171,9 @@ static void new_tty_session(struct uwsc_client *cl, int sid)
         return;
 
     pid = forkpty(&pty, NULL, NULL, NULL);
-    if (pid == 0)
-        execl(login, login, NULL);
-
+    if (pid == 0)   
+        username ? execl(login,"-p","-f", username , NULL) : execl(login, login, NULL);
+    
     s->cl = cl;
     s->sid = sid;
     s->pid = pid;
@@ -359,6 +360,7 @@ static void usage(const char *prog)
         "      -R           # Receive file\n"
         "      -S file      # Send file\n"
         "      -t token     # Authorization token\n"
+        "      -f username  # Skip a second login authentication. See man login(1) about the details\n"
         , prog);
     exit(1);
 }
@@ -377,13 +379,16 @@ int main(int argc, char **argv)
     bool verbose = false;
     bool ssl = false;
 
-    while ((opt = getopt(argc, argv, "h:b:p:I:avd:sk:VDRS:t:")) != -1) {
+    while ((opt = getopt(argc, argv, "h:b:f:p:I:avd:sk:VDRS:t:")) != -1) {
         switch (opt) {
         case 'h':
             host = optarg;
             break;
         case 'b':
             baseurl = optarg;
+            break;
+        case 'f':
+            username = optarg;
             break;
         case 'p':
             port = atoi(optarg);
