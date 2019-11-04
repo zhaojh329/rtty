@@ -54,7 +54,7 @@ static bool login_test(const char *username, const char *password)
         return false;
 
     sp = getspnam(username);
-    if (!sp)
+    if (!sp || !sp->sp_pwdp[1])
         return false;
 
     if (!password)
