@@ -25,9 +25,7 @@
 #ifndef _COMMAND_H
 #define _COMMAND_H
 
-#include <uwsc/uwsc.h>
-
-#include "json.h"
+#include "rtty.h"
 
 #define RTTY_CMD_MAX_RUNNING     5
 #define RTTY_CMD_EXEC_TIMEOUT    30
@@ -42,19 +40,19 @@ enum {
 
 struct task {
     struct list_head list;
-    struct uwsc_client *ws;
+    struct rtty *rtty;
     struct ev_child cw;
     struct ev_timer timer;
     struct ev_io ioo;   /* Watch stdout of child */
     struct ev_io ioe;   /* Watch stderr of child */
     struct buffer ob;   /* buffer for stdout */
     struct buffer eb;   /* buffer for stderr */
-    const json_value *msg;  /* message from server */
-    const json_value *attrs;
+    int nparams;
+    char **params;
     char token[33];
     char cmd[0];
 };
 
-void run_command(struct uwsc_client *ws, const json_value *msg);
+void run_command(struct rtty *rtty, const char *data);
 
 #endif

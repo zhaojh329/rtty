@@ -22,18 +22,25 @@
  * SOFTWARE.
  */
 
-#ifndef _UTILS_H
-#define _UTILS_H
+#ifndef RTTY_SSL_H
+#define RTTY_SSL_H
 
-#include <stdbool.h>
+#include <stdint.h>
 #include <sys/types.h>
 
-int find_login(char *buf, int len);
+#include "config.h"
 
-bool valid_id(const char *id);
+#if RTTY_SSL_SUPPORT
 
-int b64_encode(const void *src, size_t srclen, void *dest, size_t destsize);
+struct rtty_ssl_ctx;
 
-const char *format_size(size_t size);
+int rtty_ssl_init(struct rtty_ssl_ctx **ctx, int sock, const char *host);
+int rtty_ssl_handshake(struct rtty_ssl_ctx *ctx);
+void rtty_ssl_free(struct rtty_ssl_ctx *ctx);
+
+int rtty_ssl_read(int fd, void *buf, size_t count, void *arg);
+int rtty_ssl_write(int fd, void *buf, size_t count, void *arg);
+
+#endif
 
 #endif

@@ -99,22 +99,10 @@ rm -rf /tmp/rtty-build
 mkdir /tmp/rtty-build
 pushd /tmp/rtty-build
 
-git clone --recursive https://github.com/zhaojh329/libuwsc.git || {
-	echo "Clone libuwsc failed"
-	exit 1
-}
-
-sleep 2
-
 git clone https://github.com/zhaojh329/rtty.git || {
 	echo "Clone rtty failed"
 	exit 1
 }
-
-# libuwsc
-rm -f /usr/local/lib/libuwsc.*
-cd libuwsc && cmake . && make install && cd -
-[ $? -eq 0 ] || exit 1
 
 # rtty
 cd rtty && cmake . && make install

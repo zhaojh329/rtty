@@ -22,278 +22,227 @@
  * SOFTWARE.
  */
 
-#include <errno.h>
 #include <stdio.h>
 #include <fcntl.h>
-#include <stdlib.h>
+#include <errno.h>
 #include <unistd.h>
-#include <string.h>
-#include <termios.h>
-#include <stdbool.h>
-#include <arpa/inet.h>
-#include <uwsc/log.h>
+#include <sys/un.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
 
+#include "log.h"
 #include "file.h"
+#include "utils.h"
 
-static void set_stdin(bool raw)
+static uint8_t RTTY_FILE_MAGIC[] = {0xb6, 0xbc, 0xbd};
+struct rtty_file_context file_context;
+
+static void clear_file_context()
 {
-    static struct termios ots;
-    static bool current_raw;
-    struct termios nts;
+    file_context.running = false;
+    close(file_context.sock);
 
-    if (raw) {
-        if (current_raw)
-            return;
+    buffer_free (&file_context.rb);
+    buffer_free (&file_context.wb);
 
-        current_raw = true;
-
-        tcgetattr(STDIN_FILENO, &ots);
-
-        nts = ots;
-
-        nts.c_iflag = IGNBRK;
-        /* No echo, crlf mapping, INTR, QUIT, delays, no erase/kill */
-        nts.c_lflag &= ~(ECHO | ICANON | ISIG);
-        nts.c_oflag = 0;
-        nts.c_cc[VMIN] = 1;
-        nts.c_cc[VTIME] = 1;
-        tcsetattr(STDIN_FILENO, TCSADRAIN, &nts);
-        fcntl(STDIN_FILENO, F_SETFL, fcntl(STDIN_FILENO, F_GETFL, 0) | O_NONBLOCK);
-    } else {
-        if (!current_raw)
-            return;
-        current_raw = false;
-        tcsetattr(STDIN_FILENO, TCSADRAIN, &ots);
-        fcntl(STDIN_FILENO, F_SETFL, fcntl(STDIN_FILENO, F_GETFL, 0) & ~O_NONBLOCK);
-    }
+    ev_io_stop(file_context.rtty->loop, &file_context.ior);
+    ev_io_stop(file_context.rtty->loop, &file_context.iow);
 }
 
-static void rf_write(int fd, void *buf, int len)
+static void on_file_msg_read(struct ev_loop *loop, struct ev_io *w, int revents)
 {
-    if (write(fd, buf, len) < 0) {
-        uwsc_log_err("Write failed: %s\n", strerror(errno));
-        exit(0);
+    struct buffer *rb = &file_context.rb;
+    struct rtty *rtty = file_context.rtty;
+    struct buffer *wb = &rtty->wb;
+    int msglen;
+    bool eof;
+    int ret;
+
+    ret = buffer_put_fd(rb, w->fd, -1, &eof, NULL, NULL);
+    if (ret < 0) {
+        log_err("socket read error: %s\n", strerror (errno));
+        return;
     }
+
+    while (true) {
+        if (buffer_length (rb) < 3)
+            break;
+
+        msglen = buffer_get_u16 (rb, 1);
+        if (buffer_length (rb) < msglen + 3)
+            break;
+
+        buffer_put_u8 (wb, MSG_TYPE_FILE);
+        buffer_put_u16 (wb, htons(2 + msglen));
+        buffer_put_u8 (wb, file_context.sid);
+        buffer_put_u8 (wb, buffer_pull_u8 (rb));
+
+        buffer_pull (rb, NULL, 2);
+
+        buffer_put_data (wb, buffer_data (rb), msglen);
+        buffer_pull (rb, NULL, msglen);
+
+        ev_io_start(loop, &rtty->iow);
+    }
+
+    if (eof)
+        clear_file_context ();
 }
 
-static bool parse_file_info(struct transfer_context *tc)
+static void on_file_msg_write(struct ev_loop *loop, struct ev_io *w, int revents)
 {
-    struct buffer *b = &tc->b;
-    int len;
+    struct buffer *wb = &file_context.wb;
+    int ret = buffer_pull_to_fd (wb, w->fd, -1, NULL, NULL);
+    if (ret < 0) {
+            log_err ("socket write error: %s\n", strerror(errno));
+            clear_file_context ();
+            return;
+        }
 
-    if (buffer_length(b) < 3)
+    if (buffer_length (wb) < 1)
+        ev_io_stop (loop, w);
+}
+
+static void on_net_accept(struct ev_loop *loop, struct ev_io *w, int revents)
+{
+    int sock = accept(w->fd, NULL, NULL);
+    if (sock < 0) {
+        log_err("accept fail: %s\n", strerror(errno));
+        return;
+    }
+
+    if (file_context.running) {
+        log_err("up/down file busy\n");
+        close(sock);
+        return;
+    }
+
+    fcntl(sock, F_SETFL, fcntl(sock, F_GETFL) | O_NONBLOCK);
+
+    file_context.sock = sock;
+    file_context.running = true;
+
+    ev_io_init(&file_context.ior, on_file_msg_read, sock, EV_READ);
+    ev_io_start (loop, &file_context.ior);
+
+    ev_io_init(&file_context.iow, on_file_msg_write, sock, EV_WRITE);
+}
+
+int start_file_service(struct rtty *rtty)
+{
+    struct sockaddr_un sun = {
+        .sun_family = AF_UNIX
+    };
+    const int on = 1;
+    int sock;
+
+    if (strlen(RTTY_FILE_UNIX_SOCKET) >= sizeof(sun.sun_path)) {
+        log_err("unix socket path too long\n");
+        return -1;
+    }
+
+    sock = socket(AF_UNIX, SOCK_STREAM | SOCK_NONBLOCK | SOCK_CLOEXEC, 0);
+    if (sock < 0) {
+        log_err("create socket fail: %s\n", strerror(errno));
+        return -1;
+    }
+
+    strcpy(sun.sun_path, RTTY_FILE_UNIX_SOCKET);
+    setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
+
+    unlink(RTTY_FILE_UNIX_SOCKET);
+
+    if (bind(sock, (struct sockaddr*)&sun, sizeof(sun)) < 0) {
+        log_err("bind socket fail: %s\n", strerror(errno));
+        goto err;
+    }
+
+    if (listen(sock, SOMAXCONN) < 0) {
+        log_err("listen socket fail: %s\n", strerror(errno));
+        goto err;
+    }
+
+    ev_io_init(&rtty->iof, on_net_accept, sock, EV_READ);
+    ev_io_start (rtty->loop, &rtty->iof);
+
+    file_context.rtty = rtty;
+
+    return sock;
+
+err:
+    if (sock > -1)
+        close (sock);
+    return -1;
+}
+
+bool detect_file_msg(uint8_t *buf, int len, int sid, int *type)
+{
+    if (len != 4)
         return false;
 
-    len = buffer_get_u8(b, 1);
-
-    if (buffer_length(b) < len + 2)
+    if (memcmp (buf, RTTY_FILE_MAGIC, sizeof (RTTY_FILE_MAGIC)))
         return false;
 
-    buffer_pull(b, NULL, 2);
-    buffer_pull(b, tc->name, len);
+    if (buf[3] != 'u' && buf[3] != 'd')
+        return false;
 
-    tc->size = ntohl(buffer_pull_u32(b));
+    file_context.sid = sid;
+    *type = -1;
+
+    if (buf[3] == 'd')
+        *type = RTTY_FILE_MSG_START_DOWNLOAD;
 
     return true;
 }
 
-static bool parse_file_data(struct transfer_context *tc)
+void recv_file(struct buffer *b, int len)
 {
-    struct buffer *b = &tc->b;
-    ev_tstamp n = ev_time();
-    char unit = 'K';
-    float offset;
-    int len;
+    struct buffer *wb = &file_context.wb;
 
-    if (buffer_length(b) < 3)
-        return false;
+    buffer_put_u8 (wb, buffer_pull_u8 (b));
+    buffer_put_u16 (wb, len - 1);
+    buffer_put_data (wb, buffer_data (b), len - 1);
+    buffer_pull (b, NULL, len - 1);
 
-    len = ntohs(buffer_get_u16(b, 1));
+    ev_io_start (file_context.rtty->loop, &file_context.iow);
+}
 
-    if (buffer_length(b) < len + 3)
-        return false;
+int connect_rtty_file_service()
+{
+    struct sockaddr_un sun = {
+        .sun_family = AF_UNIX
+    };
+    int sock = -1;
 
-    buffer_pull(b, NULL, 3);
-
-    if (tc->fd > 0) {
-        buffer_pull_to_fd(b, tc->fd, len, NULL, NULL);
-    } else {
-        /* skip */
-        buffer_pull(b, NULL, len);
-        return true;
+    sock = socket(AF_UNIX, SOCK_STREAM | SOCK_NONBLOCK, 0);
+    if (sock < 0) {
+        fprintf(stderr, "create socket fail: %s\n", strerror(errno));
+        return -1;
     }
 
-    tc->offset += len;
-    offset = tc->offset / 1024.0;
+    strcpy(sun.sun_path, RTTY_FILE_UNIX_SOCKET);
 
-    if ((int)offset / 1024 > 0) {
-        offset = offset / 1024;
-        unit = 'M';
+    if (connect(sock, (struct sockaddr *)&sun, sizeof(sun)) < 0) {
+        fprintf(stderr,"connect to rtty fail: %s\n", strerror(errno));
+        goto err;
     }
 
-    printf("  %d%%   %.3f %cB    %.3fs\r",
-        (int)(tc->offset * 1.0 / tc->size * 100), offset, unit, n - tc->ts);
+    return sock;
+
+err:
+    if (sock > -1)
+        close(sock);
+    return -1;
+}
+
+void detect_sid(char type)
+{
+    uint8_t buf[4];
+
+    memcpy(buf, RTTY_FILE_MAGIC, 3);
+    buf[3] = type;
+
+    fwrite(buf, 4, 1, stdout);
     fflush(stdout);
-
-    return true;
+    usleep (10000);
 }
-
-static int parse_file(struct transfer_context *tc)
-{
-    struct buffer *b = &tc->b;
-    int type;
-
-    while (buffer_length(b) > 0) {
-        type = buffer_get_u8(b, 0);
-
-        switch (type) {
-        case 0x01:  /* file info */
-            if (!parse_file_info(tc))
-                return false;
-
-            tc->ts = ev_time();
-
-            printf("Transferring '%s'...\r\n", tc->name);
-
-            tc->fd = open(tc->name, O_WRONLY | O_TRUNC | O_CREAT, 0644);
-            if (tc->fd < 0) {
-                char magic_err[] = {0xB6, 0xBC, 'e'};
-                printf("Create '%s' failed: %s\r\n", tc->name, strerror(errno));
-
-                usleep(1000);
-
-                rf_write(STDOUT_FILENO, magic_err, 3);
-            }
-
-            break;
-        case 0x02:  /* file data */
-            if (!parse_file_data(tc))
-                return false;
-            break;
-        case 0x03:  /* file eof */
-            if (tc->fd > 0) {
-                close(tc->fd);
-                tc->fd = -1;
-
-                if (tc->mode == RF_RECV)
-                    printf("\r\n");
-            }
-            return true;
-        default:
-            printf("error type\r\n");
-            exit(1);
-        }
-    }
-
-    return false;
-}
-
-static void stdin_read_cb(struct ev_loop *loop, struct ev_io *w, int revents)
-{
-    struct transfer_context *tc = w->data;
-    bool eof = false;
-
-    buffer_put_fd(&tc->b, w->fd, -1, &eof, NULL, NULL);
-
-    if (parse_file(tc))
-        ev_io_stop(loop, w);
-}
-
-static void timer_cb(struct ev_loop *loop, ev_timer *w, int revents)
-{
-    struct transfer_context *tc = w->data;
-    static uint8_t buf[RF_BLK_SIZE + 3];
-    int len;
-
-    /* Canceled by user */
-    if (tc->fd < 0) {
-        buf[0] = 0x03;
-        rf_write(STDOUT_FILENO, buf, 1);
-        ev_break(loop, EVBREAK_ALL);
-        return;
-    }
-
-    len = read(tc->fd, buf + 3, RF_BLK_SIZE);
-    if (len == 0) {
-        buf[0] = 0x03;
-        rf_write(STDOUT_FILENO, buf, 1);
-        ev_break(loop, EVBREAK_ALL);
-        return;
-    }
-
-    buf[0] = 0x02;
-    *(uint16_t *)&buf[1] = htons(len);
-    
-    rf_write(STDOUT_FILENO, buf, len + 3);
-}
-
-void transfer_file(const char *name)
-{
-    struct ev_loop *loop = EV_DEFAULT;
-    char magic[3] = {0xB6, 0xBC};
-    struct transfer_context tc = {};
-    const char *bname = "";
-    struct ev_timer t;
-    struct ev_io w;
-
-    if (name) {
-        struct stat st;
-
-        bname = basename(name);
-        magic[2] = tc.mode = RF_SEND;
-
-        printf("Transferring '%s'...Press Ctrl+C to cancel\r\n", bname);
-
-        tc.fd = open(name, O_RDONLY);
-        if (tc.fd < 0) {
-            if (errno == ENOENT) {
-                printf("Open '%s' failed: No such file\r\n", name);
-                exit(0);
-            }
-
-            printf("Open '%s' failed: %s\r\n", name, strerror(errno));
-            exit(0);
-        }
-
-        fstat(tc.fd, &st);
-        tc.size = st.st_size;
-
-        if (!(st.st_mode & S_IFREG)) {
-            printf("'%s' is not a regular file\r\n", name);
-            exit(0);
-        }
-    } else {
-        magic[2] = tc.mode = RF_RECV;
-
-        printf("rtty waiting to receive. Press Ctrl+C to cancel\n");
-    }
-
-    set_stdin(true);
-
-    ev_io_init(&w, stdin_read_cb, STDIN_FILENO, EV_READ);
-    ev_io_start(loop, &w);
-    w.data = &tc;
-
-    rf_write(STDOUT_FILENO, magic, 3);
-
-    if (tc.mode == RF_SEND) {
-        uint8_t info[512] = {0x01};
-
-        ev_timer_init(&t, timer_cb, 0.01, 0.01);
-	    ev_timer_start(loop, &t);
-        t.data = &tc;
-
-        info[1] = strlen(bname);
-        memcpy(info + 2, bname, strlen(bname));
-        *(uint32_t *)&info[2 + strlen(bname)] = htonl(tc.size);
-
-        rf_write(STDOUT_FILENO, info, 6 + strlen(bname));
-    }
-
-    ev_run(loop, 0);
-
-    set_stdin(false);
-
-    exit(0);
-}
-

@@ -6,7 +6,7 @@
 [4]: https://github.com/zhaojh329/rtty/pulls
 [5]: https://img.shields.io/badge/Issues-welcome-brightgreen.svg?style=plastic
 [6]: https://github.com/zhaojh329/rtty/issues/new
-[7]: https://img.shields.io/badge/release-6.6.1-blue.svg?style=plastic
+[7]: https://img.shields.io/badge/release-7.0.0-blue.svg?style=plastic
 [8]: https://github.com/zhaojh329/rtty/releases
 [9]: https://travis-ci.org/zhaojh329/rtty.svg?branch=master
 [10]: https://travis-ci.org/zhaojh329/rtty
@@ -18,9 +18,7 @@
 [![Build Status][9]][10]
 
 [Xterm.js]: https://github.com/xtermjs/xterm.js
-[lrzsz]: https://ohse.de/uwe/software/lrzsz.html
 [libev]: http://software.schmorp.de/pkg/libev.html
-[libuwsc]: https://github.com/zhaojh329/libuwsc
 [openssl]: https://github.com/openssl/openssl
 [mbedtls(polarssl)]: https://github.com/ARMmbed/mbedtls
 [CyaSSl(wolfssl)]: https://github.com/wolfSSL/wolfssl
@@ -47,11 +45,10 @@ rtty非常适合远程维护你的或者你公司的部署在全球各地的成�
 * 支持SSL: openssl, mbedtls, CyaSSl(wolfssl)
 * 支持设备认证
 * 支持远程执行命令
-* 客户端非常小，适合嵌入式Linux: rtty(20.1K) + libev(48.5K) + libuwsc(24.4K) = 93K. 如果你希望支持SSL，+libwolfssl(595.9K) = 688.9K
+* 客户端非常小，适合嵌入式Linux
 
 # 客户端依赖
 * [libev] - 高性能的事件循环库
-* [libuwsc] - 一个轻量的针对嵌入式Linux的基于libev的WebSocket客户端C库。
 * [mbedtls(polarssl)]、[CyaSSl(wolfssl)]或者[openssl] - 如果你需要支持SSL
 
 # [部署服务端](https://github.com/zhaojh329/rttys/blob/master/README_ZH.md)
@@ -65,18 +62,21 @@ rtty非常适合远程维护你的或者你公司的部署在全球各地的成�
 查看命令行选项
 
     Usage: rtty [option]
-      -I id        # Set an ID for the device(Maximum 63 bytes, valid character:letter,
-                          number, underline and short line)
-      -h host      # Server's host or ipaddr
-      -p port      # Server port(Default is 5912)
-      -a           # Auto reconnect to the server
-      -v           # verbose
-      -d           # Adding a description to the device(Maximum 126 bytes)
-      -s           # SSL on
-      -k keepalive # keep alive in seconds for this client. Defaults to 5
-      -V           # Show version
-      -D           # Run in the background
-      -t token     # Authorization token
+        -I, --id=string          Set an ID for the device(Maximum 63 bytes, valid
+                                 character:letter, number, underline and short line)
+        -h, --host=string        Server's host or ipaddr(Default is localhost)
+        -p, --port=number        Server port(Default is 5912)
+        -d, --description=string Adding a description to the device(Maximum 126 bytes)
+        -a                       Auto reconnect to the server
+        -s                       SSL on
+        -D                       Run in the background
+        -t, --token=string       Authorization token
+        -f username              Skip a second login authentication. See man login(1) about the details
+        -R                       Receive file
+        -S file                  Send file
+        -v, --verbose            verbose
+        -V, --version            Show version
+        --help                   Show usage
 
 运行RTTY(将下面的参数替换为你自己的参数)
 
@@ -91,11 +91,11 @@ rtty非常适合远程维护你的或者你公司的部署在全球各地的成�
 ## [其它嵌入式Linux平台](/CROSS_COMPILE.md)
 
 # 如何使用
-使用你的Web浏览器访问你的服务器: `https://your-server-host:5912`，然后点击连接按钮。
+使用你的Web浏览器访问你的服务器: `https://your-server-host:5913`，然后点击连接按钮。
 
-你可以非常方便的将RTTY嵌入到你现有的平台： `https://your-server-host:5912/#/?id=your-id`
+你可以非常方便的将RTTY嵌入到你现有的平台： `https://your-server-host:5913/#/?id=your-id`
 
-自动登录: `https://your-server:5912/#/?id=device-id&username=device-username&password=device-password`
+自动登录: `https://your-server:5913/#/?id=device-id&username=device-username&password=device-password`
 
 ## 传输文件
 从本地传输文件到远程设备

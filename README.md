@@ -6,7 +6,7 @@
 [4]: https://github.com/zhaojh329/rtty/pulls
 [5]: https://img.shields.io/badge/Issues-welcome-brightgreen.svg?style=plastic
 [6]: https://github.com/zhaojh329/rtty/issues/new
-[7]: https://img.shields.io/badge/release-6.6.1-blue.svg?style=plastic
+[7]: https://img.shields.io/badge/release-7.0.0-blue.svg?style=plastic
 [8]: https://github.com/zhaojh329/rtty/releases
 [9]: https://travis-ci.org/zhaojh329/rtty.svg?branch=master
 [10]: https://travis-ci.org/zhaojh329/rtty
@@ -18,9 +18,7 @@
 [![Build Status][9]][10]
 
 [Xterm.js]: https://github.com/xtermjs/xterm.js
-[lrzsz]: https://ohse.de/uwe/software/lrzsz.html
 [libev]: http://software.schmorp.de/pkg/libev.html
-[libuwsc]: https://github.com/zhaojh329/libuwsc
 [openssl]: https://github.com/openssl/openssl
 [mbedtls(polarssl)]: https://github.com/ARMmbed/mbedtls
 [CyaSSl(wolfssl)]: https://github.com/wolfSSL/wolfssl
@@ -49,12 +47,10 @@ the world.
 * SSL support: openssl, mbedtls, CyaSSl(wolfssl)
 * Support device authorization
 * Support Execute a command remote
-* The client is very small, suitable for embedded Linux: rtty(20.1K) + libev(48.5K) + libuwsc(24.4K) = 93K. If you want
-  to support ssl, +libwolfssl(595.9K) = 688.9K
+* The client is very small, suitable for embedded Linux
 
 # Dependencies of the Client side
 * [libev] - A full-featured and high-performance event loop
-* [libuwsc] - A Lightweight and fully asynchronous WebSocket client library based on libev
 * [mbedtls(polarssl)], [CyaSSl(wolfssl)] or [openssl] - If you want to support SSL
 
 # [Deploying the server side](https://github.com/zhaojh329/rttys)
@@ -68,18 +64,21 @@ Install
 Command-line Options
 
     Usage: rtty [option]
-      -I id        # Set an ID for the device(Maximum 63 bytes, valid character:letter,
-                          number, underline and short line)
-      -h host      # Server's host or ipaddr
-      -p port      # Server port(Default is 5912)
-      -a           # Auto reconnect to the server
-      -v           # verbose
-      -d           # Adding a description to the device(Maximum 126 bytes)
-      -s           # SSL on
-      -k keepalive # keep alive in seconds for this client. Defaults to 5
-      -V           # Show version
-      -D           # Run in the background
-      -t token     # Authorization token
+        -I, --id=string          Set an ID for the device(Maximum 63 bytes, valid
+                                 character:letter, number, underline and short line)
+        -h, --host=string        Server's host or ipaddr(Default is localhost)
+        -p, --port=number        Server port(Default is 5912)
+        -d, --description=string Adding a description to the device(Maximum 126 bytes)
+        -a                       Auto reconnect to the server
+        -s                       SSL on
+        -D                       Run in the background
+        -t, --token=string       Authorization token
+        -f username              Skip a second login authentication. See man login(1) about the details
+        -R                       Receive file
+        -S file                  Send file
+        -v, --verbose            verbose
+        -V, --version            Show version
+        --help                   Show usage
 
 Run RTTY(Replace the following parameters with your own parameters)
 
@@ -94,11 +93,11 @@ If your rttys is configured with a token, add the following parameter(Replace th
 ## [For Other Embedded Linux Platform](/CROSS_COMPILE.md)
 
 # Usage
-Use your web browser to access your server: `https://your-server-host:5912`, then click the connection button
+Use your web browser to access your server: `https://your-server-host:5913`, then click the connection button
 
-You can easily embed RTTY into your existing platform: `https://your-server-host:5912/#/?id=your-id`
+You can easily embed RTTY into your existing platform: `https://your-server-host:5913/#/?id=your-id`
 
-Automatic login: `https://your-server:5912/#/?id=device-id&username=device-username&password=device-password`
+Automatic login: `https://your-server:5913/#/?id=device-id&username=device-username&password=device-password`
 
 ## Transfer file
 Transfer file from local to remote device

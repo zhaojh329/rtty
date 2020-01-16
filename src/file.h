@@ -22,30 +22,34 @@
  * SOFTWARE.
  */
 
-#ifndef _FILE_H
-#define _FILE_H
+#ifndef RTTY_FILE_H
+#define RTTY_FILE_H
 
-#include <uwsc/buffer.h>
-#include <ev.h>
-
-#define RF_BLK_SIZE 8912         /* 8KB */
+#include "rtty.h"
 
 enum {
-    RF_SEND = 's',
-    RF_RECV = 'r'
+    RTTY_FILE_MSG_START_DOWNLOAD,
+    RTTY_FILE_MSG_INFO,
+    RTTY_FILE_MSG_DATA,
+    RTTY_FILE_MSG_CANCELED
 };
 
-struct transfer_context {
-    int size;
-    int offset;
-    int mode;
-    int fd;
-    char name[512];
-    ev_tstamp ts;
-    struct buffer b;
+struct rtty_file_context {
+    int sock;
+    int sid;
+    bool running;
+    struct buffer rb;
+    struct buffer wb;
+    struct ev_io ior;
+    struct ev_io iow;
+    struct rtty *rtty;
 };
 
-void transfer_file(const char *name);
+int start_file_service(struct rtty *rtty);
+bool detect_file_msg(uint8_t *buf, int len, int sid, int *type);
+void recv_file(struct buffer *b, int len);
+int connect_rtty_file_service();
+void detect_sid(char type);
 
 #endif
 

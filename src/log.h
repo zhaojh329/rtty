@@ -21,19 +21,24 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+ 
+#ifndef _LOG_H
+#define _LOG_H
 
-#ifndef _UTILS_H
-#define _UTILS_H
+#include <syslog.h>
+#include <string.h>
 
-#include <stdbool.h>
-#include <sys/types.h>
+void set_log_threshold(int threshold);
+void log_close();
 
-int find_login(char *buf, int len);
+#define __FILENAME__ (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
 
-bool valid_id(const char *id);
+#define log(priority, fmt...) __ilog(__FILENAME__, __LINE__, priority, fmt)
 
-int b64_encode(const void *src, size_t srclen, void *dest, size_t destsize);
+#define log_debug(fmt...)     log(LOG_DEBUG, fmt)
+#define log_info(fmt...)      log(LOG_INFO, fmt)
+#define log_err(fmt...)       log(LOG_ERR, fmt)
 
-const char *format_size(size_t size);
+void  __ilog(const char *filename, int line, int priority, const char *fmt, ...);
 
 #endif

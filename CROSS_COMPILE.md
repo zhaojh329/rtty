@@ -5,13 +5,6 @@
     ./configure --host=arm-linux-gnueabi
     DESTDIR=/tmp/rtty_install make install
 
-# Build libuwsc
-
-    git clone --recursive https://github.com/zhaojh329/libuwsc.git
-    cd libuwsc
-    cmake . -DCMAKE_C_COMPILER=arm-linux-gnueabi-gcc -DCMAKE_FIND_ROOT_PATH=/tmp/rtty_install -DUWSC_SSL_SUPPORT=OFF
-    DESTDIR=/tmp/rtty_install make install
-
 # Build rtty
 
     git clone https://github.com/zhaojh329/rtty.git
@@ -30,5 +23,3 @@
                 ├── libev.so -> libev.so.4.0.0
                 ├── libev.so.4 -> libev.so.4.0.0
                 ├── libev.so.4.0.0
-                ├── libuwsc.so -> libuwsc.so.3.3.2
-                └── libuwsc.so.3.3.2

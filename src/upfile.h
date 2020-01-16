@@ -22,18 +22,9 @@
  * SOFTWARE.
  */
 
-#ifndef _UTILS_H
-#define _UTILS_H
+#ifndef RTTY_UPFILE_H_
+#define RTTY_UPFILE_H_
 
-#include <stdbool.h>
-#include <sys/types.h>
-
-int find_login(char *buf, int len);
-
-bool valid_id(const char *id);
-
-int b64_encode(const void *src, size_t srclen, void *dest, size_t destsize);
-
-const char *format_size(size_t size);
+void upload_file(const char *name);
 
 #endif

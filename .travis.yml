@@ -5,8 +5,6 @@ os:
 
 before_install:
   - sudo apt-get install -y libev-dev libssl-dev
-  - git clone --recursive https://github.com/zhaojh329/libuwsc.git
-  - cd libuwsc && cmake . && sudo make install && cd -
 
 script:
   - mkdir build && cd build

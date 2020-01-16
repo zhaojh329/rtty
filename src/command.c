@@ -31,11 +31,9 @@
 #include <limits.h>
 #include <shadow.h>
 #include <sys/stat.h>
-#include <sys/wait.h>
-#include <uwsc/log.h>
-#include <uwsc/utils.h>
 #include <math.h>
 
+#include "log.h"
 #include "list.h"
 #include "utils.h"
 #include "command.h"
@@ -121,55 +119,61 @@ static const char *cmderr2str(int err)
 
 static void task_free(struct task *t)
 {
+    int i;
+
     /* stdout watcher */
     if (t->ioo.fd > 0) {
         close(t->ioo.fd);
-        ev_io_stop(t->ws->loop, &t->ioo);
+        ev_io_stop(t->rtty->loop, &t->ioo);
     }
 
     /* stderr watcher */
     if (t->ioe.fd > 0) {
         close(t->ioe.fd);
-        ev_io_stop(t->ws->loop, &t->ioe);
+        ev_io_stop(t->rtty->loop, &t->ioe);
     }
 
-    ev_child_stop(t->ws->loop, &t->cw);
-    ev_timer_stop(t->ws->loop, &t->timer);
+    ev_child_stop(t->rtty->loop, &t->cw);
+    ev_timer_stop(t->rtty->loop, &t->timer);
 
     buffer_free(&t->ob);
     buffer_free(&t->eb);
 
-    json_value_free((json_value *)t->msg);
+    for (i = 0; i < t->nparams; i++)
+        free(t->params[i]);
+    free(t->params);
 
     free(t);
 }
 
-static void cmd_err_reply(struct uwsc_client *ws, const char *token, int err)
+static void cmd_err_reply(struct rtty *rtty, const char *token, int err)
 {
     char str[256] = "";
 
-    snprintf(str, sizeof(str) - 1, "{\"type\":\"cmd\",\"token\":\"%s\","
+    snprintf(str, sizeof(str) - 1, "{\"token\":\"%s\","
             "\"attrs\":{\"err\":%d,\"msg\":\"%s\"}}", token, err, cmderr2str(err));
-    ws->send(ws, str, strlen(str), UWSC_OP_TEXT);
+
+    rtty_send_msg(rtty, MSG_TYPE_CMD, str, strlen(str));
 }
 
 static void cmd_reply(struct task *t, int code)
 {
     size_t len = buffer_length(&t->ob) + buffer_length(&t->eb);
-    int ret;
+    struct rtty *rtty = t->rtty;
     char *str, *pos;
+    int ret;
 
     len = ceil(len * 4.0 / 3) + 200;
 
     str = calloc(1, len);
     if (!str) {
-        cmd_err_reply(t->ws, t->token, RTTY_CMD_ERR_NOMEM);
+        cmd_err_reply(t->rtty, t->token, RTTY_CMD_ERR_NOMEM);
         return;
     }
 
     pos = str;
 
-    ret = snprintf(pos, len, "{\"type\":\"cmd\",\"token\":\"%s\","
+    ret = snprintf(pos, len, "{\"token\":\"%s\","
             "\"attrs\":{\"code\":%d,\"stdout\":\"", t->token, code);
 
     len -= ret;
@@ -188,10 +192,10 @@ static void cmd_reply(struct task *t, int code)
     pos += ret;
 
     ret = snprintf(pos, len, "\"}}");
-    len -= ret;
     pos += ret;
 
-    t->ws->send(t->ws, str, pos - str, UWSC_OP_TEXT);
+    rtty_send_msg(rtty, MSG_TYPE_CMD, str, pos - str);
+
     free(str);
 }
 
@@ -221,7 +225,7 @@ static void ev_timer_cb(struct ev_loop *loop, struct ev_timer *w, int revents)
     task_free(t);
     nrunning--;
 
-    uwsc_log_err("exec '%s' timeout\n", t->cmd);
+    log_err("exec '%s' timeout\n", t->cmd);
 }
 
 static void ev_io_stdout_cb(struct ev_loop *loop, struct ev_io *w, int revents)
@@ -249,7 +253,7 @@ static void run_task(struct task *t)
 
     if (pipe2(opipe, O_CLOEXEC | O_NONBLOCK) < 0 ||
         pipe2(epipe, O_CLOEXEC | O_NONBLOCK) < 0) {
-        uwsc_log_err("pipe2 failed: %s\n", strerror(errno));
+        log_err("pipe2 failed: %s\n", strerror(errno));
         err = RTTY_CMD_ERR_SYSERR;
         goto ERR;
     }
@@ -257,15 +261,14 @@ static void run_task(struct task *t)
     pid = fork();
     switch (pid) {
     case -1:
-        uwsc_log_err("fork: %s\n", strerror(errno));
+        log_err("fork: %s\n", strerror(errno));
         err = RTTY_CMD_ERR_SYSERR;
         goto ERR;
 
     case 0: {
-        const json_value *params = json_get_value(t->attrs, "params");
-        const json_value *env = json_get_value(t->attrs, "env");
-        int i, arglen;
+        int arglen = 2 + t->nparams;
         char **args;
+        int i;
 
         /* Close unused read end */
         close(opipe[0]);
@@ -277,30 +280,14 @@ static void run_task(struct task *t)
         close(opipe[1]);
         close(epipe[1]);
 
-        arglen = 2;
-        if (params)
-            arglen += params->u.array.length;
-
         args = calloc(1, sizeof(char *) * arglen);
         if (!args)
             exit(1);
 
         args[0] = t->cmd;
 
-        if (params) {
-            for (i = 0; i < params->u.array.length; i++)
-                args[i + 1] = (char *)json_get_array_string(params, i);
-        }
-
-        if (env) {
-            if (env->type == json_object) {
-                for (i = 0; i < env->u.object.length; i++) {
-                    json_value *v = env->u.object.values[i].value;
-                    if (v->type == json_string)
-                        setenv(env->u.object.values[i].name, v->u.string.ptr, 1);
-                }
-            }
-        }
+        for (i = 0; i < t->nparams; i++)
+            args[i + 1] = t->params[i];
 
         execv(t->cmd, args);
     }
@@ -311,40 +298,46 @@ static void run_task(struct task *t)
 
         /* Watch child's status */
         ev_child_init(&t->cw, ev_child_exit, pid, 0);
-        ev_child_start(t->ws->loop, &t->cw);
+        ev_child_start(t->rtty->loop, &t->cw);
 
         ev_io_init(&t->ioo, ev_io_stdout_cb, opipe[0], EV_READ);
-        ev_io_start(t->ws->loop, &t->ioo);
+        ev_io_start(t->rtty->loop, &t->ioo);
 
         ev_io_init(&t->ioe, ev_io_stderr_cb, epipe[0], EV_READ);
-        ev_io_start(t->ws->loop, &t->ioe);
+        ev_io_start(t->rtty->loop, &t->ioe);
 
         ev_timer_init(&t->timer, ev_timer_cb, RTTY_CMD_EXEC_TIMEOUT, 0);
-        ev_timer_start(t->ws->loop, &t->timer);
+        ev_timer_start(t->rtty->loop, &t->timer);
 
         nrunning++;
         return;
     }
 
 ERR:
-    cmd_err_reply(t->ws, t->token, err);
+    cmd_err_reply(t->rtty, t->token, err);
     task_free(t);
 }
 
-static void add_task(struct uwsc_client *ws, const char *token, const char *cmd,
-    const json_value *msg, const json_value *attrs)
+static void add_task(struct rtty *rtty, const char *token, const char *cmd, const char *data)
 {
     struct task *t;
+    int i;
 
     t = calloc(1, sizeof(struct task) + strlen(cmd) + 1);
     if (!t) {
-        cmd_err_reply(ws, token, RTTY_CMD_ERR_NOMEM);
+        cmd_err_reply(rtty, token, RTTY_CMD_ERR_NOMEM);
         return;
     }
 
-    t->ws = ws;
-    t->msg = msg;
-    t->attrs = attrs;
+    t->rtty = rtty;
+
+    t->nparams = *data++;
+    t->params = calloc(t->nparams, sizeof(char *));
+
+    for (i = 0; i < t->nparams; i++) {
+        t->params[i] = strdup(data);
+        data += strlen(t->params[i]) + 1;
+    }
 
     strcpy(t->cmd, cmd);
     strcpy(t->token, token);
@@ -355,30 +348,30 @@ static void add_task(struct uwsc_client *ws, const char *token, const char *cmd,
         list_add_tail(&t->list, &task_pending);
 }
 
-void run_command(struct uwsc_client *ws, const json_value *msg)
+void run_command(struct rtty *rtty, const char *data)
 {
-    const json_value *attrs = json_get_value(msg, "attrs");
-    const char *username = json_get_string(attrs, "username");
-    const char *password = json_get_string(attrs, "password");
-    const char *token = json_get_string(msg, "token");
-    const char *cmd;
+    const char *username = data;
+    const char *password = username + strlen(username) + 1;
+    const char *cmd = password + strlen(password) + 1;
+    const char *token = cmd + strlen(cmd) + 1;
     int err = 0;
 
-    if (!username || !username[0] || !login_test(username, password)) {
+    data = token + strlen(token) + 1;
+
+    if (!username[0] || !login_test(username, password)) {
         err = RTTY_CMD_ERR_PERMIT;
         goto ERR;
     }
 
-    cmd = cmd_lookup(json_get_string(attrs, "cmd"));
+    cmd = cmd_lookup(cmd);
     if (!cmd) {
         err = RTTY_CMD_ERR_NOT_FOUND;
         goto ERR;
     }
 
-    add_task(ws, token, cmd, msg, attrs);
+    add_task(rtty, token, cmd, data);
     return;
 
 ERR:
-    cmd_err_reply(ws, token, err);
-    json_value_free((json_value *)msg);
+    cmd_err_reply(rtty, token, err);
 }

@@ -2,9 +2,9 @@
 
 首先要通过POST方式向服务器发送一条命令,消息格式如下所示：
 
-    {"devid": "test", "username": "test", "password": "test", "cmd": "echo", "params": ["hello rtty"], "env": {"x": "12"}}
+    {"devid": "test", "username": "test", "password": "test", "cmd": "echo", "params": ["hello rtty"]}
 
-其中devid、username、cmd必须提供。password、params和env为可选项。params为一个JSON数组，env为一个JSON对象。
+其中devid、username、cmd必须提供。password、params为可选项。params为一个JSON数组。
 
 然后服务器返回一个唯一的token：
 
