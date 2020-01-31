@@ -99,7 +99,7 @@ rm -rf /tmp/rtty-build
 mkdir /tmp/rtty-build
 pushd /tmp/rtty-build
 
-git clone https://github.com/zhaojh329/rtty.git || {
+git clone --recursive https://github.com/zhaojh329/rtty.git || {
 	echo "Clone rtty failed"
 	exit 1
 }
