@@ -99,7 +99,7 @@ int rtty_ssl_init(struct rtty_ssl_ctx **ctx, int sock, const char *host)
 
     c->net.fd = sock;
 #else
-#if UHTTPD_HAVE_WOLFSSL
+#if RTTY_HAVE_WOLFSSL
     wolfSSL_Init();
 
     c->ctx = SSL_CTX_new(TLSv1_2_client_method());
@@ -113,7 +113,9 @@ int rtty_ssl_init(struct rtty_ssl_ctx **ctx, int sock, const char *host)
 #endif
     SSL_CTX_set_verify(c->ctx, SSL_VERIFY_NONE, NULL);
     c->ssl = SSL_new(c->ctx);
+#if RTTY_HAVE_OPENSSL
     SSL_set_tlsext_host_name(c->ssl, host);
+#endif
     SSL_set_fd(c->ssl, sock);
 #endif
 
