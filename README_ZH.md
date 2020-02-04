@@ -1,4 +1,4 @@
-# rtty
+# rtty - 在任何地方通过Web访问您的设备的终端
 
 [1]: https://img.shields.io/badge/license-MIT-brightgreen.svg?style=plastic
 [2]: /LICENSE
@@ -32,9 +32,9 @@
 
 它由客户端和[服务端]组成。客户端采用纯C实现。[服务端]采用GO语言实现，前端界面采用[iview]和[vue]实现。
 
-你可以在任何地方通过Web访问你的设备的终端。通过设备ID来区分你的不同的设备。
+您可以在任何地方通过Web访问您的设备的终端。通过设备ID来区分您的不同的设备。
 
-rtty非常适合远程维护你的或者你公司的部署在全球各地的成千上万的Linux设备。
+rtty非常适合远程维护您的或者您的公司的部署在全球各地的成千上万的Linux设备。
 
 # 特性
 * 部署简单，使用方便
@@ -49,7 +49,7 @@ rtty非常适合远程维护你的或者你公司的部署在全球各地的成�
 
 # 客户端依赖
 * [libev] - 高性能的事件循环库
-* [mbedtls(polarssl)]、[CyaSSl(wolfssl)]或者[openssl] - 如果你需要支持SSL
+* [mbedtls(polarssl)]、[CyaSSl(wolfssl)]或者[openssl] - 如果您需要支持SSL
 
 # [部署服务端](https://github.com/zhaojh329/rttys/blob/master/README_ZH.md)
 
@@ -78,11 +78,11 @@ rtty非常适合远程维护你的或者你公司的部署在全球各地的成�
         -V, --version            Show version
         --help                   Show usage
 
-运行RTTY(将下面的参数替换为你自己的参数)
+运行RTTY(将下面的参数替换为您自己的参数)
 
     sudo rtty -I 'My-device-ID' -h 'your-server' -p 5912 -a -v -s -d 'My Device Description'
 
-如果你的rttys配置了一个token，请加上如下参数（将下面的token替换为你自己生成的）
+如果您的rttys配置了一个token，请加上如下参数（将下面的token替换为您自己生成的）
 
     -t 34762d07637276694b938d23f10d7164
 
@@ -91,9 +91,9 @@ rtty非常适合远程维护你的或者你公司的部署在全球各地的成�
 ## [其它嵌入式Linux平台](/CROSS_COMPILE.md)
 
 # 如何使用
-使用你的Web浏览器访问你的服务器: `https://your-server-host:5913`，然后点击连接按钮。
+使用您的Web浏览器访问您的服务器: `https://your-server-host:5913`，然后点击连接按钮。
 
-你可以非常方便的将RTTY嵌入到你现有的平台： `https://your-server-host:5913/#/?id=your-id`
+您可以非常方便的将RTTY嵌入到您现有的平台： `https://your-server-host:5913/#/?id=your-id`
 
 自动登录: `https://your-server:5913/#/?id=device-id&username=device-username&password=device-password`
 
@@ -111,7 +111,7 @@ rtty非常适合远程维护你的或者你公司的部署在全球各地的成�
 # [捐赠](https://gitee.com/zhaojh329/rtty#project-donate-overview)
 
 # 贡献代码
-如果你想帮助[rtty](https://github.com/zhaojh329/rtty)变得更好，请参考
+如果您想帮助[rtty](https://github.com/zhaojh329/rtty)变得更好，请参考
 [CONTRIBUTING_ZH.md](https://github.com/zhaojh329/rtty/blob/master/CONTRIBUTING_ZH.md)。
 
 # 技术交流
