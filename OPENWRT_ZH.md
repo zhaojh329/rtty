@@ -5,42 +5,23 @@
     opkg install rtty-nossl
 
 # 自己编译
-## 添加feed（openwrt 14.04,15.05,Lede,openwrt 18或者更高版本）
+## 更新feed
 
-**如果你的OpenWrt根目录存在feeds.conf,则使用feeds.conf，而不是feeds.conf.default**
+    ./scripts/feeds update packages
+    ./scripts/feeds install -a -p packages
 
-Openwrt 14.04
+***如果您的openwrt中的rtty不是最新版本，您可以从这里获取最新的package***
 
-    echo 'src-git rtty https://github.com/zhaojh329/rtty.git;openwrt-14-15' >> feeds.conf.default
-
-Openwrt 15.05
-
-    echo 'src-git rtty https://github.com/zhaojh329/rtty.git;openwrt-lede' >> feeds.conf.default
-
-openwrt 18或者更高版本
-
-    echo 'src-git rtty https://github.com/zhaojh329/rtty.git;openwrt-18' >> feeds.conf.default
-
-## 安装feed（openwrt 14.04,15.05,Lede and openwrt 18）
-
-    ./scripts/feeds uninstall -a
-    ./scripts/feeds update rtty
-    ./scripts/feeds install -a -f -p rtty
-    ./scripts/feeds install -a
-
-## 安装feed（master）
-
-    ./scripts/feeds update -a
-    ./scripts/feeds install -a
+    https://gitee.com/zhaojh329/rtty/tree/openwrt-package
 
 ## 在menuconfig中选择rtty，然后重新编译固件。
 
     Utilities  --->
-        Terminal  --->
-            <*> rtty-mbedtls............................ A reverse proxy WebTTY (mbedtls)
-            < > rtty-nossl............................... A reverse proxy WebTTY (NO SSL)
-            < > rtty-openssl............................ A reverse proxy WebTTY (openssl)
-            < > rtty-wolfssl............................ A reverse proxy WebTTY (wolfssl)
+	    Terminal  --->
+	        <*> rtty-mbedtls................. Access your terminals from anywhere via the web
+	        < > rtty-nossl................... Access your terminals from anywhere via the web
+	        < > rtty-openssl................. Access your terminals from anywhere via the web
+	        < > rtty-wolfssl................. Access your terminals from anywhere via the web
 
 # 配置
 配置服务器参数

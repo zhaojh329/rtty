@@ -1,46 +1,27 @@
-# Install directly in the device(master)
+# Install directly in the device
 
     opkg update
     opkg list | grep rtty
     opkg install rtty-nossl
 
 # Compile it yourself
-## Add feed for openwrt 14.04,15.05,Lede,openwrt 18 and higher version
+## Update feed
 
-**If you have feeds.conf in your Openwrt root directory, use feeds.conf instead of feeds.conf.default**
+    ./scripts/feeds update packages
+    ./scripts/feeds install -a -p packages
 
-Openwrt 14.04
+***If the rtty is not the latest version in your openwrt, you can get the latest package from here***
 
-    echo 'src-git rtty https://github.com/zhaojh329/rtty.git;openwrt-14-15' >> feeds.conf.default
-
-Openwrt 15.05
-
-    echo 'src-git rtty https://github.com/zhaojh329/rtty.git;openwrt-lede' >> feeds.conf.default
-
-openwrt 18 or higher version
-
-    echo 'src-git rtty https://github.com/zhaojh329/rtty.git;openwrt-18' >> feeds.conf.default
-
-## install feed for openwrt 14.04,15.05,Lede and openwrt 18
-
-    ./scripts/feeds uninstall -a
-    ./scripts/feeds update rtty
-    ./scripts/feeds install -a -f -p rtty
-    ./scripts/feeds install -a
-
-## install feed for master
-
-	./scripts/feeds update -a
-	./scripts/feeds install -a
+    https://github.com/zhaojh329/rtty/tree/openwrt-package
 
 ## Select rtty in menuconfig and compile new image
 
     Utilities  --->
 	    Terminal  --->
-	        <*> rtty-mbedtls............................ A reverse proxy WebTTY (mbedtls)
-	        < > rtty-nossl............................... A reverse proxy WebTTY (NO SSL)
-	        < > rtty-openssl............................ A reverse proxy WebTTY (openssl)
-	        < > rtty-wolfssl............................ A reverse proxy WebTTY (wolfssl)
+	        <*> rtty-mbedtls................. Access your terminals from anywhere via the web
+	        < > rtty-nossl................... Access your terminals from anywhere via the web
+	        < > rtty-openssl................. Access your terminals from anywhere via the web
+	        < > rtty-wolfssl................. Access your terminals from anywhere via the web
 
 # Configure
 Configuring the server parameter
@@ -49,7 +30,7 @@ Configuring the server parameter
     uci set rtty.@rtty[0].host='your server host'
     uci set rtty.@rtty[0].port='your server port'
 
-You can customize an ID for your device. If the ID is not configured, RTTY will use
+You can customize an ID for your device. If the ID is not configured, rtty will use
 the MAC address of the specified network interface as the ID.
 
 	uci set rtty.@rtty[0].id='your-device-id'
@@ -69,4 +50,4 @@ Authorization
 Save configuration and apply
 
     uci commit
-    /etc/init.d/rtty restart
+    /etc/init.d/rtty start
