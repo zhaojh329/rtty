@@ -32,7 +32,6 @@
 
 #define RTTY_MAX_TTY                5
 #define RTTY_HEARTBEAT_INTEVAL      5.0
-#define RTTY_BUFFER_PERSISTENT_SIZE 4096
 
 enum {
     MSG_TYPE_REGISTER = 0x00,

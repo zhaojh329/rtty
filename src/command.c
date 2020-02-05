@@ -233,7 +233,7 @@ static void ev_io_stdout_cb(struct ev_loop *loop, struct ev_io *w, int revents)
     struct task *t = container_of(w, struct task, ioo);
     bool eof;
 
-    buffer_put_fd(&t->ob, w->fd, -1, &eof, NULL, NULL);
+    buffer_put_fd(&t->ob, w->fd, -1, &eof);
 }
 
 static void ev_io_stderr_cb(struct ev_loop *loop, struct ev_io *w, int revents)
@@ -241,7 +241,7 @@ static void ev_io_stderr_cb(struct ev_loop *loop, struct ev_io *w, int revents)
     struct task *t = container_of(w, struct task, ioe);
     bool eof;
 
-    buffer_put_fd(&t->eb, w->fd, -1, &eof, NULL, NULL);
+    buffer_put_fd(&t->eb, w->fd, -1, &eof);
 }
 
 static void run_task(struct task *t)

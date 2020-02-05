@@ -98,12 +98,12 @@ static void pty_on_read(struct ev_loop *loop, struct ev_io *w, int revents) {
 
     if (!detect_file_msg(buf, len, tty->sid, &type)) {
         buffer_put_u8 (wb, MSG_TYPE_TERMDATA);
-        buffer_put_u16 (wb, htons(len + 1));
+        buffer_put_u16be (wb, len + 1);
         buffer_put_u8 (wb, tty->sid);
         buffer_put_data (wb, buf, len);
     } else if (type > -1) {
         buffer_put_u8 (wb, MSG_TYPE_FILE);
-        buffer_put_u16 (wb, htons(2));
+        buffer_put_u16be (wb, 2);
         buffer_put_u8 (wb, tty->sid);
         buffer_put_u8 (wb, type);
     }
@@ -133,7 +133,7 @@ static void pty_on_exit(struct ev_loop *loop, struct ev_child *w, int revents) {
     del_tty (tty);
 
     buffer_put_u8 (wb, MSG_TYPE_LOGOUT);
-    buffer_put_u16 (wb, htons(1));
+    buffer_put_u16be (wb, 1);
     buffer_put_u8 (wb, tty->sid);
     ev_io_start(loop, &rtty->iow);
 }
@@ -154,7 +154,7 @@ static void tty_login(struct rtty *rtty)
 
     if (sid == RTTY_MAX_TTY) {
         log_info ("tty login fail, device busy\n");
-        buffer_put_u16 (&rtty->wb, htons(1));
+        buffer_put_u16be (&rtty->wb, 1);
         buffer_put_u8 (&rtty->wb, 1);
         ev_io_start (rtty->loop, &rtty->iow);
         return;
@@ -181,11 +181,9 @@ static void tty_login(struct rtty *rtty)
     ev_child_init(&tty->cw, pty_on_exit, pid, 0);
     ev_child_start(rtty->loop, &tty->cw);
 
-    buffer_set_persistent_size(&tty->wb, RTTY_BUFFER_PERSISTENT_SIZE);
-
     rtty->ttys[sid] = tty;
 
-    buffer_put_u16 (&rtty->wb, htons(2));
+    buffer_put_u16be (&rtty->wb, 2);
     buffer_put_u8 (&rtty->wb, 0);
     buffer_put_u8 (&rtty->wb, sid);
     ev_io_start (rtty->loop, &rtty->iow);
@@ -216,8 +214,8 @@ static void set_tty_winsize(struct rtty *rtty, int sid)
         return;
     }
 
-    size.ws_col = ntohs(buffer_pull_u16 (&rtty->rb));
-    size.ws_row = ntohs(buffer_pull_u16 (&rtty->rb));
+    size.ws_col = buffer_pull_u16be(&rtty->rb);
+    size.ws_row = buffer_pull_u16be(&rtty->rb);
 
     if (ioctl(tty->pty, TIOCSWINSZ, &size) < 0)
         log_err("ioctl TIOCSWINSZ failed: %s\n", strerror(errno));
@@ -261,7 +259,7 @@ static void rtty_register(struct rtty *rtty)
         len += strlen(rtty->token);
 
     buffer_put_u8(wb, MSG_TYPE_REGISTER);
-    buffer_put_u16(wb, htons(len));
+    buffer_put_u16be(wb, len);
 
     buffer_put_string(wb, rtty->devid);
     buffer_put_u8(wb, '\0');
@@ -287,7 +285,7 @@ static void parse_msg(struct rtty *rtty)
         if (buffer_length (rb) < 3)
             return;
 
-        msglen = ntohs(buffer_get_u16 (rb, 1));
+        msglen = buffer_get_u16be(rb, 1);
         if (buffer_length (rb) < msglen + 3)
             return;
 
@@ -351,10 +349,10 @@ static void on_net_read(struct ev_loop *loop, struct ev_io *w, int revents)
 
 #if RTTY_SSL_SUPPORT
     if (rtty->ssl)
-        ret = buffer_put_fd(&rtty->rb, w->fd, -1, &eof, rtty_ssl_read, rtty->ssl);
+        ret = buffer_put_fd_ex(&rtty->rb, w->fd, -1, &eof, rtty_ssl_read, rtty->ssl);
     else
 #endif
-        ret = buffer_put_fd(&rtty->rb, w->fd, -1, &eof, NULL, NULL);
+        ret = buffer_put_fd(&rtty->rb, w->fd, -1, &eof);
     if (ret < 0) {
         log_err("socket read error: %s\n", strerror (errno));
         return;
@@ -502,7 +500,7 @@ void rtty_send_msg(struct rtty *rtty, int type, void *data, int len)
 {
     struct buffer *wb = &rtty->wb;
     buffer_put_u8 (wb, type);
-    buffer_put_u16 (wb, htons(len));
+    buffer_put_u16be (wb, len);
     buffer_put_data(wb, data, len);
     ev_io_start (rtty->loop, &rtty->iow);
 }

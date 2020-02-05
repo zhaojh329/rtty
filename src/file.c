@@ -58,7 +58,7 @@ static void on_file_msg_read(struct ev_loop *loop, struct ev_io *w, int revents)
     bool eof;
     int ret;
 
-    ret = buffer_put_fd(rb, w->fd, -1, &eof, NULL, NULL);
+    ret = buffer_put_fd(rb, w->fd, -1, &eof);
     if (ret < 0) {
         log_err("socket read error: %s\n", strerror (errno));
         return;
@@ -73,7 +73,7 @@ static void on_file_msg_read(struct ev_loop *loop, struct ev_io *w, int revents)
             break;
 
         buffer_put_u8 (wb, MSG_TYPE_FILE);
-        buffer_put_u16 (wb, htons(2 + msglen));
+        buffer_put_u16be (wb, 2 + msglen);
         buffer_put_u8 (wb, file_context.sid);
         buffer_put_u8 (wb, buffer_pull_u8 (rb));
 
