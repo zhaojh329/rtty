@@ -136,6 +136,9 @@ static void on_net_read(struct ev_loop *loop, struct ev_io *w, int revents)
     bool eof;
     int ret;
 
+    if (buffer_length (&wb) > 0)
+        return;
+
     if (canceled) {
         ev_io_stop (loop, w);
         return;
