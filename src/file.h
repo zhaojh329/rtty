@@ -25,29 +25,41 @@
 #ifndef RTTY_FILE_H
 #define RTTY_FILE_H
 
-#include "rtty.h"
+#include <ev.h>
+#include <sys/un.h>
+
+#include "buffer.h"
 
 enum {
     RTTY_FILE_MSG_START_DOWNLOAD,
     RTTY_FILE_MSG_INFO,
     RTTY_FILE_MSG_DATA,
-    RTTY_FILE_MSG_CANCELED
+    RTTY_FILE_MSG_CANCELED,
+    RTTY_FILE_MSG_BUSY,
+    RTTY_FILE_MSG_PROGRESS,
+    RTTY_FILE_MSG_REQUEST_ACCEPT,
+    RTTY_FILE_MSG_SAVE_PATH
 };
 
-struct rtty_file_context {
-    int sock;
+struct file_context {
     int sid;
-    bool running;
-    struct buffer rb;
-    struct buffer wb;
-    struct ev_io ior;
-    struct ev_io iow;
-    struct rtty *rtty;
+    int fd;
+    int sock;
+    bool busy;
+    uint32_t total_size;
+    uint32_t remain_size;
+    struct sockaddr_un peer_sun;
+    struct ev_io ios;  /* used for unix socket */
+    struct ev_io iof;  /* used for file */
+    ev_tstamp last_notify_progress;
 };
 
-int start_file_service(struct rtty *rtty);
-bool detect_file_msg(uint8_t *buf, int len, int sid, int *type);
-void recv_file(struct buffer *b, int len);
+int start_file_service(struct file_context *ctx);
+bool detect_file_operation(uint8_t *buf, int len, int sid, int *type, struct file_context *ctx);
+void parse_file_msg(struct file_context *ctx, int type, struct buffer *data, int len);
+void update_progress(struct ev_loop *loop, ev_tstamp start_time, struct buffer *info);
+void cancel_file_operation(struct ev_loop *loop, int sock);
+int read_file_msg(int sock, struct buffer *out);
 int connect_rtty_file_service();
 void detect_sid(char type);
 

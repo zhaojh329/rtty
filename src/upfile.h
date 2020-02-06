@@ -25,6 +25,6 @@
 #ifndef RTTY_UPFILE_H_
 #define RTTY_UPFILE_H_
 
-void upload_file(const char *name);
+void upload_file(const char *path);
 
 #endif

@@ -11,8 +11,11 @@ find_package(Libev REQUIRED)
 include_directories(${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/buffer ${LIBEV_INCLUDE_DIR})
 set(EXTRA_LIBS ${LIBEV_LIBRARY} util crypt m)
 
-set(RTTY_FILE_UNIX_SOCKET "/var/run/rttyfile.sock")
-add_definitions(-DRTTY_FILE_UNIX_SOCKET="${RTTY_FILE_UNIX_SOCKET}")
+set(RTTY_FILE_UNIX_SOCKET_S "/var/run/rttyfile.sock")
+add_definitions(-DRTTY_FILE_UNIX_SOCKET_S="${RTTY_FILE_UNIX_SOCKET_S}")
+
+set(RTTY_FILE_UNIX_SOCKET_C "/var/run/rttyfile_c.sock")
+add_definitions(-DRTTY_FILE_UNIX_SOCKET_C="${RTTY_FILE_UNIX_SOCKET_C}")
 
 set(RTTY_SSL_SUPPORT_CONFIG 1)
 option(RTTY_SSL_SUPPORT "SSL support" ON)

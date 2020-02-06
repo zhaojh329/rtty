@@ -26,7 +26,6 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <stdlib.h>
-#include <arpa/inet.h>
 
 #include "ssl.h"
 #include "net.h"
@@ -96,7 +95,7 @@ static void pty_on_read(struct ev_loop *loop, struct ev_io *w, int revents) {
             return;
     }
 
-    if (!detect_file_msg(buf, len, tty->sid, &type)) {
+    if (!detect_file_operation (buf, len, tty->sid, &type, &rtty->file_context)) {
         buffer_put_u8 (wb, MSG_TYPE_TERMDATA);
         buffer_put_u16be (wb, len + 1);
         buffer_put_u8 (wb, tty->sid);
@@ -115,7 +114,7 @@ static void pty_on_write(struct ev_loop *loop, struct ev_io *w, int revents) {
     struct buffer *wb = &tty->wb;
     int ret;
 
-    ret = buffer_pull_to_fd(wb, w->fd, buffer_length(wb), NULL, NULL);
+    ret = buffer_pull_to_fd(wb, w->fd, buffer_length(wb));
     if (ret < 0) {
         log_err("write to pty failed: %s\n", strerror(errno));
         return;
@@ -330,7 +329,7 @@ static void parse_msg(struct rtty *rtty)
             break;
 
         case MSG_TYPE_FILE:
-            recv_file(rb, msglen);
+            parse_file_msg(&rtty->file_context, buffer_pull_u8(rb), rb, msglen - 1);
             break;
 
         default:
@@ -390,10 +389,10 @@ static void on_net_write(struct ev_loop *loop, struct ev_io *w, int revents)
     }
 
     if (rtty->ssl)
-        ret = buffer_pull_to_fd (&rtty->wb, w->fd, -1, rtty_ssl_write, rtty->ssl);
+        ret = buffer_pull_to_fd_ex (&rtty->wb, w->fd, -1, rtty_ssl_write, rtty->ssl);
     else
 #endif
-        ret = buffer_pull_to_fd (&rtty->wb, w->fd, -1, NULL, NULL);
+        ret = buffer_pull_to_fd (&rtty->wb, w->fd, -1);
     if (ret < 0) {
         log_err ("socket write error: %s\n", strerror(errno));
         rtty_exit(rtty);
@@ -423,7 +422,7 @@ static void on_net_connected(int sock, void *arg)
 
     ev_io_init(&rtty->iow, on_net_write, sock, EV_WRITE);
 
-    rtty->sock_file = start_file_service(rtty);
+    start_file_service(&rtty->file_context);
 
     if (rtty->ssl_on) {
 #if (RTTY_SSL_SUPPORT)

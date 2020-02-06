@@ -22,91 +22,60 @@
  * SOFTWARE.
  */
 
-#include <errno.h>
 #include <stdio.h>
 #include <fcntl.h>
-#include <stdint.h>
-#include <stdbool.h>
+#include <errno.h>
+#include <stdlib.h>
 
 #include "file.h"
-#include "utils.h"
 
-static struct buffer b;
-static uint32_t remain;
-static uint32_t file_size;
 static ev_tstamp start_time;
-static struct ev_io iow;
-static struct ev_io ior;
-static struct ev_signal sw;
-static bool canceled;
+static char abspath[PATH_MAX];
+static uint32_t file_size;
+static struct buffer b;
+static int sock;
 
 static void signal_cb(struct ev_loop *loop, ev_signal *w, int revents)
 {
-    canceled = true;
-    ev_signal_stop (loop, w);
+    cancel_file_operation(loop, sock);
 }
 
-static void on_net_write(struct ev_loop *loop, struct ev_io *w, int revents)
+static void on_socket_read(struct ev_loop *loop, struct ev_io *w, int revents)
 {
-    int ret = buffer_pull_to_fd (&b, w->fd, -1, NULL, NULL);
-    if (ret < 0) {
-        fprintf(stderr,"socket write error: %s\n", strerror(errno));
-        return;
-    }
+    int type = read_file_msg(w->fd, &b);
 
-    if (buffer_length (&b) < 1)
-        ev_io_stop (loop, w);
-}
-
-static void on_file_read(struct ev_loop *loop, struct ev_io *w, int revents)
-{
-    uint8_t buf[4096];
-    int ret;
-
-    if (canceled) {
-        ev_io_stop (loop, w);
-
-        buffer_put_u8 (&b, RTTY_FILE_MSG_CANCELED);
-        buffer_put_u16 (&b, 0);
-        ev_io_start (loop, &iow);
-        return;
-    }
-
-    if (buffer_length (&b) > 4096 * 10)
-        return;
-
-    ret = read(w->fd, buf, sizeof (buf));
-
-    buffer_put_u8 (&b, RTTY_FILE_MSG_DATA);
-    buffer_put_u16 (&b, ret);
-    buffer_put_data (&b, buf, ret);
-    ev_io_start (loop, &iow);
-
-    remain -= ret;
-
-    fprintf (stdout, "%100c\r", ' ');
-    fprintf(stdout,"   %lu%%    %s     %.3lfs\r",
-            (file_size - remain) * 100UL / file_size,
-            format_size(file_size - remain), ev_now(loop) - start_time);
-    fflush (stdout);
-
-    if (ret == 0) {
-        ev_io_stop (loop, w);
-        ev_signal_stop (loop, &sw);
+    switch (type) {
+    case RTTY_FILE_MSG_REQUEST_ACCEPT:
+        buffer_put_u8(&b, RTTY_FILE_MSG_INFO);
+        buffer_put_u32(&b, file_size);
+        buffer_put_string(&b, abspath);
+        buffer_put_zero(&b, 1);
+        buffer_pull_to_fd(&b, w->fd, -1);
+        start_time = ev_now (loop);
+        break;
+    case RTTY_FILE_MSG_PROGRESS:
+        update_progress(loop, start_time, &b);
+        break;
+    case RTTY_FILE_MSG_BUSY:
+        fprintf(stderr, "Rtty is busy\n");
+        ev_break(loop, EVBREAK_ALL);
+        break;
+    default:
+        break;
     }
 }
 
-void upload_file(const char *name)
+void upload_file(const char *path)
 {
     struct ev_loop *loop = EV_DEFAULT;
-    const char *bname = basename(name);
+    struct ev_signal sw;
+    struct ev_io ior;
     struct stat st;
-    int sock = -1;
-    int fd = -1;
+    int fd;
 
-    fd = open(name, O_RDONLY);
+    fd = open(path, O_RDONLY);
     if (fd < 0) {
-        fprintf (stderr, "open '%s' failed: ", name);
+        fprintf (stderr, "open '%s' failed: ", path);
         if (errno == ENOENT)
             fprintf(stderr,"No such file\n");
         else
@@ -116,42 +85,33 @@ void upload_file(const char *name)
 
     fstat(fd, &st);
     if (!(st.st_mode & S_IFREG)) {
-        fprintf(stderr,"'%s' is not a regular file\n", name);
-        goto done;
+        fprintf(stderr,"'%s' is not a regular file\n", path);
+        close(fd);
+        return;
     }
+    close(fd);
 
-    remain = file_size = st.st_size;
+    file_size = st.st_size;
 
     sock = connect_rtty_file_service();
     if (sock < 0)
-        goto done;
+        return;
+
+    if (!realpath(path, abspath))
+        return;
 
     detect_sid('u');
 
-    buffer_put_u8 (&b, RTTY_FILE_MSG_INFO);
-    buffer_put_u16 (&b, strlen(bname));
-    buffer_put_string (&b, bname);
+    ev_io_init(&ior, on_socket_read, sock, EV_READ);
+    ev_io_start (loop, &ior);
 
     ev_signal_init(&sw, signal_cb, SIGINT);
     ev_signal_start(loop, &sw);
 
-    ev_io_init(&iow, on_net_write, sock, EV_WRITE);
-    ev_io_start(loop, &iow);
-
-    ev_io_init(&ior, on_file_read, fd, EV_READ);
-    ev_io_start (loop, &ior);
-
-    printf("Transferring '%s'...Press Ctrl+C to cancel\n", bname);
-
-    start_time = ev_now (loop);
+    printf("Transferring '%s'...Press Ctrl+C to cancel\n", basename(path));
 
     ev_run(loop, 0);
 
-    puts("");
-
-done:
-    if (sock > -1)
-        close(sock);
-    if (fd > -1)
-        close(fd);
+    buffer_free(&b);
+    close(sock);
 }

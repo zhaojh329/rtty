@@ -29,6 +29,7 @@
 #include <ev.h>
 
 #include "buffer.h"
+#include "file.h"
 
 #define RTTY_MAX_TTY                5
 #define RTTY_HEARTBEAT_INTEVAL      5.0
@@ -80,6 +81,7 @@ struct rtty {
     void *ssl;              /* Context wrap of openssl, wolfssl and mbedtls */
     bool ssl_handshaked;
     struct tty *ttys[RTTY_MAX_TTY];
+    struct file_context file_context;
 };
 
 int rtty_start(struct rtty *rtty);
