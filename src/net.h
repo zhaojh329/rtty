@@ -28,6 +28,6 @@
 #include <ev.h>
 
 int tcp_connect(struct ev_loop *loop, const char *host, int port,
-        void (*on_connected)(int sock, void *arg), void *arg);
+                void (*on_connected)(int sock, void *arg), void *arg);
 
 #endif

@@ -66,39 +66,39 @@ int b64_encode(const void *src, size_t srclen, void *dest, size_t destsize)
     char *output = dest;
 
     while (srclen > 0) {
-            int skip = 1;
-            int i0 = input[0] >> 2;
-            int i1 = (input[0] & 0x3) << 4;
-            int i2 = 64;
-            int i3 = 64;
+        int skip = 1;
+        int i0 = input[0] >> 2;
+        int i1 = (input[0] & 0x3) << 4;
+        int i2 = 64;
+        int i3 = 64;
 
-            if (destsize < 5)
-                return -1;
+        if (destsize < 5)
+            return -1;
 
-            if (srclen > 1) {
-                    skip++;
-                    i1 += input[1] >> 4;
-                    i2 = (input[1] & 0xF) << 2;
+        if (srclen > 1) {
+            skip++;
+            i1 += input[1] >> 4;
+            i2 = (input[1] & 0xF) << 2;
 
-                    if (srclen > 2) {
-                            i2 += input[2] >> 6;
-                            i3 = input[2] & 0x3F;
-                            skip++;
-                        }
-                }
-
-            *output++ = Base64[i0];
-            *output++ = Base64[i1];
-            *output++ = Base64[i2];
-            *output++ = Base64[i3];
-
-            input += skip;
-            srclen -= skip;
-            destsize -= 4;
+            if (srclen > 2) {
+                i2 += input[2] >> 6;
+                i3 = input[2] & 0x3F;
+                skip++;
+            }
         }
 
+        *output++ = Base64[i0];
+        *output++ = Base64[i1];
+        *output++ = Base64[i2];
+        *output++ = Base64[i3];
+
+        input += skip;
+        srclen -= skip;
+        destsize -= 4;
+    }
+
     *output++ = 0;
-    return output - (char *)dest - 1;
+    return output - (char *) dest - 1;
 }
 
 const char *format_size(size_t size)
@@ -106,11 +106,11 @@ const char *format_size(size_t size)
     static char str[64];
 
     if (size < 1024)
-        sprintf(str,"%zu B", size);
+        sprintf(str, "%zu B", size);
     else if (size < 1024 * 1024)
-        sprintf(str,"%.2f KB", size / 1024.0);
+        sprintf(str, "%.2f KB", size / 1024.0);
     else
-        sprintf(str,"%.2f MB", size / 1024.0 / 1024.0);
+        sprintf(str, "%.2f MB", size / 1024.0 / 1024.0);
 
     return str;
 }

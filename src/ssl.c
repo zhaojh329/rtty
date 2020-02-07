@@ -50,8 +50,10 @@ struct rtty_ssl_ctx {
 #else
 
 #if RTTY_HAVE_OPENSSL
+
 #include <openssl/ssl.h>
 #include <openssl/err.h>
+
 #elif RTTY_HAVE_WOLFSSL
 #define WC_NO_HARDEN
 #include <wolfssl/openssl/ssl.h>

@@ -51,7 +51,7 @@ static void on_socket_read(struct ev_loop *loop, struct ev_io *w, int revents)
         buffer_put_string(&b, abspath);
         buffer_put_zero(&b, 1);
         buffer_pull_to_fd(&b, w->fd, -1);
-        start_time = ev_now (loop);
+        start_time = ev_now(loop);
         break;
     case RTTY_FILE_MSG_PROGRESS:
         update_progress(loop, start_time, &b);
@@ -75,17 +75,17 @@ void upload_file(const char *path)
 
     fd = open(path, O_RDONLY);
     if (fd < 0) {
-        fprintf (stderr, "open '%s' failed: ", path);
+        fprintf(stderr, "open '%s' failed: ", path);
         if (errno == ENOENT)
-            fprintf(stderr,"No such file\n");
+            fprintf(stderr, "No such file\n");
         else
-            fprintf(stderr,"%s\n", strerror (errno));
+            fprintf(stderr, "%s\n", strerror(errno));
         return;
     }
 
     fstat(fd, &st);
     if (!(st.st_mode & S_IFREG)) {
-        fprintf(stderr,"'%s' is not a regular file\n", path);
+        fprintf(stderr, "'%s' is not a regular file\n", path);
         close(fd);
         return;
     }
@@ -103,7 +103,7 @@ void upload_file(const char *path)
     detect_sid('u');
 
     ev_io_init(&ior, on_socket_read, sock, EV_READ);
-    ev_io_start (loop, &ior);
+    ev_io_start(loop, &ior);
 
     ev_signal_init(&sw, signal_cb, SIGINT);
     ev_signal_start(loop, &sw);

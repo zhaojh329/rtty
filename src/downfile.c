@@ -44,15 +44,15 @@ static void on_socket_read(struct ev_loop *loop, struct ev_io *w, int revents)
 
     switch (type) {
     case RTTY_FILE_MSG_REQUEST_ACCEPT:
-        buffer_put_u8 (&b, RTTY_FILE_MSG_SAVE_PATH);
-        buffer_put_string (&b, abspath);
-        buffer_put_zero (&b, 1);
-        buffer_pull_to_fd (&b, w->fd, -1);
+        buffer_put_u8(&b, RTTY_FILE_MSG_SAVE_PATH);
+        buffer_put_string(&b, abspath);
+        buffer_put_zero(&b, 1);
+        buffer_pull_to_fd(&b, w->fd, -1);
         break;
     case RTTY_FILE_MSG_INFO:
-        printf ("Transferring '%s'...\n", (char *)buffer_data (&b));
+        printf("Transferring '%s'...\n", (char *)buffer_data(&b));
         buffer_pull(&b, NULL, buffer_length(&b));
-        start_time = ev_now (loop);
+        start_time = ev_now(loop);
         break;
     case RTTY_FILE_MSG_PROGRESS:
         update_progress(loop, start_time, &b);
@@ -86,7 +86,7 @@ void download_file()
     detect_sid('d');
 
     ev_io_init(&ior, on_socket_read, sock, EV_READ);
-    ev_io_start (loop, &ior);
+    ev_io_start(loop, &ior);
 
     ev_signal_init(&sw, signal_cb, SIGINT);
     ev_signal_start(loop, &sw);

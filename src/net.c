@@ -37,6 +37,7 @@ struct net_context {
     struct ev_io iow;
     int sock;
     void *arg;
+
     void (*on_connected)(int sock, void *arg);
 };
 
@@ -94,7 +95,7 @@ static void timer_cb(struct ev_loop *loop, struct ev_timer *w, int revents)
 }
 
 static void wait_connect(struct ev_loop *loop, int sock, int timeout,
-    void (*on_connected)(int sock, void *arg), void *arg)
+                         void (*on_connected)(int sock, void *arg), void *arg)
 {
     static struct net_context ctx;
 
@@ -107,11 +108,11 @@ static void wait_connect(struct ev_loop *loop, int sock, int timeout,
 
     ev_io_init(&ctx.iow, sock_write_cb, sock, EV_WRITE);
     ctx.iow.data = &ctx;
-    ev_io_start (loop, &ctx.iow);
+    ev_io_start(loop, &ctx.iow);
 }
 
 int tcp_connect(struct ev_loop *loop, const char *host, int port,
-    void (*on_connected)(int sock, void *arg), void *arg)
+                void (*on_connected)(int sock, void *arg), void *arg)
 {
     struct sockaddr *addr = NULL;
     struct addrinfo *result, *rp;

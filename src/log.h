@@ -21,7 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
- 
+
 #ifndef _LOG_H
 #define _LOG_H
 
@@ -29,6 +29,7 @@
 #include <string.h>
 
 void set_log_threshold(int threshold);
+
 void log_close();
 
 #define __FILENAME__ (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
@@ -39,6 +40,6 @@ void log_close();
 #define log_info(fmt...)      log(LOG_INFO, fmt)
 #define log_err(fmt...)       log(LOG_ERR, fmt)
 
-void  __ilog(const char *filename, int line, int priority, const char *fmt, ...);
+void __ilog(const char *filename, int line, int priority, const char *fmt, ...);
 
 #endif

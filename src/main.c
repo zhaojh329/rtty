@@ -46,14 +46,14 @@ static void signal_cb(struct ev_loop *loop, ev_signal *w, int revents)
 }
 
 static struct option long_options[] = {
-    {"id", required_argument, NULL, 'I'},
-    {"host", required_argument, NULL, 'h'},
-    {"port", required_argument, NULL, 'p'},
+    {"id",          required_argument, NULL, 'I'},
+    {"host",        required_argument, NULL, 'h'},
+    {"port",        required_argument, NULL, 'p'},
     {"description", required_argument, NULL, 'd'},
-    {"token", required_argument, NULL, 't'},
-    {"verbose", no_argument, NULL, 'v'},
-    {"version", no_argument, NULL, 'V'},
-    {"help", no_argument, NULL, LONG_OPT_HELP},
+    {"token",       required_argument, NULL, 't'},
+    {"verbose",     no_argument,       NULL, 'v'},
+    {"version",     no_argument,       NULL, 'V'},
+    {"help",        no_argument,       NULL, LONG_OPT_HELP},
     {0, 0, 0, 0}
 };
 
