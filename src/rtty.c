@@ -348,10 +348,10 @@ static void on_net_read(struct ev_loop *loop, struct ev_io *w, int revents)
 
 #if RTTY_SSL_SUPPORT
     if (rtty->ssl)
-        ret = buffer_put_fd_ex(&rtty->rb, w->fd, -1, &eof, rtty_ssl_read, rtty->ssl);
+        ret = buffer_put_fd_ex(&rtty->rb, w->fd, 4096, &eof, rtty_ssl_read, rtty->ssl);
     else
 #endif
-        ret = buffer_put_fd(&rtty->rb, w->fd, -1, &eof);
+        ret = buffer_put_fd(&rtty->rb, w->fd, 4096, &eof);
     if (ret < 0) {
         log_err("socket read error: %s\n", strerror (errno));
         return;
