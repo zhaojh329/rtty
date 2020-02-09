@@ -23,14 +23,13 @@
 [mbedtls(polarssl)]: https://github.com/ARMmbed/mbedtls
 [CyaSSl(wolfssl)]: https://github.com/wolfSSL/wolfssl
 [vue]: https://github.com/vuejs/vue
-[iview]: https://github.com/iview/iview
 [服务端]: https://github.com/zhaojh329/rttys
 
 ![](https://raw.githubusercontent.com/zhaojh329/rtty/doc/rtty.png)
 ![](https://raw.githubusercontent.com/zhaojh329/rtty/doc/screen.gif)
 ![](https://raw.githubusercontent.com/zhaojh329/rtty/doc/file.gif)
 
-它由客户端和[服务端]组成。客户端采用纯C实现。[服务端]采用GO语言实现，前端界面采用[iview]和[vue]实现。
+它由客户端和[服务端]组成。客户端采用纯C实现。[服务端]采用GO语言实现，前端界面采用[vue]实现。
 
 您可以在任何地方通过Web访问您的设备的终端。通过设备ID来区分您的不同的设备。
 

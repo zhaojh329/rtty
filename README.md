@@ -23,7 +23,6 @@
 [mbedtls(polarssl)]: https://github.com/ARMmbed/mbedtls
 [CyaSSl(wolfssl)]: https://github.com/wolfSSL/wolfssl
 [vue]: https://github.com/vuejs/vue
-[iview]: https://github.com/iview/iview
 [server]: https://github.com/zhaojh329/rttys
 
 ![](https://raw.githubusercontent.com/zhaojh329/rtty/doc/rtty.png)
@@ -31,7 +30,7 @@
 ![](https://raw.githubusercontent.com/zhaojh329/rtty/doc/file.gif)
 
 It is composed of a client and a [server]. The client is written in pure C. The [server] is written in go language
-and the front-end interface is written in [iview] & [Vue].
+and the front-end interface is written in [Vue].
 
 You can access your device's terminal from anywhere via the web. Differentiate your different device by device ID.
 
