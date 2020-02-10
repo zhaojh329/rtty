@@ -89,8 +89,7 @@ int main(int argc, char **argv)
         .host = "localhost",
         .port = 5912,
         .loop = loop,
-        .sock = -1,
-        .sock_file = -1
+        .sock = -1
     };
     int option_index;
     int c;

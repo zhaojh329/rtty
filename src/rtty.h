@@ -62,7 +62,6 @@ struct rtty {
     const char *host;
     int port;
     int sock;
-    int sock_file;
     const char *devid;
     const char *token;        /* authorization token */
     const char *description;
@@ -72,7 +71,6 @@ struct rtty {
     struct buffer wb;
     struct ev_io iow;
     struct ev_io ior;
-    struct ev_io iof;
     struct ev_timer tmr;
     struct ev_loop *loop;
     ev_tstamp active;

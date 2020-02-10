@@ -231,14 +231,8 @@ static void rtty_exit(struct rtty *rtty)
     close(rtty->sock);
     rtty->sock = -1;
 
-    if (rtty->sock_file > -1) {
-        close(rtty->sock_file);
-        rtty->sock_file = -1;
-    }
-
     ev_io_stop(rtty->loop, &rtty->ior);
     ev_io_stop(rtty->loop, &rtty->iow);
-    ev_io_stop(rtty->loop, &rtty->iof);
 
     buffer_free(&rtty->rb);
     buffer_free(&rtty->wb);
