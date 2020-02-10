@@ -432,7 +432,7 @@ static void on_net_connected(int sock, void *arg)
 
     if (rtty->ssl_on) {
 #if (RTTY_SSL_SUPPORT)
-        rtty_ssl_init((struct rtty_ssl_ctx **) &rtty->ssl, sock, rtty->host);
+        rtty_ssl_init((struct rtty_ssl_ctx **)&rtty->ssl, sock, rtty->host);
 #endif
     }
 
