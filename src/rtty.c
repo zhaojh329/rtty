@@ -247,12 +247,12 @@ static void rtty_exit(struct rtty *rtty)
         if (rtty->ttys[i])
             del_tty(rtty->ttys[i]);
 
-    if (!rtty->reconnect)
-        ev_break(rtty->loop, EVBREAK_ALL);
-
 #if RTTY_SSL_SUPPORT
     rtty_ssl_free(rtty->ssl);
 #endif
+
+    if (!rtty->reconnect)
+        ev_break(rtty->loop, EVBREAK_ALL);
 }
 
 static void rtty_register(struct rtty *rtty)
