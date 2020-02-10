@@ -240,7 +240,6 @@ static void rtty_exit(struct rtty *rtty)
 
 #if RTTY_SSL_SUPPORT
     rtty_ssl_free(rtty->ssl);
-    rtty->ssl_handshaked = false;
 #endif
 
     close(rtty->sock);
@@ -378,20 +377,6 @@ static void on_net_write(struct ev_loop *loop, struct ev_io *w, int revents)
     int ret;
 
 #if RTTY_SSL_SUPPORT
-    if (rtty->ssl) {
-        if (!rtty->ssl_handshaked) {
-            ret = rtty_ssl_handshake(rtty->ssl);
-            if (ret == -1) {
-                log_err("ssl handshake failed\n");
-                rtty_exit(rtty);
-                return;
-            }
-            if (ret != 1)
-                return;
-            rtty->ssl_handshaked = true;
-        }
-    }
-
     if (rtty->ssl)
         ret = buffer_pull_to_fd_ex(&rtty->wb, w->fd, -1, rtty_ssl_write, rtty->ssl);
     else

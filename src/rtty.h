@@ -77,7 +77,6 @@ struct rtty {
     ev_tstamp last_heartbeat;
     bool reconnect;
     void *ssl;              /* Context wrap of openssl, wolfssl and mbedtls */
-    bool ssl_handshaked;
     struct tty *ttys[RTTY_MAX_TTY];
     struct file_context file_context;
 };

@@ -36,8 +36,6 @@ struct rtty_ssl_ctx;
 
 int rtty_ssl_init(struct rtty_ssl_ctx **ctx, int sock, const char *host);
 
-int rtty_ssl_handshake(struct rtty_ssl_ctx *ctx);
-
 void rtty_ssl_free(struct rtty_ssl_ctx *ctx);
 
 int rtty_ssl_read(int fd, void *buf, size_t count, void *arg);

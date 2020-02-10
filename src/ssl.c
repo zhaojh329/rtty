@@ -22,6 +22,7 @@
  * SOFTWARE.
  */
 
+#include <stdbool.h>
 #include <errno.h>
 #include <stdlib.h>
 
@@ -63,6 +64,7 @@ struct rtty_ssl_ctx {
 struct rtty_ssl_ctx {
     SSL_CTX *ctx;
     SSL *ssl;
+    bool handshaked;
 };
 
 #endif
@@ -124,7 +126,7 @@ int rtty_ssl_init(struct rtty_ssl_ctx **ctx, int sock, const char *host)
     return 0;
 }
 
-int rtty_ssl_handshake(struct rtty_ssl_ctx *ctx)
+static int rtty_ssl_handshake(struct rtty_ssl_ctx *ctx)
 {
 #if RTTY_HAVE_MBEDTLS
     int ret = mbedtls_ssl_handshake(&ctx->ssl);
@@ -198,6 +200,18 @@ int rtty_ssl_read(int fd, void *buf, size_t count, void *arg)
 int rtty_ssl_write(int fd, void *buf, size_t count, void *arg)
 {
     struct rtty_ssl_ctx *ctx = arg;
+    int ret;
+
+    if (!ctx->handshaked) {
+        ret = rtty_ssl_handshake(ctx);
+        if (ret == -1) {
+            log_err("ssl handshake failed\n");
+            return P_FD_ERR;
+        }
+        if (ret != 1)
+            return P_FD_PENDING;
+        ctx->handshaked = true;
+    }
 
 #if RTTY_HAVE_MBEDTLS
     int ret = mbedtls_ssl_write(&ctx->ssl, buf, count);
@@ -207,7 +221,7 @@ int rtty_ssl_write(int fd, void *buf, size_t count, void *arg)
         return P_FD_ERR;
     }
 #else
-    int ret = SSL_write(ctx->ssl, buf, count);
+    ret = SSL_write(ctx->ssl, buf, count);
     if (ret < 0) {
         int err = SSL_get_error(ctx->ssl, ret);
         if (err == SSL_ERROR_WANT_WRITE)
