@@ -240,6 +240,9 @@ static void rtty_exit(struct rtty *rtty)
     ev_io_stop(rtty->loop, &rtty->iow);
     ev_io_stop(rtty->loop, &rtty->iof);
 
+    buffer_free(&rtty->rb);
+    buffer_free(&rtty->wb);
+
     for (int i = 0; i < RTTY_MAX_TTY; i++)
         if (rtty->ttys[i])
             del_tty(rtty->ttys[i]);
