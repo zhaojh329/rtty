@@ -70,8 +70,7 @@ struct rtty_ssl_ctx {
 int rtty_ssl_init(struct rtty_ssl_ctx **ctx, int sock, const char *host)
 {
     struct rtty_ssl_ctx *c = calloc(1, sizeof(struct rtty_ssl_ctx));
-
-    if (!ctx) {
+    if (!c) {
         log_err("calloc failed: %s\n", strerror(errno));
         return -1;
     }
