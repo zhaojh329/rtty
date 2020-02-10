@@ -228,9 +228,6 @@ static void set_tty_winsize(struct rtty *rtty, int sid)
 
 static void rtty_exit(struct rtty *rtty)
 {
-    close(rtty->sock);
-    rtty->sock = -1;
-
     ev_io_stop(rtty->loop, &rtty->ior);
     ev_io_stop(rtty->loop, &rtty->iow);
 
@@ -243,7 +240,11 @@ static void rtty_exit(struct rtty *rtty)
 
 #if RTTY_SSL_SUPPORT
     rtty_ssl_free(rtty->ssl);
+    rtty->ssl_handshaked = false;
 #endif
+
+    close(rtty->sock);
+    rtty->sock = -1;
 
     if (!rtty->reconnect)
         ev_break(rtty->loop, EVBREAK_ALL);
