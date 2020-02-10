@@ -425,8 +425,6 @@ static void on_net_connected(int sock, void *arg)
 
     ev_io_init(&rtty->iow, on_net_write, sock, EV_WRITE);
 
-    start_file_service(&rtty->file_context);
-
     if (rtty->ssl_on) {
 #if (RTTY_SSL_SUPPORT)
         rtty_ssl_init((struct rtty_ssl_ctx **)&rtty->ssl, sock, rtty->host);
@@ -492,6 +490,8 @@ int rtty_start(struct rtty *rtty)
     if (tcp_connect(rtty->loop, rtty->host, rtty->port, on_net_connected, rtty) < 0
         && !rtty->reconnect)
         return -1;
+
+    start_file_service(&rtty->file_context);
 
     rtty->active = ev_now(rtty->loop);
 
