@@ -38,16 +38,6 @@
 #include <mbedtls/ctr_drbg.h>
 #include <mbedtls/net_sockets.h>
 
-struct rtty_ssl_ctx {
-    mbedtls_net_context      net;
-    mbedtls_ssl_context      ssl;
-    mbedtls_ssl_config       cfg;
-    mbedtls_ctr_drbg_context drbg;
-    mbedtls_entropy_context  etpy;
-    mbedtls_x509_crt         x509;
-    bool last_read_ok;
-};
-
 #else
 
 #if RTTY_HAVE_OPENSSL
@@ -61,13 +51,23 @@ struct rtty_ssl_ctx {
 #include <wolfssl/openssl/err.h>
 #endif
 
+#endif
+
 struct rtty_ssl_ctx {
+    bool handshaked;
+#if RTTY_HAVE_MBEDTLS
+    mbedtls_net_context      net;
+    mbedtls_ssl_context      ssl;
+    mbedtls_ssl_config       cfg;
+    mbedtls_ctr_drbg_context drbg;
+    mbedtls_entropy_context  etpy;
+    mbedtls_x509_crt         x509;
+    bool last_read_ok;
+#else
     SSL_CTX *ctx;
     SSL *ssl;
-    bool handshaked;
-};
-
 #endif
+};
 
 int rtty_ssl_init(struct rtty_ssl_ctx **ctx, int sock, const char *host)
 {
@@ -214,7 +214,7 @@ int rtty_ssl_write(int fd, void *buf, size_t count, void *arg)
     }
 
 #if RTTY_HAVE_MBEDTLS
-    int ret = mbedtls_ssl_write(&ctx->ssl, buf, count);
+    ret = mbedtls_ssl_write(&ctx->ssl, buf, count);
     if (ret < 0) {
         if (ret == MBEDTLS_ERR_SSL_WANT_WRITE)
             return P_FD_PENDING;
