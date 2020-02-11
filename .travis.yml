@@ -4,9 +4,15 @@ os:
   - linux
 
 before_install:
-  - sudo apt-get install -y libev-dev libssl-dev
+  - sudo apt-get install -y libev-dev libssl-dev libwolfssl-dev libmbedtls-dev
 
 script:
   - mkdir build && cd build
-  - cmake ..
+  - cmake .. -DRTTY_USE_OPENSSL=1
+  - make && sudo make install
+  - rm * -rf
+  - cmake .. -DRTTY_USE_WOLFSSL=1
+  - make && sudo make install
+  - rm * -rf
+  - cmake .. -DRTTY_USE_MBEDTLS=1
   - make && sudo make install
