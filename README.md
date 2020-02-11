@@ -38,15 +38,13 @@ rtty is very suitable for remote maintenance your or your company's thousands of
 the world.
 
 # Features
-* Simple to deployment and easy to use
-* Access different devices based on device ID
-* Provide a dashboard to visualize online devices
-* Fully-featured terminal based on [Xterm.js]
-* Support transfer file
+* The client is writen in C language, very small, suitable for embedded Linux
+* Execute command remotely in a batch of devices 
 * SSL support: openssl, mbedtls, CyaSSl(wolfssl)
-* Support device authorization
-* Support Execute a command remote
-* The client is very small, suitable for embedded Linux
+* Very convenient to upload and download files
+* Access different devices based on device ID
+* Fully-featured terminal based on [Xterm.js]
+* Simple to deployment and easy to use
 
 # Dependencies of the Client side
 * [libev] - A full-featured and high-performance event loop
@@ -81,7 +79,7 @@ Command-line Options
 
 Run RTTY(Replace the following parameters with your own parameters)
 
-    sudo rtty -I 'My-device-ID' -h 'your-server' -p 5912 -a -v -s -d 'My Device Description'
+    sudo rtty -I 'My-device-ID' -h 'your-server' -p 5912 -a -v -d 'My Device Description'
 
 If your rttys is configured with a token, add the following parameter(Replace the following token with your own)
 
@@ -92,11 +90,11 @@ If your rttys is configured with a token, add the following parameter(Replace th
 ## [For Other Embedded Linux Platform](/CROSS_COMPILE.md)
 
 # Usage
-Use your web browser to access your server: `https://your-server-host:5913`, then click the connection button
+Use your web browser to access your server: `http://your-server-host:5913`, then click the connection button
 
-You can easily embed RTTY into your existing platform: `https://your-server-host:5913/#/?id=your-id`
+You can easily embed RTTY into your existing platform: `http://your-server-host:5913/#/?id=your-id`
 
-Automatic login: `https://your-server:5913/#/?id=device-id&username=device-username&password=device-password`
+Automatic login: `http://your-server:5913/#/?id=device-id&username=device-username&password=device-password`
 
 ## Transfer file
 Transfer file from local to remote device

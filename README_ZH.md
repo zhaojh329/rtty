@@ -36,15 +36,13 @@
 rtty非常适合远程维护您的或者您的公司的部署在全球各地的成千上万的Linux设备。
 
 # 特性
-* 部署简单，使用方便
-* 根据设备ID访问不同的设备
-* 提供dashboard，直观的展示在线设备
-* 基于[Xterm.js]的全功能终端
-* 支持传输文件
+* 客户端C语言实现，非常小，适合嵌入式Linux
+* 远程批量执行命令
 * 支持SSL: openssl, mbedtls, CyaSSl(wolfssl)
-* 支持设备认证
-* 支持远程执行命令
-* 客户端非常小，适合嵌入式Linux
+* 非常方便的上传和下载文件
+* 根据设备ID访问不同的设备
+* 基于[Xterm.js]的全功能终端
+* 部署简单，使用方便
 
 # 客户端依赖
 * [libev] - 高性能的事件循环库
@@ -79,7 +77,7 @@ rtty非常适合远程维护您的或者您的公司的部署在全球各地的�
 
 运行RTTY(将下面的参数替换为您自己的参数)
 
-    sudo rtty -I 'My-device-ID' -h 'your-server' -p 5912 -a -v -s -d 'My Device Description'
+    sudo rtty -I 'My-device-ID' -h 'your-server' -p 5912 -a -v -d 'My Device Description'
 
 如果您的rttys配置了一个token，请加上如下参数（将下面的token替换为您自己生成的）
 
@@ -90,11 +88,11 @@ rtty非常适合远程维护您的或者您的公司的部署在全球各地的�
 ## [其它嵌入式Linux平台](/CROSS_COMPILE.md)
 
 # 如何使用
-使用您的Web浏览器访问您的服务器: `https://your-server-host:5913`，然后点击连接按钮。
+使用您的Web浏览器访问您的服务器: `http://your-server-host:5913`，然后点击连接按钮。
 
-您可以非常方便的将RTTY嵌入到您现有的平台： `https://your-server-host:5913/#/?id=your-id`
+您可以非常方便的将RTTY嵌入到您现有的平台： `http://your-server-host:5913/#/?id=your-id`
 
-自动登录: `https://your-server:5913/#/?id=device-id&username=device-username&password=device-password`
+自动登录: `http://your-server:5913/#/?id=device-id&username=device-username&password=device-password`
 
 ## 传输文件
 从本地传输文件到远程设备
