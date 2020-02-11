@@ -40,7 +40,7 @@ start_rtty() {
 	}
 
 	[ -z "$id" ] && {
-		id=$(cat /sys/class/net/$ifname/address | sed 's/://g' | tr 'a-z' 'A-Z')
+		id=$(sed 's/://g' /sys/class/net/$ifname/address | tr 'a-z' 'A-Z')
 	}
 
 	procd_open_instance
