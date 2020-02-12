@@ -34,9 +34,15 @@
 
 #if RTTY_HAVE_MBEDTLS
 #include <mbedtls/ssl.h>
+#include <mbedtls/version.h>
 #include <mbedtls/entropy.h>
 #include <mbedtls/ctr_drbg.h>
+
+#if MBEDTLS_VERSION_NUMBER < 0x02040000
+#include <mbedtls/net.h>
+#else
 #include <mbedtls/net_sockets.h>
+#endif
 
 #else
 
