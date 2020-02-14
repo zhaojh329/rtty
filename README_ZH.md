@@ -1,21 +1,28 @@
 # rtty - 在任何地方通过Web访问您的设备的终端
 
-[1]: https://img.shields.io/badge/license-MIT-brightgreen.svg?style=plastic
+[1]: https://img.shields.io/badge/开源协议-MIT-brightgreen.svg?style=plastic
 [2]: /LICENSE
-[3]: https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=plastic
+[3]: https://img.shields.io/badge/提交代码-欢迎-brightgreen.svg?style=plastic
 [4]: https://github.com/zhaojh329/rtty/pulls
-[5]: https://img.shields.io/badge/Issues-welcome-brightgreen.svg?style=plastic
+[5]: https://img.shields.io/badge/提问-欢迎-brightgreen.svg?style=plastic
 [6]: https://github.com/zhaojh329/rtty/issues/new
-[7]: https://img.shields.io/badge/release-7.1.1-blue.svg?style=plastic
+[7]: https://img.shields.io/badge/发布版本-7.1.1-blue.svg?style=plastic
 [8]: https://github.com/zhaojh329/rtty/releases
 [9]: https://travis-ci.org/zhaojh329/rtty.svg?branch=master
 [10]: https://travis-ci.org/zhaojh329/rtty
+[11]: https://img.shields.io/badge/支持rtty-赞助作者-blueviolet.svg
+[12]: https://gitee.com/zhaojh329/rtty#project-donate-overview
+[13]: https://img.shields.io/badge/技术交流群-点击加入：153530783-brightgreen.svg
+[14]: https://jq.qq.com/?_wv=1027&k=5PKxbTV
+
 
 [![license][1]][2]
 [![PRs Welcome][3]][4]
 [![Issue Welcome][5]][6]
 [![Release Version][7]][8]
 [![Build Status][9]][10]
+[![Support rtty][11]][12]
+[![Chinese Chat][13]][14]
 
 [Xterm.js]: https://github.com/xtermjs/xterm.js
 [libev]: http://software.schmorp.de/pkg/libev.html
@@ -105,12 +112,6 @@ rtty非常适合远程维护您的或者您的公司的部署在全球各地的�
 
 ## [远程执行命令](/COMMAND_ZH.md)
 
-# [捐赠](https://gitee.com/zhaojh329/rtty#project-donate-overview)
-
 # 贡献代码
 如果您想帮助[rtty](https://github.com/zhaojh329/rtty)变得更好，请参考
 [CONTRIBUTING_ZH.md](https://github.com/zhaojh329/rtty/blob/master/CONTRIBUTING_ZH.md)。
-
-# 技术交流
-QQ群：153530783
-

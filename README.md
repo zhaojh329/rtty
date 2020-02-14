@@ -10,12 +10,15 @@
 [8]: https://github.com/zhaojh329/rtty/releases
 [9]: https://travis-ci.org/zhaojh329/rtty.svg?branch=master
 [10]: https://travis-ci.org/zhaojh329/rtty
+[11]: https://img.shields.io/badge/Support%20rtty-Donate-blueviolet.svg
+[12]: https://gitee.com/zhaojh329/rtty#project-donate-overview
 
 [![license][1]][2]
 [![PRs Welcome][3]][4]
 [![Issue Welcome][5]][6]
 [![Release Version][7]][8]
 [![Build Status][9]][10]
+[![Support rtty][11]][12]
 
 [Xterm.js]: https://github.com/xtermjs/xterm.js
 [libev]: http://software.schmorp.de/pkg/libev.html
@@ -106,8 +109,6 @@ Transfer file from remote device to the local
 	rtty -S test.txt
 
 ## [Execute command remotely](/COMMAND.md)
-
-# [Donate](https://gitee.com/zhaojh329/rtty#project-donate-overview)
 
 # Contributing
 If you would like to help making [rtty](https://github.com/zhaojh329/rtty) better,
