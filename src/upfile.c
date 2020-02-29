@@ -57,7 +57,7 @@ static void on_socket_read(struct ev_loop *loop, struct ev_io *w, int revents)
         update_progress(loop, start_time, &b);
         break;
     case RTTY_FILE_MSG_BUSY:
-        fprintf(stderr, "Rtty is busy\n");
+        fprintf(stderr, "\033[31mRtty is busy\033[0m\n");
         ev_break(loop, EVBREAK_ALL);
         break;
     default:
