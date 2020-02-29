@@ -50,7 +50,7 @@ struct file_context {
     uint32_t remain_size;
     struct sockaddr_un peer_sun;
     struct ev_io ios;  /* used for unix socket */
-    struct ev_io iof;  /* used for file */
+    struct ev_io iof;  /* used for upload file */
     ev_tstamp last_notify_progress;
 };
 
