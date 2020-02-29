@@ -36,4 +36,6 @@ int b64_encode(const void *src, size_t srclen, void *dest, size_t destsize);
 
 const char *format_size(size_t size);
 
+struct mntent *find_mount_point(const char *name);
+
 #endif

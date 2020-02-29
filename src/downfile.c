@@ -64,6 +64,10 @@ static void on_socket_read(struct ev_loop *loop, struct ev_io *w, int revents)
         puts("");
         ev_break(loop, EVBREAK_ALL);
         break;
+    case RTTY_FILE_MSG_NO_SPACE:
+        fprintf(stderr, "No enough space\n");
+        ev_break(loop, EVBREAK_ALL);
+        break;
     default:
         break;
     }

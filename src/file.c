@@ -29,6 +29,8 @@
 #include <unistd.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <sys/statvfs.h>
+#include <mntent.h>
 
 #include "log.h"
 #include "file.h"
@@ -118,14 +120,38 @@ static void start_upload_file(struct file_context *ctx, struct buffer *info)
     log_info("upload file: %s\n", path);
 }
 
+static void send_canceled_msg(struct rtty *rtty)
+{
+    buffer_put_u8(&rtty->wb, MSG_TYPE_FILE);
+    buffer_put_u16be(&rtty->wb, 2);
+    buffer_put_u8(&rtty->wb, rtty->file_context.sid);
+    buffer_put_u8(&rtty->wb, RTTY_FILE_MSG_CANCELED);
+    ev_io_start(rtty->loop, &rtty->iow);
+}
+
 static void start_download_file(struct file_context *ctx, struct buffer *info, int len)
 {
+    struct rtty *rtty = container_of(ctx, struct rtty, file_context);
+    struct mntent *ment;
+    struct statvfs sfs;
     char *name;
     int fd;
 
     ctx->total_size = ctx->remain_size = buffer_pull_u32be(info);
     name = strndup(buffer_data(info), len - 4);
     buffer_pull(info, NULL, len - 4);
+
+    ment = find_mount_point(abspath);
+    if (ment) {
+        if (statvfs(ment->mnt_dir, &sfs) == 0 && ctx->total_size > sfs.f_bavail * sfs.f_frsize) {
+            int type = RTTY_FILE_MSG_NO_SPACE;
+
+            send_canceled_msg(rtty);
+            sendto(ctx->sock, &type, 1, 0, (struct sockaddr *) &ctx->peer_sun, sizeof(struct sockaddr_un));
+            log_err("download file fail: no enough space\n");
+            return;
+        }
+    }
 
     strcat(abspath, name);
 
@@ -175,12 +201,7 @@ static void on_socket_read(struct ev_loop *loop, struct ev_io *w, int revents)
         }
 
         ctx->busy = false;
-
-        buffer_put_u8(&rtty->wb, MSG_TYPE_FILE);
-        buffer_put_u16be(&rtty->wb, 2);
-        buffer_put_u8(&rtty->wb, ctx->sid);
-        buffer_put_u8(&rtty->wb, RTTY_FILE_MSG_CANCELED);
-        ev_io_start(rtty->loop, &rtty->iow);
+        send_canceled_msg(rtty);
         break;
     case RTTY_FILE_MSG_SAVE_PATH:
         strcpy(abspath, buffer_data(&b));

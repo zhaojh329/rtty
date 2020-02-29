@@ -22,14 +22,14 @@
  * SOFTWARE.
  */
 
-#include "utils.h"
+#include <sys/stat.h>
+#include <mntent.h>
 #include <stdio.h>
-#include <unistd.h>
 #include <stdint.h>
 #include <string.h>
-#include <errno.h>
 #include <ctype.h>
-#include <sys/time.h>
+
+#include "utils.h"
 
 int find_login(char *buf, int len)
 {
@@ -115,3 +115,42 @@ const char *format_size(size_t size)
     return str;
 }
 
+/*
+ * Given any file (or directory), find the mount table entry for its
+ * filesystem.
+ */
+struct mntent *find_mount_point(const char *name)
+{
+    struct mntent *ment;
+    dev_t devno_of_name;
+    struct stat s;
+    FILE *mtab_fp;
+
+    if (stat(name, &s) < 0)
+        return NULL;
+
+    devno_of_name = s.st_dev;
+
+    if (S_ISBLK(s.st_mode) || S_ISCHR(s.st_mode))
+        return NULL;
+
+    mtab_fp = setmntent("/etc/mtab", "r");
+    if (!mtab_fp)
+        return NULL;
+
+    while ((ment = getmntent(mtab_fp))) {
+        if (!strcmp(ment->mnt_fsname, "rootfs"))
+            continue;
+
+        /* string match */
+        if (!strcmp(name, ment->mnt_dir))
+            break;
+
+        /* match the directory's mount point. */
+        if (stat(ment->mnt_dir, &s) == 0 && s.st_dev == devno_of_name)
+            break;
+    }
+    endmntent(mtab_fp);
+
+    return ment;
+}
