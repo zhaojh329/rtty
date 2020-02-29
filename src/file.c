@@ -81,6 +81,7 @@ static void on_file_read(struct ev_loop *loop, struct ev_io *w, int revents)
         ctx->busy = false;
         ev_io_stop(loop, w);
         close(w->fd);
+        w->fd = -1;
     } else {
         notify_progress(ctx);
     }
@@ -169,8 +170,15 @@ static void on_socket_read(struct ev_loop *loop, struct ev_io *w, int revents)
         start_upload_file(ctx, &b);
         break;
     case RTTY_FILE_MSG_CANCELED:
-        ev_io_stop(loop, &ctx->iof);
-        close(ctx->iof.fd);
+        if (ctx->iof.fd > -1) {
+            close(ctx->iof.fd);
+            ctx->iof.fd = -1;
+            ev_io_stop(loop, &ctx->iof);
+        }
+        if (ctx->fd > -1) {
+            close(ctx->fd);
+            ctx->fd = -1;
+        }
         ctx->busy = false;
 
         buffer_put_u8(&rtty->wb, MSG_TYPE_FILE);
@@ -276,6 +284,7 @@ void parse_file_msg(struct file_context *ctx, int type, struct buffer *data, int
     case RTTY_FILE_MSG_DATA:
         if (len == 0) {
             close(ctx->fd);
+            ctx->fd = -1;
             ctx->busy = false;
             return;
         }
