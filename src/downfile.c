@@ -82,7 +82,7 @@ void download_file()
     if (sock < 0)
         return;
 
-    detect_sid('d');
+    request_transfer_file();
 
     ev_io_init(&ior, on_socket_read, sock, EV_READ);
     ev_io_start(loop, &ior);

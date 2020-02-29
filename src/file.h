@@ -56,8 +56,6 @@ struct file_context {
 
 int start_file_service(struct file_context *ctx);
 
-bool detect_file_operation(uint8_t *buf, int len, int sid, int *type, struct file_context *ctx);
-
 void parse_file_msg(struct file_context *ctx, int type, struct buffer *data, int len);
 
 void update_progress(struct ev_loop *loop, ev_tstamp start_time, struct buffer *info);
@@ -68,7 +66,8 @@ int read_file_msg(int sock, struct buffer *out);
 
 int connect_rtty_file_service();
 
-void detect_sid(char type);
+void request_transfer_file();
+bool detect_file_operation(uint8_t *buf, int len, int sid, struct file_context *ctx);
 
 #endif
 

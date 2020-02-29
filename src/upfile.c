@@ -100,7 +100,7 @@ void upload_file(const char *path)
     if (!realpath(path, abspath))
         return;
 
-    detect_sid('u');
+    request_transfer_file();
 
     ev_io_init(&ior, on_socket_read, sock, EV_READ);
     ev_io_start(loop, &ior);

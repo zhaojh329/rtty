@@ -79,7 +79,6 @@ static void pty_on_read(struct ev_loop *loop, struct ev_io *w, int revents)
     struct rtty *rtty = tty->rtty;
     struct buffer *wb = &rtty->wb;
     static uint8_t buf[4096];
-    int type;
     int len;
 
     while (1) {
@@ -99,17 +98,13 @@ static void pty_on_read(struct ev_loop *loop, struct ev_io *w, int revents)
             return;
     }
 
-    if (!detect_file_operation(buf, len, tty->sid, &type, &rtty->file_context)) {
-        buffer_put_u8(wb, MSG_TYPE_TERMDATA);
-        buffer_put_u16be(wb, len + 1);
-        buffer_put_u8(wb, tty->sid);
-        buffer_put_data(wb, buf, len);
-    } else if (type > -1) {
-        buffer_put_u8(wb, MSG_TYPE_FILE);
-        buffer_put_u16be(wb, 2);
-        buffer_put_u8(wb, tty->sid);
-        buffer_put_u8(wb, type);
-    }
+    if (detect_file_operation(buf, len, tty->sid, &rtty->file_context))
+        return;
+
+    buffer_put_u8(wb, MSG_TYPE_TERMDATA);
+    buffer_put_u16be(wb, len + 1);
+    buffer_put_u8(wb, tty->sid);
+    buffer_put_data(wb, buf, len);
     ev_io_start(loop, &rtty->iow);
 }
 
