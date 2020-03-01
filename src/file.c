@@ -210,6 +210,7 @@ static void on_socket_read(struct ev_loop *loop, struct ev_io *w, int revents)
         buffer_put_u16be(&rtty->wb, 2);
         buffer_put_u8(&rtty->wb, ctx->sid);
         buffer_put_u8(&rtty->wb, RTTY_FILE_MSG_START_DOWNLOAD);
+        ev_io_start(loop, &rtty->iow);
         break;
     default:
         break;
