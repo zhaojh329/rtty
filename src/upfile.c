@@ -73,6 +73,11 @@ void upload_file(const char *path)
     struct stat st;
     int fd;
 
+    if (getuid() > 0) {
+        fprintf(stderr, "Operation not permitted, must be run as root\n");
+        return;
+    }
+
     fd = open(path, O_RDONLY);
     if (fd < 0) {
         fprintf(stderr, "open '%s' failed: ", path);

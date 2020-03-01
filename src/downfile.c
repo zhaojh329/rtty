@@ -79,6 +79,11 @@ void download_file()
     static struct ev_signal sw;
     struct ev_io ior;
 
+    if (getuid() > 0) {
+        fprintf(stderr, "Operation not permitted, must be run as root\n");
+        return;
+    }
+
     if (!realpath(".", abspath))
         return;
 
