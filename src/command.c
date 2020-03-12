@@ -102,12 +102,18 @@ static const char *cmd_lookup(const char *cmd)
 static const char *cmderr2str(int err)
 {
     switch (err) {
-    case RTTY_CMD_ERR_PERMIT: return "operation not permitted";
-    case RTTY_CMD_ERR_NOT_FOUND: return "not found";
-    case RTTY_CMD_ERR_NOMEM: return "no mem";
-    case RTTY_CMD_ERR_SYSERR: return "sys error";
-    case RTTY_CMD_ERR_RESP_TOOBIG: return "stdout+stderr is too big";
-    default: return "";
+    case RTTY_CMD_ERR_PERMIT:
+        return "operation not permitted";
+    case RTTY_CMD_ERR_NOT_FOUND:
+        return "not found";
+    case RTTY_CMD_ERR_NOMEM:
+        return "no mem";
+    case RTTY_CMD_ERR_SYSERR:
+        return "sys error";
+    case RTTY_CMD_ERR_RESP_TOOBIG:
+        return "stdout+stderr is too big";
+    default:
+        return "";
     }
 }
 
@@ -145,7 +151,7 @@ static void cmd_err_reply(struct rtty *rtty, const char *token, int err)
     char str[256] = "";
 
     snprintf(str, sizeof(str) - 1, "{\"token\":\"%s\","
-                                   "\"attrs\":{\"err\":%d,\"msg\":\"%s\"}}", token, err, cmderr2str(err));
+             "\"attrs\":{\"err\":%d,\"msg\":\"%s\"}}", token, err, cmderr2str(err));
 
     rtty_send_msg(rtty, MSG_TYPE_CMD, str, strlen(str));
 }
@@ -168,7 +174,7 @@ static void cmd_reply(struct task *t, int code)
     pos = str;
 
     ret = snprintf(pos, len, "{\"token\":\"%s\","
-                             "\"attrs\":{\"code\":%d,\"stdout\":\"", t->token, code);
+                   "\"attrs\":{\"code\":%d,\"stdout\":\"", t->token, code);
 
     len -= ret;
     pos += ret;
@@ -246,7 +252,7 @@ static void run_task(struct task *t)
     int err;
 
     if (pipe2(opipe, O_CLOEXEC | O_NONBLOCK) < 0 ||
-        pipe2(epipe, O_CLOEXEC | O_NONBLOCK) < 0) {
+            pipe2(epipe, O_CLOEXEC | O_NONBLOCK) < 0) {
         log_err("pipe2 failed: %s\n", strerror(errno));
         err = RTTY_CMD_ERR_SYSERR;
         goto ERR;

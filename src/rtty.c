@@ -469,7 +469,7 @@ int rtty_start(struct rtty *rtty)
     ev_timer_start(rtty->loop, &rtty->tmr);
 
     if (tcp_connect(rtty->loop, rtty->host, rtty->port, on_net_connected, rtty) < 0
-        && !rtty->reconnect)
+            && !rtty->reconnect)
         return -1;
 
     start_file_service(&rtty->file_context);

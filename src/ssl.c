@@ -94,14 +94,14 @@ int rtty_ssl_init(struct rtty_ssl_ctx **ctx, int sock, const char *host)
     mbedtls_ctr_drbg_seed(&c->drbg, mbedtls_entropy_func, &c->etpy, NULL, 0);
 
     mbedtls_ssl_config_defaults(&c->cfg, MBEDTLS_SSL_IS_CLIENT,
-        MBEDTLS_SSL_TRANSPORT_STREAM, MBEDTLS_SSL_PRESET_DEFAULT);
+                                MBEDTLS_SSL_TRANSPORT_STREAM, MBEDTLS_SSL_PRESET_DEFAULT);
 
     mbedtls_ssl_conf_authmode(&c->cfg, MBEDTLS_SSL_VERIFY_OPTIONAL);
     mbedtls_ssl_conf_ca_chain(&c->cfg, &c->x509, NULL);
     mbedtls_ssl_conf_rng(&c->cfg, mbedtls_ctr_drbg_random, &c->drbg);
 
     mbedtls_ssl_set_bio(&c->ssl, &c->net, mbedtls_net_send,
-        mbedtls_net_recv, NULL);
+                        mbedtls_net_recv, NULL);
     mbedtls_ssl_set_hostname(&c->ssl, host);
 
     mbedtls_ssl_setup(&c->ssl, &c->cfg);

@@ -60,21 +60,21 @@ static struct option long_options[] = {
 static void usage(const char *prog)
 {
     fprintf(stderr, "Usage: %s [option]\n"
-                    "      -I, --id=string          Set an ID for the device(Maximum 63 bytes, valid\n"
-                    "                               character:letter, number, underline and short line)\n"
-                    "      -h, --host=string        Server's host or ipaddr(Default is localhost)\n"
-                    "      -p, --port=number        Server port(Default is 5912)\n"
-                    "      -d, --description=string Adding a description to the device(Maximum 126 bytes)\n"
-                    "      -a                       Auto reconnect to the server\n"
-                    "      -s                       SSL on\n"
-                    "      -D                       Run in the background\n"
-                    "      -t, --token=string       Authorization token\n"
-                    "      -f username              Skip a second login authentication. See man login(1) about the details\n"
-                    "      -R                       Receive file\n"
-                    "      -S file                  Send file\n"
-                    "      -v, --verbose            verbose\n"
-                    "      -V, --version            Show version\n"
-                    "      --help                   Show usage\n",
+            "      -I, --id=string          Set an ID for the device(Maximum 63 bytes, valid\n"
+            "                               character:letter, number, underline and short line)\n"
+            "      -h, --host=string        Server's host or ipaddr(Default is localhost)\n"
+            "      -p, --port=number        Server port(Default is 5912)\n"
+            "      -d, --description=string Adding a description to the device(Maximum 126 bytes)\n"
+            "      -a                       Auto reconnect to the server\n"
+            "      -s                       SSL on\n"
+            "      -D                       Run in the background\n"
+            "      -t, --token=string       Authorization token\n"
+            "      -f username              Skip a second login authentication. See man login(1) about the details\n"
+            "      -R                       Receive file\n"
+            "      -S file                  Send file\n"
+            "      -v, --verbose            verbose\n"
+            "      -V, --version            Show version\n"
+            "      --help                   Show usage\n",
             prog);
     exit(1);
 }
@@ -100,55 +100,55 @@ int main(int argc, char **argv)
             break;
 
         switch (c) {
-            case 'I':
-                rtty.devid = optarg;
-                break;
-            case 'h':
-                rtty.host = optarg;
-                break;
-            case 'p':
-                rtty.port = atoi(optarg);
-                break;
-            case 'd':
-                if (strlen(optarg) > 126) {
-                    log_err("Description too long\n");
-                    usage(argv[0]);
-                }
-                rtty.description = optarg;
-                break;
-            case 'a':
-                rtty.reconnect = true;
-                break;
-            case 's':
-                rtty.ssl_on = true;
-                break;
-            case 'D':
-                background = true;
-                break;
-            case 't':
-                rtty.token = optarg;
-                break;
-            case 'f':
-                rtty.username = optarg;
-                break;
-            case 'R':
-                download_file();
-                return 0;
-            case 'S':
-                upload_file(optarg);
-                return 0;
-            case 'v':
-                verbose = true;
-                break;
-            case 'V':
-                log_info("rtty version %s\n", RTTY_VERSION_STRING);
-                exit(0);
-            case LONG_OPT_HELP:
+        case 'I':
+            rtty.devid = optarg;
+            break;
+        case 'h':
+            rtty.host = optarg;
+            break;
+        case 'p':
+            rtty.port = atoi(optarg);
+            break;
+        case 'd':
+            if (strlen(optarg) > 126) {
+                log_err("Description too long\n");
                 usage(argv[0]);
-                break;
-            default: /* '?' */
-                usage(argv[0]);
-                break;
+            }
+            rtty.description = optarg;
+            break;
+        case 'a':
+            rtty.reconnect = true;
+            break;
+        case 's':
+            rtty.ssl_on = true;
+            break;
+        case 'D':
+            background = true;
+            break;
+        case 't':
+            rtty.token = optarg;
+            break;
+        case 'f':
+            rtty.username = optarg;
+            break;
+        case 'R':
+            download_file();
+            return 0;
+        case 'S':
+            upload_file(optarg);
+            return 0;
+        case 'v':
+            verbose = true;
+            break;
+        case 'V':
+            log_info("rtty version %s\n", RTTY_VERSION_STRING);
+            exit(0);
+        case LONG_OPT_HELP:
+            usage(argv[0]);
+            break;
+        default: /* '?' */
+            usage(argv[0]);
+            break;
         }
     }
 
