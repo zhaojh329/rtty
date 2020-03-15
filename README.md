@@ -95,10 +95,6 @@ If your rttys is configured with a token, add the following parameter(Replace th
 # Usage
 Use your web browser to access your server: `http://your-server-host:5913`, then click the connection button
 
-You can easily embed RTTY into your existing platform: `http://your-server-host:5913/#/?id=your-id`
-
-Automatic login: `http://your-server:5913/#/?id=device-id&username=device-username&password=device-password`
-
 ## Transfer file
 Transfer file from local to remote device
 
