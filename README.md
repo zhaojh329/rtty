@@ -95,6 +95,11 @@ If your rttys is configured with a token, add the following parameter(Replace th
 # Usage
 Use your web browser to access your server: `http://your-server-host:5913`, then click the connection button
 
+## connect devices with no web login required(you need to configure the device white list on the server)
+http://your-server-host:5913/connect/devid1
+
+http://your-server-host:5913/connect/devid2
+
 ## Transfer file
 Transfer file from local to remote device
 
