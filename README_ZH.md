@@ -57,13 +57,23 @@ rtty非常适合远程维护您的或者您的公司的部署在全球各地的�
 
 # [部署服务端](https://github.com/zhaojh329/rttys/blob/master/README_ZH.md)
 
-# 如何安装和运行rtty客户端
+# 如何安装rtty
 ## 针对Linux发行版：Ubuntu, Debian, ArchLinux, Centos
-安装
 
     wget -qO- https://raw.githubusercontent.com/zhaojh329/rtty/master/tools/install.sh | sudo bash
 
-查看命令行选项
+## 如何在Buildroot中使用
+在menuconfig中选中rtty然后编译
+
+    Target packages  --->
+        Shell and utilities  --->
+            [*] rtty
+
+## [如何在OpenWRT中使用](/OPENWRT_ZH.md)
+
+## [其它嵌入式Linux平台](/CROSS_COMPILE.md)
+
+# 命令行选项
 
     Usage: rtty [option]
         -I, --id=string          Set an ID for the device(Maximum 63 bytes, valid
@@ -82,17 +92,14 @@ rtty非常适合远程维护您的或者您的公司的部署在全球各地的�
         -V, --version            Show version
         --help                   Show usage
 
-运行RTTY(将下面的参数替换为您自己的参数)
+# 运行rtty
+将下面的参数替换为您自己的参数
 
     sudo rtty -I 'My-device-ID' -h 'your-server' -p 5912 -a -v -d 'My Device Description'
 
 如果您的rttys配置了一个token，请加上如下参数（将下面的token替换为您自己生成的）
 
     -t 34762d07637276694b938d23f10d7164
-
-## [如何在OpenWRT中使用](/OPENWRT_ZH.md)
-
-## [其它嵌入式Linux平台](/CROSS_COMPILE.md)
 
 # 如何使用
 使用您的Web浏览器访问您的服务器: `http://your-server-host:5913`，然后点击连接按钮。

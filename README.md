@@ -55,13 +55,23 @@ the world.
 
 # [Deploying the server side](https://github.com/zhaojh329/rttys)
 
-# How to install and run the Client - rtty
+# How to install rtty
 ## For Linux distribution: Ubuntu, Debian, ArchLinux, Centos
-Install
 
     wget -qO- https://raw.githubusercontent.com/zhaojh329/rtty/master/tools/install.sh | sudo bash
 
-Command-line Options
+## For Buildroot
+Select rtty in menuconfig and compile it
+
+    Target packages  --->
+        Shell and utilities  --->
+            [*] rtty
+
+## [For OpenWRT](/OPENWRT.md)
+
+## [For Other Embedded Linux Platform](/CROSS_COMPILE.md)
+
+# Command-line Options
 
     Usage: rtty [option]
         -I, --id=string          Set an ID for the device(Maximum 63 bytes, valid
@@ -80,17 +90,14 @@ Command-line Options
         -V, --version            Show version
         --help                   Show usage
 
-Run RTTY(Replace the following parameters with your own parameters)
+# How to run rtty
+Replace the following parameters with your own parameters
 
     sudo rtty -I 'My-device-ID' -h 'your-server' -p 5912 -a -v -d 'My Device Description'
 
 If your rttys is configured with a token, add the following parameter(Replace the following token with your own)
 
     -t 34762d07637276694b938d23f10d7164
-
-## [For OpenWRT](/OPENWRT.md)
-
-## [For Other Embedded Linux Platform](/CROSS_COMPILE.md)
 
 # Usage
 Use your web browser to access your server: `http://your-server-host:5913`, then click the connection button
