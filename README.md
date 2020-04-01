@@ -56,9 +56,21 @@ the world.
 # [Deploying the server side](https://github.com/zhaojh329/rttys)
 
 # How to install rtty
-## For Linux distribution: Ubuntu, Debian, ArchLinux, Centos
+## For Linux distribution
+### Install Dependencies
 
-    wget -qO- https://raw.githubusercontent.com/zhaojh329/rtty/master/tools/install.sh | sudo bash
+    sudo apt install -y libev-dev libssl-dev      # Ubuntu, Debian
+    sudo pacman -S --noconfirm libev openssl      # ArchLinux
+    sudo yum install -y libev-devel openssl-devel # Centos
+
+### Clone the code of rtty
+
+    git clone --recursive https://github.com/zhaojh329/rtty.git
+
+### Build
+
+    cd rtty && mkdir build && cd build
+    cmake .. && make install
 
 ## For Buildroot
 Select rtty in menuconfig and compile it

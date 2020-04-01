@@ -58,9 +58,21 @@ rtty非常适合远程维护您的或者您的公司的部署在全球各地的�
 # [部署服务端](https://github.com/zhaojh329/rttys/blob/master/README_ZH.md)
 
 # 如何安装rtty
-## 针对Linux发行版：Ubuntu, Debian, ArchLinux, Centos
+## 针对Linux发行版
+### 安装依赖
 
-    wget -qO- https://raw.githubusercontent.com/zhaojh329/rtty/master/tools/install.sh | sudo bash
+    sudo apt install -y libev-dev libssl-dev      # Ubuntu, Debian
+    sudo pacman -S --noconfirm libev openssl      # ArchLinux
+    sudo yum install -y libev-devel openssl-devel # Centos
+
+### 克隆rtty代码
+
+    git clone --recursive https://github.com/zhaojh329/rtty.git
+
+### 编译
+
+    cd rtty && mkdir build && cd build
+    cmake .. && make install
 
 ## 如何在Buildroot中使用
 在menuconfig中选中rtty然后编译
