@@ -130,12 +130,12 @@ static void pty_on_exit(struct ev_loop *loop, struct ev_child *w, int revents)
     struct rtty *rtty = tty->rtty;
     struct buffer *wb = &rtty->wb;
 
-    del_tty(tty);
-
     buffer_put_u8(wb, MSG_TYPE_LOGOUT);
     buffer_put_u16be(wb, 1);
     buffer_put_u8(wb, tty->sid);
     ev_io_start(loop, &rtty->iow);
+
+    del_tty(tty);
 }
 
 static void tty_login(struct rtty *rtty)
