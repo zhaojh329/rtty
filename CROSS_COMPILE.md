@@ -7,7 +7,7 @@
 
 # Build rtty
 
-    git clone https://github.com/zhaojh329/rtty.git
+    git clone --recursive https://github.com/zhaojh329/rtty.git
     cd rtty
     cmake . -DCMAKE_C_COMPILER=arm-linux-gnueabi-gcc -DCMAKE_FIND_ROOT_PATH=/tmp/rtty_install
     DESTDIR=/tmp/rtty_install make install
