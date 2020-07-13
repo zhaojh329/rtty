@@ -9,7 +9,7 @@ set(RTTY_VERSION_PATCH 3)
 find_package(Libev REQUIRED)
 
 include_directories(${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/buffer ${LIBEV_INCLUDE_DIR})
-set(EXTRA_LIBS ${LIBEV_LIBRARY} util crypt m)
+set(EXTRA_LIBS ${LIBEV_LIBRARY} util xcrypt m)
 
 add_definitions(-DRTTY_FILE_UNIX_SOCKET_S="/var/run/rttyfile.sock")
 add_definitions(-DRTTY_FILE_UNIX_SOCKET_C="/var/run/rttyfile_c.sock")
