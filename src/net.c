@@ -99,6 +99,7 @@ static void wait_connect(struct ev_loop *loop, int sock, int timeout,
 {
     static struct net_context ctx;
 
+    ctx.sock = sock;
     ctx.arg = arg;
     ctx.on_connected = on_connected;
 
@@ -160,6 +161,7 @@ int tcp_connect(struct ev_loop *loop, const char *host, int port,
             log_err("connect failed: %s\n", strerror(errno));
             close(sock);
             sock = -1;
+            goto free_addrinfo;
         }
         wait_connect(loop, sock, 3, on_connected, arg);
     } else {
