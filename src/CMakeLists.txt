@@ -3,7 +3,7 @@ add_definitions(-O -Wall -Werror --std=gnu99 -D_GNU_SOURCE)
 # The version number.
 set(RTTY_VERSION_MAJOR 7)
 set(RTTY_VERSION_MINOR 1)
-set(RTTY_VERSION_PATCH 3)
+set(RTTY_VERSION_PATCH 4)
 
 # Check the third party Libraries
 find_package(Libev REQUIRED)
