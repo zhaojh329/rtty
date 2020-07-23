@@ -11,7 +11,7 @@
 [9]: https://travis-ci.org/zhaojh329/rtty.svg?branch=master
 [10]: https://travis-ci.org/zhaojh329/rtty
 [11]: https://img.shields.io/badge/Support%20rtty-Donate-blueviolet.svg
-[12]: https://gitee.com/zhaojh329/rtty#project-donate-overview
+[12]: https://paypal.me/zjh329
 
 [![license][1]][2]
 [![PRs Welcome][3]][4]
