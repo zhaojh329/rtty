@@ -135,7 +135,8 @@ http://your-server-host:5913/connect/devid2
 # 用户
 如果您的公司在使用rtty，请将您的公司名字添加到这里，谢谢。
 
-<a href="https://www.gl-inet.com/"><img src="https://static.gl-inet.com/blog/images/logo.svg" height="80" align="middle"/></a>&nbsp;&nbsp;
+<a href="https://www.gl-inet.com"><img src="https://static.gl-inet.com/blog/images/logo.svg" height="80" align="middle"/></a>&nbsp;&nbsp;
+<a href="https://www.oneiotworld.com"><img src="https://raw.githubusercontent.com/zhaojh329/rtty/doc/vendor/logo_iot.svg" height="80" align="middle"/></a>&nbsp;&nbsp;
 
 # 贡献代码
 如果您想帮助[rtty](https://github.com/zhaojh329/rtty)变得更好，请参考

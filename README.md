@@ -133,7 +133,8 @@ Transfer file from remote device to the local
 # In Production
 If your company is using RTTY, please add your company name here, thanks.
 
-<a href="https://www.gl-inet.com/"><img src="https://static.gl-inet.com/blog/images/logo.svg" height="80" align="middle"/></a>&nbsp;&nbsp;
+<a href="https://www.gl-inet.com"><img src="https://static.gl-inet.com/blog/images/logo.svg" height="80" align="middle"/></a>&nbsp;&nbsp;
+<a href="https://www.oneiotworld.com"><img src="https://raw.githubusercontent.com/zhaojh329/rtty/doc/vendor/logo_iot.svg" height="80" align="middle"/></a>&nbsp;&nbsp;
 
 # Contributing
 If you would like to help making [rtty](https://github.com/zhaojh329/rtty) better,
