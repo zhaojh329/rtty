@@ -22,13 +22,15 @@
  * SOFTWARE.
  */
 
-#include <sys/socket.h>
 #include <stdbool.h>
 #include <unistd.h>
+#include <stdlib.h>
 #include <errno.h>
 #include <stdio.h>
 #include <netdb.h>
+#include <ev.h>
 
+#include "list.h"
 #include "net.h"
 #include "log.h"
 
@@ -56,7 +58,7 @@ static const char *port2str(int port)
 
 static void sock_write_cb(struct ev_loop *loop, struct ev_io *w, int revents)
 {
-    struct net_context *ctx = w->data;
+    struct net_context *ctx = container_of(w, struct net_context, iow);
     int err = 0;
     socklen_t len = sizeof(err);
     int ret;
@@ -76,40 +78,69 @@ static void sock_write_cb(struct ev_loop *loop, struct ev_io *w, int revents)
     }
 
     ctx->on_connected(w->fd, ctx->arg);
+    free(ctx);
     return;
 
 err:
     close(w->fd);
     ctx->on_connected(-1, ctx->arg);
+    free(ctx);
 }
 
 static void timer_cb(struct ev_loop *loop, struct ev_timer *w, int revents)
 {
-    struct net_context *ctx = w->data;
+    struct net_context *ctx = container_of(w, struct net_context, tmr);
 
     log_err("network connect timeout\n");
 
     ev_io_stop(loop, &ctx->iow);
     close(ctx->sock);
     ctx->on_connected(-1, ctx->arg);
+    free(ctx);
 }
 
 static void wait_connect(struct ev_loop *loop, int sock, int timeout,
                          void (*on_connected)(int sock, void *arg), void *arg)
 {
-    static struct net_context ctx;
+    struct net_context *ctx = calloc(1, sizeof(struct net_context));
 
-    ctx.sock = sock;
-    ctx.arg = arg;
-    ctx.on_connected = on_connected;
+    ctx->sock = sock;
+    ctx->arg = arg;
+    ctx->on_connected = on_connected;
 
-    ev_timer_init(&ctx.tmr, timer_cb, timeout, 0);
-    ctx.tmr.data = &ctx;
-    ev_timer_start(loop, &ctx.tmr);
+    ev_timer_init(&ctx->tmr, timer_cb, timeout, 0);
+    ev_timer_start(loop, &ctx->tmr);
 
-    ev_io_init(&ctx.iow, sock_write_cb, sock, EV_WRITE);
-    ctx.iow.data = &ctx;
-    ev_io_start(loop, &ctx.iow);
+    ev_io_init(&ctx->iow, sock_write_cb, sock, EV_WRITE);
+    ev_io_start(loop, &ctx->iow);
+}
+
+int tcp_connect_sockaddr(struct ev_loop *loop, const struct sockaddr *addr, socklen_t addrlen,
+                void (*on_connected)(int sock, void *arg), void *arg)
+{
+    int sock;
+
+    sock = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK | SOCK_CLOEXEC, 0);
+    if (sock < 0) {
+        log_err("create socket failed: %s\n", strerror(errno));
+        return -1;
+    }
+
+    if (connect(sock, addr, addrlen) < 0) {
+        if (errno != EINPROGRESS) {
+            log_err("connect failed: %s\n", strerror(errno));
+            goto err;
+        }
+        wait_connect(loop, sock, 3, on_connected, arg);
+    } else {
+        on_connected(sock, arg);
+    }
+
+    return sock;
+
+err:
+    close(sock);
+    return -1;
 }
 
 int tcp_connect(struct ev_loop *loop, const char *host, int port,
@@ -123,7 +154,7 @@ int tcp_connect(struct ev_loop *loop, const char *host, int port,
         .ai_flags = AI_ADDRCONFIG
     };
     int sock = -1;
-    int addr_len;
+    int addrlen;
     int ret;
 
     ret = getaddrinfo(host, port2str(port), &hints, &result);
@@ -140,7 +171,7 @@ int tcp_connect(struct ev_loop *loop, const char *host, int port,
     for (rp = result; rp != NULL; rp = rp->ai_next) {
         if (rp->ai_family == AF_INET) {
             addr = rp->ai_addr;
-            addr_len = rp->ai_addrlen;
+            addrlen = rp->ai_addrlen;
             break;
         }
     }
@@ -150,23 +181,7 @@ int tcp_connect(struct ev_loop *loop, const char *host, int port,
         goto free_addrinfo;
     }
 
-    sock = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK | SOCK_CLOEXEC, 0);
-    if (sock < 0) {
-        log_err("create socket failed: %s\n", strerror(errno));
-        goto free_addrinfo;
-    }
-
-    if (connect(sock, addr, addr_len) < 0) {
-        if (errno != EINPROGRESS) {
-            log_err("connect failed: %s\n", strerror(errno));
-            close(sock);
-            sock = -1;
-            goto free_addrinfo;
-        }
-        wait_connect(loop, sock, 3, on_connected, arg);
-    } else {
-        on_connected(sock, arg);
-    }
+    sock = tcp_connect_sockaddr(loop, addr, addrlen, on_connected, arg);
 
 free_addrinfo:
     freeaddrinfo(result);

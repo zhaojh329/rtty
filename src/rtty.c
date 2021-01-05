@@ -30,6 +30,7 @@
 #include "ssl.h"
 #include "net.h"
 #include "log.h"
+#include "web.h"
 #include "file.h"
 #include "rtty.h"
 #include "list.h"
@@ -328,6 +329,10 @@ static void parse_msg(struct rtty *rtty)
 
         case MSG_TYPE_FILE:
             parse_file_msg(&rtty->file_context, buffer_pull_u8(rb), rb, msglen - 1);
+            break;
+
+        case MSG_TYPE_WEB:
+            web_request(rtty, msglen);
             break;
 
         default:

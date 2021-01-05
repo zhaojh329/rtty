@@ -42,7 +42,8 @@ enum {
     MSG_TYPE_WINSIZE = 0x04,
     MSG_TYPE_CMD = 0x05,
     MSG_TYPE_HEARTBEAT = 0x06,
-    MSG_TYPE_FILE = 0x07
+    MSG_TYPE_FILE = 0x07,
+    MSG_TYPE_WEB = 0x08
 };
 
 struct rtty;

@@ -22,16 +22,11 @@
  * SOFTWARE.
  */
 
-#ifndef RTTY_NET_H
-#define RTTY_NET_H
+#ifndef _WEB_H
+#define _WEB_H
 
-#include <sys/socket.h>
-#include <ev.h>
+#include "rtty.h"
 
-int tcp_connect(struct ev_loop *loop, const char *host, int port,
-                void (*on_connected)(int sock, void *arg), void *arg);
-
-int tcp_connect_sockaddr(struct ev_loop *loop, const struct sockaddr *addr, socklen_t addrlen,
-                void (*on_connected)(int sock, void *arg), void *arg);
+void web_request(struct rtty *rtty, int len);
 
 #endif

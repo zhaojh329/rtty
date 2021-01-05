@@ -95,7 +95,7 @@ else()
 endif()
 
 add_executable(rtty main.c utils.c buffer/buffer.c log.c net.c net.h rtty.c rtty.h command.c
-        file.c upfile.c upfile.h downfile.c downfile.h ssl.c ssl.h)
+        file.c upfile.c upfile.h downfile.c downfile.h ssl.c ssl.h web.c)
 target_link_libraries(rtty ${EXTRA_LIBS})
 
 # configure a header file to pass some of the CMake settings to the source code
