@@ -355,6 +355,7 @@ static void on_net_read(struct ev_loop *loop, struct ev_io *w, int revents)
         return;
     }
 
+    rtty->ninactive = 0;
     rtty->active = ev_now(loop);
 
     parse_msg(rtty);
@@ -400,6 +401,7 @@ static void on_net_connected(int sock, void *arg)
     log_info("connected to server\n");
 
     rtty->sock = sock;
+    rtty->ninactive = 0;
 
     ev_io_init(&rtty->ior, on_net_read, sock, EV_READ);
     ev_io_start(rtty->loop, &rtty->ior);
@@ -431,8 +433,12 @@ static void rtty_timer_cb(struct ev_loop *loop, struct ev_timer *w, int revents)
 
     if (now - rtty->active > RTTY_HEARTBEAT_INTEVAL * 3 / 2) {
         log_err("Inactive too long time\n");
-        rtty_exit(rtty);
-        return;
+        if (rtty->ninactive++ > 1) {
+            log_err("Inactive 3 times, now exit\n");
+            rtty_exit(rtty);
+            return;
+        }
+        rtty->active = now;
     }
 
     if (now - rtty->last_heartbeat > RTTY_HEARTBEAT_INTEVAL - 1) {

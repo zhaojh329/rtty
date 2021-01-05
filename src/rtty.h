@@ -73,6 +73,7 @@ struct rtty {
     struct ev_io ior;
     struct ev_timer tmr;
     struct ev_loop *loop;
+    int ninactive;
     ev_tstamp active;
     ev_tstamp last_heartbeat;
     bool reconnect;
