@@ -31,28 +31,11 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-#include "list.h"
 #include "web.h"
 #include "net.h"
 #include "log.h"
 
-struct web_request_ctx {
-    struct list_head head;
-    struct rtty *rtty;
-    struct ev_timer tmr;
-    struct ev_io ior;
-    struct ev_io iow;
-    struct buffer rb;
-    struct buffer wb;
-    ev_tstamp active;
-    bool closed;
-    int sock;
-    int id;
-};
-
-static LIST_HEAD(reqs);
-
-static void web_request_free(struct web_request_ctx *ctx)
+void web_request_free(struct web_request_ctx *ctx)
 {
     struct rtty *rtty = ctx->rtty;
     struct ev_loop *loop = rtty->loop;
@@ -65,10 +48,12 @@ static void web_request_free(struct web_request_ctx *ctx)
         close(ctx->sock);
     }
 
-    buffer_put_u8(wb, MSG_TYPE_WEB);
-    buffer_put_u16be(wb, 2);
-    buffer_put_u16be(wb, ctx->id);
-    ev_io_start(loop, &rtty->iow);
+    if (rtty->sock > 0) {
+        buffer_put_u8(wb, MSG_TYPE_WEB);
+        buffer_put_u16be(wb, 2);
+        buffer_put_u16be(wb, ctx->id);
+        ev_io_start(loop, &rtty->iow);
+    }
 
     buffer_free(&ctx->rb);
     buffer_free(&ctx->wb);
@@ -156,11 +141,11 @@ static void on_connected(int sock, void *arg)
     ctx->sock = sock;
 }
 
-static struct web_request_ctx *find_exist_ctx(int port)
+static struct web_request_ctx *find_exist_ctx(struct list_head *reqs, int port)
 {
     struct web_request_ctx *ctx;
 
-    list_for_each_entry(ctx, &reqs, head)
+    list_for_each_entry(ctx, reqs, head)
         if (ctx->id == port)
             return ctx;
     return NULL;
@@ -178,7 +163,7 @@ void web_request(struct rtty *rtty, int len)
     id = buffer_pull_u16be(&rtty->rb);
     req_len = len - 2;
 
-    ctx = find_exist_ctx(id);
+    ctx = find_exist_ctx(&rtty->web_reqs, id);
     if (ctx) {
         if (req_len == 0) {
             ctx->closed = true;
@@ -214,9 +199,17 @@ void web_request(struct rtty *rtty, int len)
     data = buffer_put(&ctx->wb, req_len);
     buffer_pull(&rtty->rb, data, req_len);
 
-    list_add(&ctx->head, &reqs);
+    list_add(&ctx->head, &rtty->web_reqs);
 
     sock = tcp_connect_sockaddr(rtty->loop, (struct sockaddr *)&addrin, sizeof(addrin), on_connected, ctx);
     if (sock < 0)
+        web_request_free(ctx);
+}
+
+void web_reqs_free(struct list_head *reqs)
+{
+    struct web_request_ctx *ctx, *tmp;
+
+    list_for_each_entry_safe(ctx, tmp, reqs, head)
         web_request_free(ctx);
 }

@@ -173,5 +173,9 @@ int main(int argc, char **argv)
 
     ev_run(loop, 0);
 
+    rtty_exit(&rtty);
+
+    ev_loop_destroy(loop);
+
     return 0;
 }

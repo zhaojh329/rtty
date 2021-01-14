@@ -222,7 +222,7 @@ static void set_tty_winsize(struct rtty *rtty, int sid)
         log_err("ioctl TIOCSWINSZ failed: %s\n", strerror(errno));
 }
 
-static void rtty_exit(struct rtty *rtty)
+void rtty_exit(struct rtty *rtty)
 {
     ev_io_stop(rtty->loop, &rtty->ior);
     ev_io_stop(rtty->loop, &rtty->iow);
@@ -238,8 +238,12 @@ static void rtty_exit(struct rtty *rtty)
     rtty_ssl_free(rtty->ssl);
 #endif
 
-    close(rtty->sock);
-    rtty->sock = -1;
+    if (rtty->sock > 0) {
+        close(rtty->sock);
+        rtty->sock = -1;
+    }
+
+    web_reqs_free(&rtty->web_reqs);
 
     if (!rtty->reconnect)
         ev_break(rtty->loop, EVBREAK_ALL);
@@ -484,6 +488,8 @@ int rtty_start(struct rtty *rtty)
         return -1;
 
     start_file_service(&rtty->file_context);
+
+    INIT_LIST_HEAD(&rtty->web_reqs);
 
     rtty->active = ev_now(rtty->loop);
 

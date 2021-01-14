@@ -27,6 +27,22 @@
 
 #include "rtty.h"
 
+struct web_request_ctx {
+    struct list_head head;
+    struct rtty *rtty;
+    struct ev_timer tmr;
+    struct ev_io ior;
+    struct ev_io iow;
+    struct buffer rb;
+    struct buffer wb;
+    ev_tstamp active;
+    bool closed;
+    int sock;
+    int id;
+};
+
 void web_request(struct rtty *rtty, int len);
+void web_request_free(struct web_request_ctx *ctx);
+void web_reqs_free(struct list_head *reqs);
 
 #endif

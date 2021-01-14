@@ -30,6 +30,7 @@
 
 #include "buffer.h"
 #include "file.h"
+#include "list.h"
 
 #define RTTY_MAX_TTY                5
 #define RTTY_HEARTBEAT_INTEVAL      5.0
@@ -81,9 +82,11 @@ struct rtty {
     void *ssl;              /* Context wrap of openssl, wolfssl and mbedtls */
     struct tty *ttys[RTTY_MAX_TTY];
     struct file_context file_context;
+    struct list_head web_reqs;
 };
 
 int rtty_start(struct rtty *rtty);
+void rtty_exit(struct rtty *rtty);
 void rtty_send_msg(struct rtty *rtty, int type, void *data, int len);
 
 #endif
