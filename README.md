@@ -46,6 +46,7 @@ the world.
 * SSL support: openssl, mbedtls, CyaSSl(wolfssl)
 * Very convenient to upload and download files
 * Access different devices based on device ID
+* Support HTTP Proxy - Access your device's Web
 * Fully-featured terminal based on [Xterm.js]
 * Simple to deployment and easy to use
 

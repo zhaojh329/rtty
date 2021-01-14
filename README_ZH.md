@@ -48,6 +48,7 @@ rtty非常适合远程维护您的或者您的公司的部署在全球各地的�
 * 支持SSL: openssl, mbedtls, CyaSSl(wolfssl)
 * 非常方便的上传和下载文件
 * 根据设备ID访问不同的设备
+* 支持 HTTP 代理 - 访问您的设备的 Web
 * 基于[Xterm.js]的全功能终端
 * 部署简单，使用方便
 
