@@ -208,7 +208,7 @@ static void write_data_to_tty(struct rtty *rtty, int sid, int len)
 static void set_tty_winsize(struct rtty *rtty, int sid)
 {
     struct tty *tty = find_tty(rtty, sid);
-    struct winsize size;
+    struct winsize size = {};
 
     if (!tty) {
         log_err("non-existent sid: %d\n", sid);
