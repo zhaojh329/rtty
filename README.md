@@ -28,7 +28,7 @@
 [vue]: https://github.com/vuejs/vue
 [server]: https://github.com/zhaojh329/rttys
 
-![](https://raw.githubusercontent.com/zhaojh329/rtty/doc/rtty.png)
+![](https://raw.githubusercontent.com/zhaojh329/rtty/doc/diagram.png)
 ![](https://raw.githubusercontent.com/zhaojh329/rtty/doc/screen.gif)
 ![](https://raw.githubusercontent.com/zhaojh329/rtty/doc/file.gif)
 
