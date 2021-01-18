@@ -37,7 +37,7 @@ struct web_request_ctx {
     struct buffer wb;
     ev_tstamp active;
     int sock;
-    int port;
+    uint8_t addr[18];   /* upstream connection address: [port ip] */
 };
 
 void web_request(struct rtty *rtty, int len);

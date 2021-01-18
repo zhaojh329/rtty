@@ -68,8 +68,8 @@ static void on_net_read(struct ev_loop *loop, struct ev_io *w, int revents)
         goto done;
 
     buffer_put_u8(wb, MSG_TYPE_WEB);
-    buffer_put_u16be(wb, 2 + ret);
-    buffer_put_u16be(wb, ctx->port);
+    buffer_put_u16be(wb, 18 + ret);
+    buffer_put_data(wb, ctx->addr, 18);
     buffer_put_data(wb, buf, ret);
     ev_io_start(rtty->loop, &rtty->iow);
 
@@ -128,23 +128,26 @@ static void on_connected(int sock, void *arg)
     ctx->sock = sock;
 }
 
-static struct web_request_ctx *find_exist_ctx(struct list_head *reqs, int port)
+static struct web_request_ctx *find_exist_ctx(struct list_head *reqs, uint8_t *addr)
 {
     struct web_request_ctx *ctx;
 
-    list_for_each_entry(ctx, reqs, head)
-        if (ctx->port == port)
+    list_for_each_entry(ctx, reqs, head) {
+        if (!memcmp(ctx->addr, addr, 18))
             return ctx;
+    }
+
     return NULL;
 }
 
 void web_request(struct rtty *rtty, int len)
 {
     struct web_request_ctx *ctx;
-    int port, sock, req_len;
     struct sockaddr_in addrin = {
         .sin_family = AF_INET
     };
+    int sock, req_len;
+    uint8_t addr[18];
     void *data;
 
     if (len == 0) {
@@ -152,13 +155,14 @@ void web_request(struct rtty *rtty, int len)
         return;
     }
 
-    port = buffer_pull_u16be(&rtty->rb);
-    req_len = len - 2;
+    buffer_pull(&rtty->rb, addr, 18);
+
+    req_len = len - 18;
 
     if (req_len == 0)
         return;
 
-    ctx = find_exist_ctx(&rtty->web_reqs, port);
+    ctx = find_exist_ctx(&rtty->web_reqs, addr);
     if (ctx) {
         buffer_pull(&rtty->rb, NULL, 6);
         req_len -= 6;
@@ -178,8 +182,9 @@ void web_request(struct rtty *rtty, int len)
 
     ctx = (struct web_request_ctx *)calloc(1, sizeof(struct web_request_ctx));
     ctx->rtty = rtty;
-    ctx->port = port;
     ctx->active = ev_now(rtty->loop);
+
+    memcpy(ctx->addr, addr, 18);
 
     data = buffer_put(&ctx->wb, req_len);
     buffer_pull(&rtty->rb, data, req_len);
