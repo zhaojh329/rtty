@@ -39,20 +39,12 @@ void web_request_free(struct web_request_ctx *ctx)
 {
     struct rtty *rtty = ctx->rtty;
     struct ev_loop *loop = rtty->loop;
-    struct buffer *wb = &rtty->wb;
 
     if (ctx->sock > 0) {
         ev_io_stop(loop, &ctx->ior);
         ev_io_stop(loop, &ctx->iow);
         ev_timer_stop(loop, &ctx->tmr);
         close(ctx->sock);
-    }
-
-    if (rtty->sock > 0) {
-        buffer_put_u8(wb, MSG_TYPE_WEB);
-        buffer_put_u16be(wb, 2);
-        buffer_put_u16be(wb, ctx->id);
-        ev_io_start(loop, &rtty->iow);
     }
 
     buffer_free(&ctx->rb);
@@ -77,7 +69,7 @@ static void on_net_read(struct ev_loop *loop, struct ev_io *w, int revents)
 
     buffer_put_u8(wb, MSG_TYPE_WEB);
     buffer_put_u16be(wb, 2 + ret);
-    buffer_put_u16be(wb, ctx->id);
+    buffer_put_u16be(wb, ctx->port);
     buffer_put_data(wb, buf, ret);
     ev_io_start(rtty->loop, &rtty->iow);
 
@@ -100,11 +92,6 @@ static void on_net_write(struct ev_loop *loop, struct ev_io *w, int revents)
         return;
 
 err:
-    if (ctx->closed) {
-        web_request_free(ctx);
-        return;
-    }
-
     ev_io_stop(loop, w);
 }
 
@@ -146,7 +133,7 @@ static struct web_request_ctx *find_exist_ctx(struct list_head *reqs, int port)
     struct web_request_ctx *ctx;
 
     list_for_each_entry(ctx, reqs, head)
-        if (ctx->id == port)
+        if (ctx->port == port)
             return ctx;
     return NULL;
 }
@@ -154,24 +141,25 @@ static struct web_request_ctx *find_exist_ctx(struct list_head *reqs, int port)
 void web_request(struct rtty *rtty, int len)
 {
     struct web_request_ctx *ctx;
-    int id, sock, req_len;
+    int port, sock, req_len;
     struct sockaddr_in addrin = {
         .sin_family = AF_INET
     };
     void *data;
 
-    id = buffer_pull_u16be(&rtty->rb);
+    if (len == 0) {
+        web_reqs_free(&rtty->web_reqs);
+        return;
+    }
+
+    port = buffer_pull_u16be(&rtty->rb);
     req_len = len - 2;
 
-    ctx = find_exist_ctx(&rtty->web_reqs, id);
-    if (ctx) {
-        if (req_len == 0) {
-            ctx->closed = true;
-            if (ctx->sock > 0)
-                ev_io_start(rtty->loop, &ctx->iow);
-            return;
-        }
+    if (req_len == 0)
+        return;
 
+    ctx = find_exist_ctx(&rtty->web_reqs, port);
+    if (ctx) {
         buffer_pull(&rtty->rb, NULL, 6);
         req_len -= 6;
 
@@ -183,9 +171,6 @@ void web_request(struct rtty *rtty, int len)
         return;
     }
 
-    if (req_len == 0)
-        return;
-
     addrin.sin_addr.s_addr = buffer_pull_u32(&rtty->rb);
     addrin.sin_port = buffer_pull_u16(&rtty->rb);
 
@@ -193,7 +178,7 @@ void web_request(struct rtty *rtty, int len)
 
     ctx = (struct web_request_ctx *)calloc(1, sizeof(struct web_request_ctx));
     ctx->rtty = rtty;
-    ctx->id = id;
+    ctx->port = port;
     ctx->active = ev_now(rtty->loop);
 
     data = buffer_put(&ctx->wb, req_len);

@@ -36,9 +36,8 @@ struct web_request_ctx {
     struct buffer rb;
     struct buffer wb;
     ev_tstamp active;
-    bool closed;
     int sock;
-    int id;
+    int port;
 };
 
 void web_request(struct rtty *rtty, int len);
