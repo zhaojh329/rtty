@@ -8,17 +8,16 @@
 [6]: https://github.com/zhaojh329/rtty/issues/new
 [7]: https://img.shields.io/badge/release-7.2.0-blue.svg?style=plastic
 [8]: https://github.com/zhaojh329/rtty/releases
-[9]: https://travis-ci.org/zhaojh329/rtty.svg?branch=master
-[10]: https://travis-ci.org/zhaojh329/rtty
-[11]: https://img.shields.io/badge/Support%20rtty-Donate-blueviolet.svg
-[12]: https://paypal.me/zjh329
+[9]: https://github.com/zhaojh329/rtty/workflows/build/badge.svg
+[10]: https://img.shields.io/badge/Support%20rtty-Donate-blueviolet.svg
+[11]: https://paypal.me/zjh329
 
 [![license][1]][2]
 [![PRs Welcome][3]][4]
 [![Issue Welcome][5]][6]
 [![Release Version][7]][8]
-[![Build Status][9]][10]
-[![Support rtty][11]][12]
+![Build Status][9]
+[![Support rtty][10]][11]
 
 [Xterm.js]: https://github.com/xtermjs/xterm.js
 [libev]: http://software.schmorp.de/pkg/libev.html

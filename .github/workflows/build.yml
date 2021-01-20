@@ -1,0 +1,12 @@
+name: build
+on: push
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - run: sudo apt install -y libev-dev libssl-dev
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+      - run: cmake .
+      - run: make

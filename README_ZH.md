@@ -8,21 +8,20 @@
 [6]: https://github.com/zhaojh329/rtty/issues/new
 [7]: https://img.shields.io/badge/发布版本-7.2.0-blue.svg?style=plastic
 [8]: https://github.com/zhaojh329/rtty/releases
-[9]: https://travis-ci.org/zhaojh329/rtty.svg?branch=master
-[10]: https://travis-ci.org/zhaojh329/rtty
-[11]: https://img.shields.io/badge/支持rtty-赞助作者-blueviolet.svg
-[12]: https://gitee.com/zhaojh329/rtty#project-donate-overview
-[13]: https://img.shields.io/badge/技术交流群-点击加入：153530783-brightgreen.svg
-[14]: https://jq.qq.com/?_wv=1027&k=5PKxbTV
+[9]: https://github.com/zhaojh329/rtty/workflows/build/badge.svg
+[10]: https://img.shields.io/badge/支持rtty-赞助作者-blueviolet.svg
+[11]: https://gitee.com/zhaojh329/rtty#project-donate-overview
+[12]: https://img.shields.io/badge/技术交流群-点击加入：153530783-brightgreen.svg
+[13]: https://jq.qq.com/?_wv=1027&k=5PKxbTV
 
 
 [![license][1]][2]
 [![PRs Welcome][3]][4]
 [![Issue Welcome][5]][6]
 [![Release Version][7]][8]
-[![Build Status][9]][10]
-[![Support rtty][11]][12]
-[![Chinese Chat][13]][14]
+![Build Status][9]
+[![Support rtty][10]][11]
+[![Chinese Chat][12]][13]
 
 [Xterm.js]: https://github.com/xtermjs/xterm.js
 [libev]: http://software.schmorp.de/pkg/libev.html
