@@ -176,7 +176,7 @@ static void start_download_file(struct file_context *ctx, struct buffer *info, i
 
 static void notify_busy(struct file_context *ctx)
 {
-    int type = RTTY_FILE_MSG_BUSY;
+    uint8_t type = RTTY_FILE_MSG_BUSY;
 
     log_err("upload file is busy\n");
     sendto(ctx->sock, &type, 1, 0,
@@ -338,7 +338,7 @@ void request_transfer_file()
 
 static void accept_file_request(struct file_context *ctx)
 {
-    int type = RTTY_FILE_MSG_REQUEST_ACCEPT;
+    uint8_t type = RTTY_FILE_MSG_REQUEST_ACCEPT;
 
     ctx->fd = -1;
     ctx->busy = true;
