@@ -149,7 +149,7 @@ static void start_download_file(struct file_context *ctx, struct buffer *info, i
             send_canceled_msg(rtty);
             sendto(ctx->sock, &type, 1, 0, (struct sockaddr *) &ctx->peer_sun, sizeof(struct sockaddr_un));
             log_err("download file fail: no enough space\n");
-            return;
+            goto free_name;
         }
     }
 
@@ -158,7 +158,7 @@ static void start_download_file(struct file_context *ctx, struct buffer *info, i
     fd = open(abspath, O_WRONLY | O_TRUNC | O_CREAT, 0644);
     if (fd < 0) {
         log_err("create file '%s' fail: %s\n", name, strerror(errno));
-        return;
+        goto free_name;
     }
 
     ctx->fd = fd;
@@ -171,6 +171,8 @@ static void start_download_file(struct file_context *ctx, struct buffer *info, i
     buffer_put_zero(&b, 1);
     sendto(ctx->sock, buffer_data(&b), buffer_length(&b), 0,
            (struct sockaddr *)&ctx->peer_sun, sizeof(struct sockaddr_un));
+
+free_name:
     free(name);
 }
 
