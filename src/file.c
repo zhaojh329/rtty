@@ -270,18 +270,18 @@ void parse_file_msg(struct file_context *ctx, int type, struct buffer *data, int
         start_download_file(ctx, data, len);
         break;
     case RTTY_FILE_MSG_DATA:
-        if (len == 0) {
-            close(ctx->fd);
-            ctx->fd = -1;
-            ctx->busy = false;
-            return;
-        }
         if (ctx->fd > -1) {
             buffer_pull_to_fd(data, ctx->fd, len);
             ctx->remain_size -= len;
             notify_progress(ctx);
         } else {
             buffer_pull(data, NULL, len);
+        }
+
+        if (len == 0 && ctx->fd > -1) {
+            close(ctx->fd);
+            ctx->fd = -1;
+            ctx->busy = false;
         }
         break;
     case RTTY_FILE_MSG_CANCELED:
@@ -374,15 +374,20 @@ void update_progress(struct ev_loop *loop, ev_tstamp start_time, struct buffer *
     uint32_t remain = buffer_pull_u32(info);
     uint32_t total = buffer_pull_u32(info);
 
+    if (total == 0)
+        goto done;
+
     printf("%100c\r", ' ');
     printf("  %lu%%    %s     %.3lfs\r", (total - remain) * 100UL / total,
            format_size(total - remain), ev_now(loop) - start_time);
     fflush(stdout);
 
-    if (remain == 0) {
-        ev_break(loop, EVBREAK_ALL);
-        puts("");
-    }
+    if (remain == 0)
+        goto done;
+
+done:
+    ev_break(loop, EVBREAK_ALL);
+    puts("");
 }
 
 void cancel_file_operation(struct ev_loop *loop, int sock)
