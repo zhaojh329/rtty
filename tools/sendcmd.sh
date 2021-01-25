@@ -1,41 +1,34 @@
 #!/bin/sh
 
+# Your server's host and port
 host=localhost
-port=5912
-devid="test"
-cmd="echo"
-params='["hello rtty"]'
+port=5913
+
+# Your linux device's username and password
 username="test"
 password="test"
 
-resp=$(curl -k "https://$host:$port/cmd" -d "{\"devid\":\"$devid\", \"cmd\":\"$cmd\", \"params\": $params, \"username\": \"$username\", \"password\": \"$password\"}" 2>/dev/null)
-echo "1:$resp"
-token=$(echo "$resp" | jq -r '.token')
+# Default wait 30s.
+# If you don't care about the results, you can set it to 0, that is, don't wait
+#wait=0
 
-[ "$token" = "null" ] && {
-    echo "$resp"
-    exit 1
-}
+devid="test"
+cmd="echo"
+params='["Hello, Rtty"]'
 
 
-while [ true ]
-do
-    resp=$(curl -k "https://$host:$port/cmd?token=$token" 2>/dev/null)
-    echo "2:$resp"
-    err=$(echo "$resp" | jq -r '.err')
-    [ "$err" = "1005" ] && {
-        echo "Pending..."
-        sleep 1
-        continue
-    }
+resp=$(curl "http://$host:$port/cmd/$devid?wait=$wait" -d "{\"cmd\":\"$cmd\", \"params\": $params, \"username\": \"$username\", \"password\": \"$password\"}" 2>/dev/null)
 
-    [ "$err" != "null" ] && {
-        msg=$(echo "$resp" | jq -r '.msg')
-        echo "err: $err"
-        echo "msg: $msg"
-        break
-    }
+[ "$wait" = "0" ] && exit 0
 
+err=$(echo "$resp" | jq -r '.err')
+
+if [ "$err" != "null" ];
+then
+    msg=$(echo "$resp" | jq -r '.msg')
+    echo "err: $err"
+    echo "msg: $msg"
+else
     code=$(echo "$resp" | jq -r '.code')
     stdout=$(echo "$resp" | jq -r '.stdout' | base64 -d)
     stderr=$(echo "$resp" | jq -r '.stderr' | base64 -d)
@@ -43,5 +36,4 @@ do
     echo "code: $code"
     echo "stdout: $stdout"
     echo "stderr: $stderr"
-    break
-done
+fi
