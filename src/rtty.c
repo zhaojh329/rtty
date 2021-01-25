@@ -225,6 +225,9 @@ static void set_tty_winsize(struct rtty *rtty, int sid)
 
 void rtty_exit(struct rtty *rtty)
 {
+    if (rtty->sock < 0)
+        return;
+
     ev_io_stop(rtty->loop, &rtty->ior);
     ev_io_stop(rtty->loop, &rtty->iow);
 
@@ -278,7 +281,7 @@ static void rtty_register(struct rtty *rtty)
     ev_io_start(rtty->loop, &rtty->iow);
 }
 
-static void parse_msg(struct rtty *rtty)
+static int parse_msg(struct rtty *rtty)
 {
     struct buffer *rb = &rtty->rb;
     int msgtype;
@@ -286,11 +289,11 @@ static void parse_msg(struct rtty *rtty)
 
     while (true) {
         if (buffer_length(rb) < 3)
-            return;
+            return 0;
 
         msglen = buffer_get_u16be(rb, 1);
         if (buffer_length(rb) < msglen + 3)
-            return;
+            return 0;
 
         msgtype = buffer_pull_u8(rb);
         buffer_pull_u16(rb);
@@ -300,9 +303,8 @@ static void parse_msg(struct rtty *rtty)
             if (buffer_pull_u8(rb)) {
                 char errs[128] = "";
                 buffer_pull(rb, errs, msglen - 1);
-                rtty_exit(rtty);
                 log_err("register fail: %s\n", errs);
-                return;
+                return -1;
             }
             buffer_pull(rb, NULL, msglen - 1);
             log_info("register success\n");
@@ -342,8 +344,7 @@ static void parse_msg(struct rtty *rtty)
 
         default:
             log_err("invalid message type: %d\n", msgtype);
-            rtty_exit(rtty);
-            return;
+            return -1;
         }
     }
 }
@@ -368,13 +369,18 @@ static void on_net_read(struct ev_loop *loop, struct ev_io *w, int revents)
     rtty->ninactive = 0;
     rtty->active = ev_now(loop);
 
-    parse_msg(rtty);
+    if (parse_msg(rtty))
+        goto done;
 
     if (eof) {
         log_info("socket closed by server\n");
-        rtty_exit(rtty);
-        return;
+        goto done;
     }
+
+    return;
+
+done:
+    rtty_exit(rtty);
 }
 
 static void on_net_write(struct ev_loop *loop, struct ev_io *w, int revents)
