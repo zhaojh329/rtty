@@ -79,13 +79,13 @@ static void on_file_read(struct ev_loop *loop, struct ev_io *w, int revents)
     buffer_put_data(&rtty->wb, buf, ret);
     ev_io_start(rtty->loop, &rtty->iow);
 
+    notify_progress(ctx);
+
     if (ret == 0) {
         ctx->busy = false;
         ev_io_stop(loop, w);
         close(ctx->fd);
         ctx->fd = -1;
-    } else {
-        notify_progress(ctx);
     }
 }
 
