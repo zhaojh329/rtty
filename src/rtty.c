@@ -344,7 +344,8 @@ static int parse_msg(struct rtty *rtty)
 
         default:
             log_err("invalid message type: %d\n", msgtype);
-            return -1;
+            buffer_pull(rb, NULL, msglen);
+            break;
         }
     }
 }
