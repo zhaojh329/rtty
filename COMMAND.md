@@ -1,34 +1,44 @@
-# How to operate
+# Instructions
+API Path
 
-You first need to send a command to the server through POST, the message format is as follows.
+    /cmd/:devid?wait=10
 
-    {"devid": "test", "username": "test", "password": "test", "cmd": "echo", "params": ["hello rtty"]}
+The wait parameter is optional and defaults to 30s, or 0 if you do not care about the execution of the command
 
-The devid, username, cmd in the message must be provided. Password, params are optional. Params is a JSON array.
+Request message format
 
-Then the server returns a unique token.
+    {
+        "username": "test",
+        "password": "test",
+        "cmd": "echo",
+        "params": ["hello rtty"]
+    }
 
-    {"token":"7fb8dcfe3fee2129427276b692987338"}
+The username, cmd in the message must be provided. The password, params are optional. The params is a JSON array.
 
-Then use the token as a URL parameter to query the command execution result from the server.
-If the command is executed, the server will return the command execution result in json format.
+If the command is executed finish, the server will return the command execution result in json format.
     
-    {"code":0,"stdout":"aGVsbG8gcnR0eQo=","stderr":""}
+    {
+        "code": 0,
+        "stdout": "aGVsbG8gcnR0eQo=",
+        "stderr": ""
+    }
 
 The stdout and stderr in the response are base64 encoded.
 
 If any of the steps fail, the server will return an error message in json format.
 
-    {"err": 1002, "msg":"device offline"}
+    {
+        "err": 1002,
+        "msg": "device offline"
+    }
+
 
 All error codes are as follows
 
     1001    invalid format
     1002    device offline
-    1003    server is busy
-    1004    timeout
-    1005    pending
-    1006    invalid token
+    1003    timeout
     1       operation not permitted
     2       not found
     3       no mem
@@ -40,50 +50,27 @@ All error codes are as follows
 
 ## Jquery
 
-    function queryCmdResp(token) {
-        $.getJSON('https://your-server:5912/cmd?token=' + token, function(r) {
-            if (r.stdout) {
-                console.log(window.atob(r.stdout))
-            } else {
-                console.log(r)
-            }
-        });
+```javascript
+var data = {username: 'test', password: 'test', cmd: 'echo', params: ['hello rtty']};
+$.post('http://your-server:5913/cmd/test', JSON.stringify(data), function(r) {
+    if (r.stdout) {
+        console.log(window.atob(r.stdout))
+    } else {
+        console.log(r)
     }
-
-    var data = {devid: 'test', username: 'test', password: 'test', cmd: 'echo', params: ['hello rtty']};
-    $.post('http://your-server:5912/cmd', JSON.stringify(data), function(r) {
-        if (!r.token) {
-            console.log(r)
-            return;
-        }
-        
-        setTimeout(function () {
-            queryCmdResp(r.token);
-        }, 100);
-    });
+});
+```
 
 ## Axios
 
-    function queryCmdResp(token) {
-        axios.get('http://your-server:5912/cmd?token=' + token).then(function(r) {
-            var resp = r.data;
-            if (resp.stdout) {
-                console.log(window.atob(resp.stdout))
-            } else {
-                console.log(resp)
-            }
-        });
+```javascript
+var data = {username: 'test', password: 'test', cmd: 'echo', params: ['hello rtty']};
+axios.post('http://your-server:5913/cmd/test', data).then(function(r) {
+    var resp = r.data;
+    if (resp.stdout) {
+        console.log(window.atob(resp.stdout))
+    } else {
+        console.log(resp)
     }
-
-    var data = {devid: 'test', username: 'test', password: 'test', cmd: 'echo', params: ['hello rtty']};
-    axios.post('http://your-server:5912/cmd', data).then(function(r) {
-        var resp = r.data;
-        if (!resp.token) {
-            console.log(r)
-            return;
-        }
-        
-        setTimeout(function () {
-            queryCmdResp(resp.token);
-        }, 100);
-    });
+});
+```
