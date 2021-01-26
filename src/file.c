@@ -382,8 +382,8 @@ void update_progress(struct ev_loop *loop, ev_tstamp start_time, struct buffer *
            format_size(total - remain), ev_now(loop) - start_time);
     fflush(stdout);
 
-    if (remain == 0)
-        goto done;
+    if (remain > 0)
+        return;
 
 done:
     ev_break(loop, EVBREAK_ALL);
