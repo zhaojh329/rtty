@@ -57,7 +57,7 @@ struct file_context {
 
 int start_file_service(struct file_context *ctx);
 
-void parse_file_msg(struct file_context *ctx, int type, struct buffer *data, int len);
+void parse_file_msg(struct file_context *ctx, uint8_t type, struct buffer *data, int len);
 
 void update_progress(struct ev_loop *loop, ev_tstamp start_time, struct buffer *info);
 
