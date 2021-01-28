@@ -335,7 +335,7 @@ static int parse_msg(struct rtty *rtty)
             break;
 
         case MSG_TYPE_FILE:
-            parse_file_msg(&rtty->file_context, buffer_pull_u8(rb), rb, msglen - 1);
+            parse_file_msg(&rtty->file_context, rb, msglen);
             break;
 
         case MSG_TYPE_WEB:
@@ -504,7 +504,7 @@ int rtty_start(struct rtty *rtty)
             && !rtty->reconnect)
         return -1;
 
-    start_file_service(&rtty->file_context);
+    rtty->file_context.fd = -1;
 
     INIT_LIST_HEAD(&rtty->web_reqs);
 

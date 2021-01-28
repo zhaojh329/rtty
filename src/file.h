@@ -26,7 +26,6 @@
 #define RTTY_FILE_H
 
 #include <ev.h>
-#include <sys/un.h>
 
 #include "buffer.h"
 
@@ -38,37 +37,31 @@ enum {
     RTTY_FILE_MSG_BUSY,
     RTTY_FILE_MSG_PROGRESS,
     RTTY_FILE_MSG_REQUEST_ACCEPT,
-    RTTY_FILE_MSG_SAVE_PATH,
-    RTTY_FILE_MSG_NO_SPACE
+    RTTY_FILE_MSG_NO_SPACE,
+    RTTY_FILE_MSG_ERR
+};
+
+struct file_control_msg {
+    int type;
+    uint8_t buf[128];
 };
 
 struct file_context {
     int sid;
     int fd;
-    int sock;
     bool busy;
+    int ctlfd;
     uint32_t total_size;
     uint32_t remain_size;
-    struct sockaddr_un peer_sun;
-    struct ev_io ios;  /* used for unix socket */
     struct ev_io iof;  /* used for upload file */
     ev_tstamp last_notify_progress;
 };
 
-int start_file_service(struct file_context *ctx);
+void request_transfer_file(char type, const char *path);
 
-void parse_file_msg(struct file_context *ctx, uint8_t type, struct buffer *data, int len);
-
-void update_progress(struct ev_loop *loop, ev_tstamp start_time, struct buffer *info);
-
-void cancel_file_operation(struct ev_loop *loop, int sock);
-
-int read_file_msg(int sock, struct buffer *out);
-
-int connect_rtty_file_service();
-
-void request_transfer_file();
 bool detect_file_operation(uint8_t *buf, int len, int sid, struct file_context *ctx);
+
+void parse_file_msg(struct file_context *ctx, struct buffer *data, int len);
 
 #endif
 

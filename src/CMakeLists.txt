@@ -11,9 +11,6 @@ find_package(Libev REQUIRED)
 include_directories(${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/buffer ${LIBEV_INCLUDE_DIR})
 set(EXTRA_LIBS ${LIBEV_LIBRARY} util crypt m)
 
-add_definitions(-DRTTY_FILE_UNIX_SOCKET_S="/var/run/rttyfile.sock")
-add_definitions(-DRTTY_FILE_UNIX_SOCKET_C="/var/run/rttyfile_c.sock")
-
 set(RTTY_SSL_SUPPORT_CONFIG 1)
 option(RTTY_SSL_SUPPORT "SSL support" ON)
 
@@ -95,7 +92,7 @@ else()
 endif()
 
 add_executable(rtty main.c utils.c buffer/buffer.c log.c net.c net.h rtty.c rtty.h command.c
-        file.c upfile.c upfile.h downfile.c downfile.h ssl.c ssl.h web.c)
+        file.c filectl.c ssl.c ssl.h web.c)
 target_link_libraries(rtty ${EXTRA_LIBS})
 
 # configure a header file to pass some of the CMake settings to the source code

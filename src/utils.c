@@ -28,6 +28,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <ctype.h>
+#include <unistd.h>
 
 #include "utils.h"
 
@@ -153,4 +154,17 @@ struct mntent *find_mount_point(const char *name)
     endmntent(mtab_fp);
 
     return ment;
+}
+
+/*
+ *  getcwd_pid does not append a null byte to buf.  It will (silently) truncate the contents (to
+ *  a length of bufsiz characters), in case the buffer is too small to hold all of the contents.
+ */
+ssize_t getcwd_pid(pid_t pid, char *buf, size_t bufsiz)
+{
+    char link[128];
+
+    sprintf(link, "/proc/%d/cwd", pid);
+
+    return readlink(link, buf, bufsiz);
 }

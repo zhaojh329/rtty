@@ -30,8 +30,6 @@
 #include "log.h"
 #include "rtty.h"
 #include "config.h"
-#include "upfile.h"
-#include "downfile.h"
 
 enum {
     LONG_OPT_HELP = 1
@@ -132,10 +130,10 @@ int main(int argc, char **argv)
             rtty.username = optarg;
             break;
         case 'R':
-            download_file();
+            request_transfer_file('R', NULL);
             return 0;
         case 'S':
-            upload_file(optarg);
+            request_transfer_file('S', optarg);
             return 0;
         case 'v':
             verbose = true;
@@ -151,6 +149,8 @@ int main(int argc, char **argv)
             break;
         }
     }
+
+    signal(SIGPIPE, SIG_IGN);
 
     if (background && daemon(0, 0))
         log_err("Can't run in the background: %s\n", strerror(errno));
