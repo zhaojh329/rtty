@@ -17,6 +17,7 @@
 [![Issue Welcome][5]][6]
 [![Release Version][7]][8]
 ![Build Status][9]
+![visitors](https://visitor-badge.laobi.icu/badge?page_id=zhaojh329.rtty)
 [![Support rtty][10]][11]
 
 [Xterm.js]: https://github.com/xtermjs/xterm.js
