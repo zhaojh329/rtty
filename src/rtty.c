@@ -468,7 +468,7 @@ static void rtty_timer_cb(struct ev_loop *loop, struct ev_timer *w, int revents)
         buffer_put_u8(&rtty->wb, MSG_TYPE_HEARTBEAT);
         buffer_put_u16be(&rtty->wb, 16);
         buffer_put_u32be(&rtty->wb, info.uptime);
-        buffer_put(&rtty->wb, 12);  /* pad */
+        buffer_put_zero(&rtty->wb, 12);  /* pad */
         ev_io_start(loop, &rtty->iow);
     }
 }
