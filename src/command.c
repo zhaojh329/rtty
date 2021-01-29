@@ -32,6 +32,7 @@
 #include <shadow.h>
 #include <sys/stat.h>
 #include <math.h>
+#include <pwd.h>
 
 #include "log.h"
 #include "list.h"
@@ -274,6 +275,9 @@ static void run_task(struct task *t)
         close(opipe[1]);
         close(epipe[1]);
 
+        if (setuid(t->uid) < 0)
+            exit(1);
+
         execv(t->cmd, t->params);
     } else {
         /* Close unused write end */
@@ -302,7 +306,7 @@ ERR:
     task_free(t);
 }
 
-static void add_task(struct rtty *rtty, const char *token, const char *cmd, const char *data)
+static void add_task(struct rtty *rtty, const char *token, uid_t uid, const char *cmd, const char *data)
 {
     struct task *t;
     int i;
@@ -314,6 +318,7 @@ static void add_task(struct rtty *rtty, const char *token, const char *cmd, cons
     }
 
     t->rtty = rtty;
+    t->uid = uid;
 
     strcpy(t->cmd, cmd);
     strcpy(t->token, token);
@@ -340,11 +345,18 @@ void run_command(struct rtty *rtty, const char *data)
     const char *password = username + strlen(username) + 1;
     const char *cmd = password + strlen(password) + 1;
     const char *token = cmd + strlen(cmd) + 1;
+    struct passwd *pw;
     int err = 0;
 
     data = token + strlen(token) + 1;
 
     if (!username[0] || !login_test(username, password)) {
+        err = RTTY_CMD_ERR_PERMIT;
+        goto ERR;
+    }
+
+    pw = getpwnam(username);
+    if (!pw) {
         err = RTTY_CMD_ERR_PERMIT;
         goto ERR;
     }
@@ -355,7 +367,7 @@ void run_command(struct rtty *rtty, const char *data)
         goto ERR;
     }
 
-    add_task(rtty, token, cmd, data);
+    add_task(rtty, token, pw->pw_uid, cmd, data);
     return;
 
 ERR:

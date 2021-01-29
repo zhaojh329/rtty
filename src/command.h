@@ -47,6 +47,7 @@ struct task {
     struct ev_io ioe;   /* Watch stderr of child */
     struct buffer ob;   /* buffer for stdout */
     struct buffer eb;   /* buffer for stderr */
+    uid_t uid;
     int nparams;
     char **params;
     char token[33];
