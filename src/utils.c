@@ -160,7 +160,7 @@ struct mntent *find_mount_point(const char *name)
  *  getcwd_pid does not append a null byte to buf.  It will (silently) truncate the contents (to
  *  a length of bufsiz characters), in case the buffer is too small to hold all of the contents.
  */
-ssize_t getcwd_pid(pid_t pid, char *buf, size_t bufsiz)
+ssize_t getcwd_by_pid(pid_t pid, char *buf, size_t bufsiz)
 {
     char link[128];
 
@@ -169,7 +169,7 @@ ssize_t getcwd_pid(pid_t pid, char *buf, size_t bufsiz)
     return readlink(link, buf, bufsiz);
 }
 
-bool getuid_pid(pid_t pid, uid_t *uid)
+bool getuid_by_pid(pid_t pid, uid_t *uid)
 {
     char status[128];
     char line[128];
@@ -196,7 +196,7 @@ bool getuid_pid(pid_t pid, uid_t *uid)
     return true;
 }
 
-bool getgid_pid(pid_t pid, gid_t *gid)
+bool getgid_by_pid(pid_t pid, gid_t *gid)
 {
     char status[128];
     char line[128];

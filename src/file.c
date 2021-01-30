@@ -192,12 +192,12 @@ bool detect_file_operation(uint8_t *buf, int len, int sid, struct file_context *
 
     memcpy(&pid, buf + 4, 4);
 
-    if (!getuid_pid(pid, &uid)) {
+    if (!getuid_by_pid(pid, &uid)) {
         kill(pid, SIGTERM);
         return true;
     }
 
-    if (!getgid_pid(pid, &gid)) {
+    if (!getgid_by_pid(pid, &gid)) {
         kill(pid, SIGTERM);
         return true;
     }
@@ -228,7 +228,7 @@ bool detect_file_operation(uint8_t *buf, int len, int sid, struct file_context *
         send_file_control_msg(ctlfd, RTTY_FILE_MSG_REQUEST_ACCEPT, NULL, 0);
 
         memset(savepath, 0, sizeof(savepath));
-        getcwd_pid(pid, savepath, sizeof(savepath) - 1);
+        getcwd_by_pid(pid, savepath, sizeof(savepath) - 1);
         strcat(savepath, "/");
 
         ctx->uid = uid;
