@@ -269,19 +269,17 @@ static void start_download_file(struct file_context *ctx, struct buffer *info, i
     ment = find_mount_point(savepath);
     if (ment) {
         if (statvfs(ment->mnt_dir, &sfs) == 0 && ctx->total_size > sfs.f_bavail * sfs.f_frsize) {
-            notify_user_canceled(rtty);
-
             send_file_control_msg(ctx->ctlfd, RTTY_FILE_MSG_NO_SPACE, NULL, 0);
-
             log_err("download file fail: no enough space\n");
-            return;
+            goto err;
         }
     }
 
     fd = open(savepath, O_WRONLY | O_TRUNC | O_CREAT, 0644);
     if (fd < 0) {
+        send_file_control_msg(ctx->ctlfd, RTTY_FILE_MSG_ERR, NULL, 0);
         log_err("create file '%s' fail: %s\n", name, strerror(errno));
-        return;
+        goto err;
     }
 
     log_info("download file: %s, size: %u\n", savepath, ctx->total_size);
@@ -295,6 +293,12 @@ static void start_download_file(struct file_context *ctx, struct buffer *info, i
     strcpy(buf + 4, name);
 
     send_file_control_msg(ctx->ctlfd, RTTY_FILE_MSG_INFO, buf, 4 + strlen(name));
+
+    return;
+
+err:
+    notify_user_canceled(rtty);
+    file_context_reset(ctx);
 }
 
 void parse_file_msg(struct file_context *ctx, struct buffer *data, int len)
