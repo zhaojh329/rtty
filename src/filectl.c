@@ -165,6 +165,12 @@ void request_transfer_file(char type, const char *path)
             exit(EXIT_FAILURE);
         }
 
+        if (st.st_size > UINT32_MAX) {
+            printf("'%s' is too large(> %u Byte)\n", path, UINT32_MAX);
+            close(sfd);
+            exit(EXIT_FAILURE);
+        }
+
         total_size = st.st_size;
     }
 
