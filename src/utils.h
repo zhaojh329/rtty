@@ -40,4 +40,8 @@ struct mntent *find_mount_point(const char *name);
 
 ssize_t getcwd_pid(pid_t pid, char *buf, size_t bufsiz);
 
+bool getuid_pid(pid_t pid, uid_t *uid);
+
+bool getgid_pid(pid_t pid, gid_t *gid);
+
 #endif

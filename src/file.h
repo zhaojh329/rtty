@@ -51,6 +51,8 @@ struct file_context {
     int fd;
     bool busy;
     int ctlfd;
+    uid_t uid;
+    gid_t gid;
     uint32_t total_size;
     uint32_t remain_size;
     struct ev_io iof;  /* used for upload file */

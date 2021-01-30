@@ -181,6 +181,8 @@ bool detect_file_operation(uint8_t *buf, int len, int sid, struct file_context *
     char fifo_name[128];
     pid_t pid;
     int ctlfd;
+    uid_t uid;
+    gid_t gid;
 
     if (len != 12)
         return false;
@@ -189,6 +191,16 @@ bool detect_file_operation(uint8_t *buf, int len, int sid, struct file_context *
         return false;
 
     memcpy(&pid, buf + 4, 4);
+
+    if (!getuid_pid(pid, &uid)) {
+        kill(pid, SIGTERM);
+        return true;
+    }
+
+    if (!getgid_pid(pid, &gid)) {
+        kill(pid, SIGTERM);
+        return true;
+    }
 
     sprintf(fifo_name, "/tmp/rtty-file-%d.fifo", pid);
 
@@ -218,6 +230,9 @@ bool detect_file_operation(uint8_t *buf, int len, int sid, struct file_context *
         memset(savepath, 0, sizeof(savepath));
         getcwd_pid(pid, savepath, sizeof(savepath) - 1);
         strcat(savepath, "/");
+
+        ctx->uid = uid;
+        ctx->gid = gid;
     } else {
         char path[PATH_MAX] = "";
         char link[128];
@@ -283,6 +298,9 @@ static void start_download_file(struct file_context *ctx, struct buffer *info, i
     }
 
     log_info("download file: %s, size: %u\n", savepath, ctx->total_size);
+
+    if (fchown(fd, ctx->uid, ctx->gid) < 0)
+        log_err("fchown %s fail: %s\n", strerror(errno));
 
     if (ctx->total_size == 0)
         close(fd);
