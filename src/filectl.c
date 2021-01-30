@@ -142,6 +142,32 @@ void request_transfer_file(char type, const char *path)
     int sfd = -1;
     int ctlfd;
 
+    if (type == 'R') {
+        if (access(".", W_OK | X_OK)) {
+            printf("Permission denied\n");
+            exit(EXIT_FAILURE);
+        }
+    } else {
+        sfd = open(path, O_RDONLY);
+        if (sfd < 0) {
+            printf("open '%s' failed: ", path);
+            if (errno == ENOENT)
+                printf("No such filen");
+            else
+                printf("%s\n", strerror(errno));
+            exit(EXIT_FAILURE);
+        }
+
+        fstat(sfd, &st);
+        if (!(st.st_mode & S_IFREG)) {
+            printf("'%s' is not a regular file\n", path);
+            close(sfd);
+            exit(EXIT_FAILURE);
+        }
+
+        total_size = st.st_size;
+    }
+
     sprintf(fifo_name, "/tmp/rtty-file-%d.fifo", pid);
 
     if (mkfifo(fifo_name, 0644) < 0) {
@@ -159,28 +185,8 @@ void request_transfer_file(char type, const char *path)
 
     memcpy(RTTY_FILE_MAGIC + 4, &pid, 4);
 
-    if (type == 'S') {
-        sfd = open(path, O_RDONLY);
-        if (sfd < 0) {
-            printf("open '%s' failed: ", path);
-            if (errno == ENOENT)
-                printf("No such file\n");
-            else
-                printf("%s\n", strerror(errno));
-            return;
-        }
-
-        fstat(sfd, &st);
-        if (!(st.st_mode & S_IFREG)) {
-            printf("'%s' is not a regular file\n", path);
-            close(sfd);
-            return;
-        }
-
-        total_size = st.st_size;
-
+    if (type == 'S')
         memcpy(RTTY_FILE_MAGIC + 8, &sfd, 4);
-    }
 
     fwrite(RTTY_FILE_MAGIC, sizeof(RTTY_FILE_MAGIC), 1, stdout);
     fflush(stdout);
@@ -193,6 +199,7 @@ void request_transfer_file(char type, const char *path)
 
     if (type == 'S') {
         usleep(1000 * 10);
+
         printf("Transferring '%s'...Press Ctrl+C to cancel\n", basename(path));
 
         if (total_size == 0) {
