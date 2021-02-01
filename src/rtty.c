@@ -56,6 +56,8 @@ static void del_tty(struct tty *tty)
 
     rtty->ttys[tty->sid] = NULL;
 
+    file_context_reset(&rtty->file_context);
+
     log_info("delete tty: %d\n", tty->sid);
 
     free(tty);

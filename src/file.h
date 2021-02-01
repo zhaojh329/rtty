@@ -65,5 +65,7 @@ bool detect_file_operation(uint8_t *buf, int len, int sid, struct file_context *
 
 void parse_file_msg(struct file_context *ctx, struct buffer *data, int len);
 
+void file_context_reset(struct file_context *ctx);
+
 #endif
 

@@ -63,14 +63,21 @@ static int send_file_control_msg(int fd, int type, void *buf, int len)
     return 0;
 }
 
-static void file_context_reset(struct file_context *ctx)
+void file_context_reset(struct file_context *ctx)
 {
+    struct rtty *rtty = container_of(ctx, struct rtty, file_context);
+
+    ev_io_stop(rtty->loop, &ctx->iof);
+
     if (ctx->fd > 0) {
         close(ctx->fd);
         ctx->fd = -1;
     }
 
-    close(ctx->ctlfd);
+    if (ctx->ctlfd > 0) {
+        close(ctx->ctlfd);
+        ctx->ctlfd = -1;
+    }
 
     ctx->busy = false;
 }
@@ -125,7 +132,6 @@ static void on_file_read(struct ev_loop *loop, struct ev_io *w, int revents)
     ev_io_start(rtty->loop, &rtty->iow);
 
     if (ret == 0) {
-        ev_io_stop(loop, w);
         file_context_reset(ctx);
         return;
     }
@@ -136,7 +142,6 @@ static void on_file_read(struct ev_loop *loop, struct ev_io *w, int revents)
     return;
 
 err:
-    ev_io_stop(loop, w);
     notify_user_canceled(rtty);
     file_context_reset(ctx);
 }
