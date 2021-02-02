@@ -284,22 +284,26 @@ static void start_download_file(struct file_context *ctx, struct buffer *info, i
 
     ctx->total_size = ctx->remain_size = buffer_pull_u32be(info);
 
-    buffer_pull(info, name, len - 4);
-
     ment = find_mount_point(savepath);
     if (ment) {
         if (statvfs(ment->mnt_dir, &sfs) == 0 && ctx->total_size > sfs.f_bavail * sfs.f_frsize) {
             send_file_control_msg(ctx->ctlfd, RTTY_FILE_MSG_NO_SPACE, NULL, 0);
             log_err("download file fail: no enough space\n");
-            goto err;
+            goto check_space_fail;
         }
+    } else {
+        send_file_control_msg(ctx->ctlfd, RTTY_FILE_MSG_NO_SPACE, NULL, 0);
+        log_err("download file fail: not found mount point of '%s'\n", savepath);
+        goto check_space_fail;
     }
+
+    buffer_pull(info, name, len - 4);
 
     fd = open(savepath, O_WRONLY | O_TRUNC | O_CREAT, 0644);
     if (fd < 0) {
         send_file_control_msg(ctx->ctlfd, RTTY_FILE_MSG_ERR, NULL, 0);
         log_err("create file '%s' fail: %s\n", name, strerror(errno));
-        goto err;
+        goto open_fail;
     }
 
     log_info("download file: %s, size: %u\n", savepath, ctx->total_size);
@@ -319,7 +323,9 @@ static void start_download_file(struct file_context *ctx, struct buffer *info, i
 
     return;
 
-err:
+check_space_fail:
+    buffer_pull(info, name, len - 4);
+open_fail:
     notify_user_canceled(rtty);
     file_context_reset(ctx);
 }
