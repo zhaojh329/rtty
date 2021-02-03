@@ -10,7 +10,7 @@
 [8]: https://github.com/zhaojh329/rtty/releases
 [9]: https://github.com/zhaojh329/rtty/workflows/build/badge.svg
 [10]: https://img.shields.io/badge/支持rtty-赞助作者-blueviolet.svg
-[11]: https://gitee.com/zhaojh329/rtty#贡献代码
+[11]: #贡献代码
 [12]: https://img.shields.io/badge/技术交流群-点击加入：153530783-brightgreen.svg
 [13]: https://jq.qq.com/?_wv=1027&k=5PKxbTV
 
