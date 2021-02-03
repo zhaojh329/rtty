@@ -3,10 +3,30 @@ on: push
 jobs:
   build:
     runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        include:
+          - ssl: none
+            name: none
+          - ssl: openssl
+            name: OPENSSL
+            pkg: libssl-dev
+          - ssl: mbedtls
+            name: MBEDTLS
+            pkg: libmbedtls-dev
+          - ssl: wolfssl
+            name: WOLFSSL
+            pkg: libwolfssl-dev
     steps:
-      - run: sudo apt install -y libev-dev libssl-dev
       - uses: actions/checkout@v2
         with:
           submodules: true
-      - run: cmake .
-      - run: make
+      - name: build
+        env:
+          name: ${{ matrix.name }}
+          pkg: ${{ matrix.pkg }}
+        run: |
+          sudo apt install -y libev-dev
+          [ -n "$pkg" ] && sudo apt install -y $pkg
+          [ "$name" = "none" ] && cmake . -DRTTY_SSL_SUPPORT=OFF || cmake . -DRTTY_USE_$name=ON
+          make
