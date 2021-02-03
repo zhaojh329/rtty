@@ -1,0 +1,45 @@
+name: release
+on:
+  push:
+    tags:
+    - 'v*'
+jobs:
+  release:
+    runs-on: ubuntu-20.04
+    steps:
+      - id: changelog
+        uses: ardalanamini/auto-changelog@v1.1.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - id: release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: ${{ github.ref }}
+          draft: true
+          body: ${{steps.changelog.outputs.changelog}}
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+      - id: get-version
+        uses: battila7/get-version-action@v2
+      - id: release-asset
+        run: |
+          version=${{ steps.get-version.outputs.version-without-v }}
+          cd ..
+          cp -r rtty rtty-$version
+          rm -rf rtty-$version/.git* rtty-$version/src/buffer/.git*
+          tar zcfv rtty-$version.tar.gz rtty-$version
+          echo "::set-output name=asset-path::../rtty-$version.tar.gz"
+          echo "::set-output name=asset-name::rtty-$version.tar.gz"
+      - id: upload-release-asset 
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.release.outputs.upload_url }}
+          asset_path: ${{ steps.release-asset.outputs.asset-path }}
+          asset_name: ${{ steps.release-asset.outputs.asset-name }}
+          asset_content_type: application/gzip
