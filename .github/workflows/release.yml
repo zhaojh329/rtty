@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - id: changelog
-        uses: ardalanamini/auto-changelog@v1.1.0
+        uses: zhaojh329/auto-changelog@master
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - id: release
