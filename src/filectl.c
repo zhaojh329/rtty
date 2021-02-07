@@ -71,7 +71,7 @@ static u_int32_t update_progress(uint8_t *buf)
     return remain;
 }
 
-static void handle_file_control_msg(int fd, int sfd)
+static void handle_file_control_msg(int fd, int sfd, const char *path)
 {
     struct file_control_msg msg;
     struct buffer b = {};
@@ -87,10 +87,18 @@ static void handle_file_control_msg(int fd, int sfd)
 
         switch (msg.type) {
         case RTTY_FILE_MSG_REQUEST_ACCEPT:
-            if (sfd > -1)
+            if (sfd > -1) {
                 close(sfd);
-            else
+                gettimeofday(&start_time, NULL);
+                printf("Transferring '%s'...Press Ctrl+C to cancel\n", basename(path));
+
+                if (total_size == 0) {
+                    printf("  100%%    0 B     0s\n");
+                    goto done;
+                }
+            } else {
                 printf("Waiting to receive. Press Ctrl+C to cancel\n");
+            }
             break;
         
         case RTTY_FILE_MSG_INFO:
@@ -203,24 +211,7 @@ void request_transfer_file(char type, const char *path)
         exit(EXIT_FAILURE);
     }
 
-    if (type == 'S') {
-        usleep(1000 * 10);
+    handle_file_control_msg(ctlfd, sfd, path);
 
-        printf("Transferring '%s'...Press Ctrl+C to cancel\n", basename(path));
-
-        if (total_size == 0) {
-            printf("  100%%    0 B     0s\n");
-
-            close(sfd);
-
-            goto done;
-        }
-
-        gettimeofday(&start_time, NULL);
-    }
-
-    handle_file_control_msg(ctlfd, sfd);
-
-done:
     close(ctlfd);
 }

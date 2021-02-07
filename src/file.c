@@ -65,10 +65,6 @@ static int send_file_control_msg(int fd, int type, void *buf, int len)
 
 void file_context_reset(struct file_context *ctx)
 {
-    struct rtty *rtty = container_of(ctx, struct rtty, file_context);
-
-    ev_io_stop(rtty->loop, &ctx->iof);
-
     if (ctx->fd > 0) {
         close(ctx->fd);
         ctx->fd = -1;
@@ -93,30 +89,22 @@ static void notify_user_canceled(struct rtty *rtty)
 
 static int notify_progress(struct file_context *ctx)
 {
-    struct rtty *rtty = container_of(ctx, struct rtty, file_context);
-    ev_tstamp now = ev_now(rtty->loop);
-
-    if (ctx->remain_size > 0 && now - ctx->last_notify_progress < 0.1)
-        return 0;
-    ctx->last_notify_progress = now;
-
     if (send_file_control_msg(ctx->ctlfd, RTTY_FILE_MSG_PROGRESS, &ctx->remain_size, 4) < 0)
         return -1;
 
     return 0;
 }
 
-static void on_file_read(struct ev_loop *loop, struct ev_io *w, int revents)
+static void send_file_data(struct file_context *ctx)
 {
-    struct file_context *ctx = container_of(w, struct file_context, iof);
     struct rtty *rtty = container_of(ctx, struct rtty, file_context);
-    uint8_t buf[4096];
+    uint8_t buf[4096 * 4];
     int ret;
 
-    if (buffer_length(&rtty->wb) > 4096)
+    if (ctx->fd < 0)
         return;
 
-    ret = read(w->fd, buf, sizeof(buf));
+    ret = read(ctx->fd, buf, sizeof(buf));
     if (ret < 0) {
         send_file_control_msg(ctx->ctlfd, RTTY_FILE_MSG_ERR, NULL, 0);
         goto err;
@@ -153,7 +141,7 @@ static int start_upload_file(struct file_context *ctx, const char *path)
     struct stat st;
     int fd;
 
-    fd = open(path, O_RDONLY | O_NONBLOCK);
+    fd = open(path, O_RDONLY);
     if (fd < 0) {
         log_err("open '%s' fail\n", path, strerror(errno));
         return -1;
@@ -167,9 +155,6 @@ static int start_upload_file(struct file_context *ctx, const char *path)
     buffer_put_u8(&rtty->wb, RTTY_FILE_MSG_INFO);
     buffer_put_string(&rtty->wb, name);
     ev_io_start(rtty->loop, &rtty->iow);
-
-    ev_io_init(&ctx->iof, on_file_read, fd, EV_READ);
-    ev_io_start(rtty->loop, &ctx->iof);
 
     ctx->fd = fd;
     ctx->total_size = st.st_size;
@@ -223,6 +208,9 @@ bool detect_file_operation(uint8_t *buf, int len, int sid, struct file_context *
         return true;
     }
 
+    ctx->sid = sid;
+    ctx->ctlfd = ctlfd;
+
     if (buf[3] == 'R') {
         buffer_put_u8(&rtty->wb, MSG_TYPE_FILE);
         buffer_put_u16be(&rtty->wb, 2);
@@ -266,8 +254,6 @@ bool detect_file_operation(uint8_t *buf, int len, int sid, struct file_context *
         }
     }
 
-    ctx->sid = sid;
-    ctx->ctlfd = ctlfd;
     ctx->busy = true;
 
     return true;
@@ -330,6 +316,15 @@ open_fail:
     file_context_reset(ctx);
 }
 
+static void send_file_data_ack(struct rtty *rtty)
+{
+    buffer_put_u8(&rtty->wb, MSG_TYPE_FILE);
+    buffer_put_u16be(&rtty->wb, 2);
+    buffer_put_u8(&rtty->wb, rtty->file_context.sid);
+    buffer_put_u8(&rtty->wb, RTTY_FILE_MSG_DATA_ACK);
+    ev_io_start(rtty->loop, &rtty->iow);
+}
+
 void parse_file_msg(struct file_context *ctx, struct buffer *data, int len)
 {
     struct rtty *rtty = container_of(ctx, struct rtty, file_context);
@@ -351,6 +346,11 @@ void parse_file_msg(struct file_context *ctx, struct buffer *data, int len)
                 if (notify_progress(ctx) < 0) {
                     notify_user_canceled(rtty);
                     file_context_reset(ctx);
+                } else {
+                    if (ctx->remain_size == 0)
+                        file_context_reset(ctx);
+                    else
+                        send_file_data_ack(rtty);
                 }
             } else {
                 buffer_pull(data, NULL, len);
@@ -358,6 +358,10 @@ void parse_file_msg(struct file_context *ctx, struct buffer *data, int len)
         } else {
             file_context_reset(ctx);
         }
+        break;
+
+    case RTTY_FILE_MSG_DATA_ACK:
+        send_file_data(ctx);
         break;
 
     case RTTY_FILE_MSG_CANCELED:

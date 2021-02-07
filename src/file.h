@@ -33,6 +33,7 @@ enum {
     RTTY_FILE_MSG_START_DOWNLOAD,
     RTTY_FILE_MSG_INFO,
     RTTY_FILE_MSG_DATA,
+    RTTY_FILE_MSG_DATA_ACK,
     RTTY_FILE_MSG_CANCELED,
     RTTY_FILE_MSG_BUSY,
     RTTY_FILE_MSG_PROGRESS,
@@ -55,8 +56,6 @@ struct file_context {
     gid_t gid;
     uint32_t total_size;
     uint32_t remain_size;
-    struct ev_io iof;  /* used for upload file */
-    ev_tstamp last_notify_progress;
 };
 
 void request_transfer_file(char type, const char *path);
