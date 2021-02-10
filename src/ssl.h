@@ -34,7 +34,7 @@
 
 struct rtty_ssl_ctx;
 
-int rtty_ssl_init(struct rtty_ssl_ctx **ctx, int sock, const char *host);
+int rtty_ssl_init(struct rtty_ssl_ctx **ctx, int sock, const char *host, const char *key, const char *cert);
 
 void rtty_ssl_free(struct rtty_ssl_ctx *ctx);
 

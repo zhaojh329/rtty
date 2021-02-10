@@ -75,7 +75,7 @@ struct rtty_ssl_ctx {
 #endif
 };
 
-int rtty_ssl_init(struct rtty_ssl_ctx **ctx, int sock, const char *host)
+int rtty_ssl_init(struct rtty_ssl_ctx **ctx, int sock, const char *host, const char *key, const char *cert)
 {
     struct rtty_ssl_ctx *c = calloc(1, sizeof(struct rtty_ssl_ctx));
     if (!c) {
@@ -121,6 +121,15 @@ int rtty_ssl_init(struct rtty_ssl_ctx **ctx, int sock, const char *host)
     c->ctx = SSL_CTX_new(TLS_client_method());
 #endif
     SSL_CTX_set_verify(c->ctx, SSL_VERIFY_NONE, NULL);
+    if (key && cert) {
+        if (1 != SSL_CTX_use_PrivateKey_file(c->ctx, key, SSL_FILETYPE_PEM) ||
+            1 != SSL_CTX_use_certificate_file(c->ctx, cert, SSL_FILETYPE_PEM))
+        {
+            free(c);
+            log_err("SSL key/cert failed: %s\n", strerror(errno));
+            return -1;
+        }
+    }
     c->ssl = SSL_new(c->ctx);
 #if RTTY_HAVE_OPENSSL
     SSL_set_tlsext_host_name(c->ssl, host);
