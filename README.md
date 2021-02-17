@@ -111,9 +111,12 @@ Replace the following parameters with your own parameters
 
     sudo rtty -I 'My-device-ID' -h 'your-server' -p 5912 -a -v -d 'My Device Description'
 
-If your rttys is configured with a key and certificate, add the following parameters(Replace the following with valid paths to your own)
+If your rttys is configured with mTLS enabled (device key and certificate required), add the following parameters(Replace the following with valid paths to your own)
 
     -k /etc/ssl/private/abc.pem -c /etc/ssl/certs/abc.pem
+
+You can generate them e.g. via openssl tool
+    openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:secp521r1 -keyout /tmp/key.pem -out /tmp/cert.pem -days 18262 -nodes -subj "/C=CZ/O=Acme Inc./OU=ACME/CN=ACME-DEV-123"
 
 If your rttys is configured with a token, add the following parameter(Replace the following token with your own)
 

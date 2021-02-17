@@ -68,6 +68,8 @@ struct rtty_ssl_ctx {
     mbedtls_ctr_drbg_context drbg;
     mbedtls_entropy_context  etpy;
     mbedtls_x509_crt         x509;
+    mbedtls_x509_crt         crt;
+    mbedtls_pk_context       key;
     bool last_read_ok;
 #else
     SSL_CTX *ctx;
@@ -99,6 +101,18 @@ int rtty_ssl_init(struct rtty_ssl_ctx **ctx, int sock, const char *host, const c
     mbedtls_ssl_conf_authmode(&c->cfg, MBEDTLS_SSL_VERIFY_OPTIONAL);
     mbedtls_ssl_conf_ca_chain(&c->cfg, &c->x509, NULL);
     mbedtls_ssl_conf_rng(&c->cfg, mbedtls_ctr_drbg_random, &c->drbg);
+    if (key && cert) {
+        if (0 != mbedtls_pk_parse_keyfile(&c->key, key, NULL) ||
+            0 != mbedtls_x509_crt_parse_file(&c->crt, cert)) {
+            free(c);
+            log_err("Loading mTLS key/cert failed\n");
+            return -1;
+        } else {
+            if (0 != mbedtls_ssl_conf_own_cert(&c->cfg, &c->crt, &c->key)) {
+                log(LOG_WARNING, "Setting mTLS key/cert failed\n");
+            }
+        }
+    }
 
     mbedtls_ssl_set_bio(&c->ssl, &c->net, mbedtls_net_send,
                         mbedtls_net_recv, NULL);
@@ -123,10 +137,9 @@ int rtty_ssl_init(struct rtty_ssl_ctx **ctx, int sock, const char *host, const c
     SSL_CTX_set_verify(c->ctx, SSL_VERIFY_NONE, NULL);
     if (key && cert) {
         if (1 != SSL_CTX_use_PrivateKey_file(c->ctx, key, SSL_FILETYPE_PEM) ||
-            1 != SSL_CTX_use_certificate_file(c->ctx, cert, SSL_FILETYPE_PEM))
-        {
+            1 != SSL_CTX_use_certificate_file(c->ctx, cert, SSL_FILETYPE_PEM)) {
             free(c);
-            log_err("SSL key/cert failed: %s\n", strerror(errno));
+            log_err("Setting mTLS key/cert failed: %s\n", strerror(errno));
             return -1;
         }
     }
