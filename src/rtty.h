@@ -69,6 +69,8 @@ struct rtty {
     const char *description;
     const char *username;
     bool ssl_on;
+    const char *ssl_key;      /* path to device key */
+    const char *ssl_cert;     /* path to device cert */
     struct buffer rb;
     struct buffer wb;
     struct ev_io iow;
