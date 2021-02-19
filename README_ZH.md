@@ -47,6 +47,7 @@ rtty非常适合远程维护您的或者您的公司的部署在全球各地的�
 * 客户端C语言实现，非常小，适合嵌入式Linux
 * 远程批量执行命令
 * 支持SSL: openssl, mbedtls, CyaSSl(wolfssl)
+* SSL 双向认证(mTLS)
 * 非常方便的上传和下载文件
 * 根据设备ID访问不同的设备
 * 支持 HTTP 代理 - 访问您的设备的 Web

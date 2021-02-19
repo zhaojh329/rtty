@@ -45,6 +45,7 @@ the world.
 * The client is writen in C language, very small, suitable for embedded Linux
 * Execute command remotely in a batch of devices 
 * SSL support: openssl, mbedtls, CyaSSl(wolfssl)
+* mTLS
 * Very convenient to upload and download files
 * Access different devices based on device ID
 * Support HTTP Proxy - Access your device's Web
