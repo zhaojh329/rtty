@@ -38,6 +38,17 @@ static const char *ident;
 
 void (*log_write)(int priority, const char *fmt, va_list ap);
 
+static const char *prioritynames[] = {
+    [LOG_EMERG] = "emerg",
+    [LOG_ALERT] = "alert",
+    [LOG_CRIT] = "crit",
+    [LOG_ERR] = "err",
+    [LOG_WARNING] = "warn",
+    [LOG_NOTICE] = "notice",
+    [LOG_INFO] = "info",
+    [LOG_DEBUG] = "debug"
+};
+
 static const char *log_ident()
 {
     FILE *self;
@@ -69,7 +80,7 @@ static inline void log_write_stdout(int priority, const char *fmt, va_list ap)
     localtime_r(&now, &tm);
     strftime(buf, sizeof(buf), "%Y/%m/%d %H:%M:%S", &tm);
 
-    fprintf(stderr, "%s ", buf);
+    fprintf(stderr, "%s %s ", buf, prioritynames[priority]);
     vfprintf(stderr, fmt, ap);
 }
 
@@ -116,6 +127,8 @@ void __ilog(const char *filename, int line, int priority, const char *fmt, ...)
 {
     static char new_fmt[256];
     va_list ap;
+
+    priority = LOG_PRI(priority);
 
     if (priority > log_threshold)
         return;
