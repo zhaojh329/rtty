@@ -171,7 +171,7 @@ static int rtty_ssl_handshake(struct rtty_ssl_ctx *ctx)
         int err = SSL_get_error(ctx->ssl, ret);
         if (err == SSL_ERROR_WANT_READ || err == SSL_ERROR_WANT_WRITE)
             return 0;
-        log_err("%s\n", ERR_reason_error_string(err));
+        log_err("%s\n", ERR_error_string(err, NULL));
         return -1;
     }
 #endif
@@ -218,7 +218,7 @@ int rtty_ssl_read(int fd, void *buf, size_t count, void *arg)
         int err = SSL_get_error(ctx->ssl, ret);
         if (err == SSL_ERROR_WANT_READ)
             return P_FD_PENDING;
-        log_err("%s\n", ERR_reason_error_string(err));
+        log_err("%s\n", ERR_error_string(err, NULL));
         return P_FD_ERR;
     }
 #endif
@@ -254,7 +254,7 @@ int rtty_ssl_write(int fd, void *buf, size_t count, void *arg)
         int err = SSL_get_error(ctx->ssl, ret);
         if (err == SSL_ERROR_WANT_WRITE)
             return P_FD_PENDING;
-        log_err("%s\n", ERR_reason_error_string(err));
+        log_err("%s\n", ERR_error_string(err, NULL));
         return P_FD_ERR;
     }
 #endif

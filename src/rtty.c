@@ -365,7 +365,8 @@ static void on_net_read(struct ev_loop *loop, struct ev_io *w, int revents)
 #endif
         ret = buffer_put_fd(&rtty->rb, w->fd, 4096, &eof);
     if (ret < 0) {
-        log_err("socket read error: %s\n", strerror(errno));
+        if (errno)
+            log_err("socket read error: %s\n", strerror(errno));
         return;
     }
 
@@ -398,7 +399,8 @@ static void on_net_write(struct ev_loop *loop, struct ev_io *w, int revents)
 #endif
         ret = buffer_pull_to_fd(&rtty->wb, w->fd, -1);
     if (ret < 0) {
-        log_err("socket write error: %s\n", strerror(errno));
+        if (errno)
+            log_err("socket write error: %s\n", strerror(errno));
         rtty_exit(rtty);
         return;
     }
