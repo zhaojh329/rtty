@@ -44,7 +44,11 @@
 rtty非常适合远程维护您的或者您的公司的部署在全球各地的成千上万的Linux设备。
 
 # 特性
-* 客户端C语言实现，非常小，适合嵌入式Linux
+* 客户端 C 语言实现，非常小，适合嵌入式 Linux
+```
+    不支持 SSL: rtty(32K) + libev(56K)
+    支持 SSL: + libmbedtls(88K) + libmbedcrypto(241K) + libmbedx509(48k)
+```
 * 远程批量执行命令
 * 支持SSL: openssl, mbedtls, CyaSSl(wolfssl)
 * SSL 双向认证(mTLS)
@@ -95,9 +99,12 @@ rtty非常适合远程维护您的或者您的公司的部署在全球各地的�
                                  character:letter, number, underline and short line)
         -h, --host=string        Server's host or ipaddr(Default is localhost)
         -p, --port=number        Server port(Default is 5912)
-        -d, --description=string Adding a description to the device(Maximum 126 bytes)
+        -d, --description=string Add a description to the device(Maximum 126 bytes)
         -a                       Auto reconnect to the server
         -s                       SSL on
+        -C, --cacert             CA certificate to verify peer against"
+        -c, --cert               Certificate file to use"
+        -k, --key                Private key file to use"
         -D                       Run in the background
         -t, --token=string       Authorization token
         -f username              Skip a second login authentication. See man login(1) about the details
@@ -112,14 +119,14 @@ rtty非常适合远程维护您的或者您的公司的部署在全球各地的�
 
     sudo rtty -I 'My-device-ID' -h 'your-server' -p 5912 -a -v -d 'My Device Description'
 
-如果您的rttys配置了一个token，请加上如下参数（将下面的token替换为您自己生成的）
+如果您的 [rttys](https://gitee.com/zhaojh329/rttys) 配置了一个 token，请加上如下参数（将下面的 token 替换为您自己生成的）
 
     -t 34762d07637276694b938d23f10d7164
 
 # 如何使用
-使用您的Web浏览器访问您的服务器: `http://your-server-host:5913`，然后点击连接按钮。
+使用您的 Web 浏览器访问您的服务器: `http://your-server-host:5913`，然后点击连接按钮。
 
-## 直接连接设备，无需Web登录(需要在服务端配置设备白名单)
+## 直接连接设备，无需 Web 登录(需要在服务端配置设备白名单)
 http://your-server-host:5913/connect/devid1
 
 http://your-server-host:5913/connect/devid2

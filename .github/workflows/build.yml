@@ -28,5 +28,5 @@ jobs:
         run: |
           sudo apt install -y libev-dev
           [ -n "$pkg" ] && sudo apt install -y $pkg
-          [ "$name" = "none" ] && cmake . -DRTTY_SSL_SUPPORT=OFF || cmake . -DRTTY_USE_$name=ON
+          [ "$name" = "none" ] && cmake . -DSSL_SUPPORT=OFF || cmake . -DUSE_$name=ON
           make

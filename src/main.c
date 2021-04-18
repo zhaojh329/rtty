@@ -29,7 +29,6 @@
 
 #include "log.h"
 #include "rtty.h"
-#include "config.h"
 
 enum {
     LONG_OPT_HELP = 1
@@ -49,8 +48,9 @@ static struct option long_options[] = {
     {"port",        required_argument, NULL, 'p'},
     {"description", required_argument, NULL, 'd'},
     {"token",       required_argument, NULL, 't'},
-    {"key",         required_argument, NULL, 'k'},
+    {"cacert",      required_argument, NULL, 'C'},
     {"cert",        required_argument, NULL, 'c'},
+    {"key",         required_argument, NULL, 'k'},
     {"verbose",     no_argument,       NULL, 'v'},
     {"version",     no_argument,       NULL, 'V'},
     {"help",        no_argument,       NULL, LONG_OPT_HELP},
@@ -64,11 +64,12 @@ static void usage(const char *prog)
             "                               character:letter, number, underline and short line)\n"
             "      -h, --host=string        Server's host or ipaddr(Default is localhost)\n"
             "      -p, --port=number        Server port(Default is 5912)\n"
-            "      -d, --description=string Adding a description to the device(Maximum 126 bytes)\n"
+            "      -d, --description=string Add a description to the device(Maximum 126 bytes)\n"
             "      -a                       Auto reconnect to the server\n"
             "      -s                       SSL on\n"
-            "      -k, --key                Device key (PEM file) for mTLS\n"
-            "      -c, --cert               Device certificate (PEM file) for mTLS\n"
+            "      -C, --cacert             CA certificate to verify peer against\n"
+            "      -c, --cert               Certificate file to use\n"
+            "      -k, --key                Private key file to use\n"
             "      -D                       Run in the background\n"
             "      -t, --token=string       Authorization token\n"
             "      -f username              Skip a second login authentication. See man login(1) about the details\n"
@@ -93,11 +94,20 @@ int main(int argc, char **argv)
         .loop = loop,
         .sock = -1
     };
+#ifdef SSL_SUPPORT
+    struct ssl_context *ctx;
+#endif
     int option_index;
     int c;
 
+#ifdef SSL_SUPPORT
+    ctx = ssl_context_new(false);
+    if (!ctx)
+        return -1;
+#endif
+
     while (true) {
-        c = getopt_long(argc, argv, "I:h:p:d:ask:c:Dt:f:RS:vV", long_options, &option_index);
+        c = getopt_long(argc, argv, "I:h:p:d:asC:c:k:Dt:f:RS:vV", long_options, &option_index);
         if (c == -1)
             break;
 
@@ -122,13 +132,35 @@ int main(int argc, char **argv)
             rtty.reconnect = true;
             break;
         case 's':
+#ifndef SSL_SUPPORT
+            log_err("SSL is not enabled at compile\n");
+            return -1;
+#endif
             rtty.ssl_on = true;
             break;
-        case 'k':
-            rtty.ssl_key = optarg;
+        case 'C':
+#ifdef SSL_SUPPORT
+            if (ssl_load_ca_crt_file(ctx, optarg)) {
+                log_err("load ca certificate file fail\n");
+                return -1;
+            }
+#endif
             break;
         case 'c':
-            rtty.ssl_cert = optarg;
+#ifdef SSL_SUPPORT
+            if (ssl_load_crt_file(ctx, optarg)) {
+                log_err("load certificate file fail\n");
+                return -1;
+            }
+#endif
+            break;
+        case 'k':
+#ifdef SSL_SUPPORT
+            if (ssl_load_key_file(ctx, optarg)) {
+                log_err("load private key file fail\n");
+                return -1;
+            }
+#endif
             break;
         case 'D':
             background = true;
@@ -178,12 +210,20 @@ int main(int argc, char **argv)
     ev_signal_init(&signal_watcher, signal_cb, SIGINT);
     ev_signal_start(loop, &signal_watcher);
 
+#ifdef SSL_SUPPORT
+    rtty.ssl_ctx = ctx;
+#endif
+
     if (rtty_start(&rtty) < 0)
         return -1;
 
     ev_run(loop, 0);
 
     rtty_exit(&rtty);
+
+#ifdef SSL_SUPPORT
+    ssl_context_free(ctx);
+#endif
 
     ev_loop_destroy(loop);
 

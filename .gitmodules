@@ -1,3 +1,6 @@
 [submodule "src/buffer"]
 	path = src/buffer
 	url = https://github.com/zhaojh329/buffer.git
+[submodule "src/ssl"]
+	path = src/ssl
+	url = https://github.com/zhaojh329/ssl.git

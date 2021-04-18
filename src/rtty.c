@@ -28,7 +28,6 @@
 #include <stdlib.h>
 #include <sys/sysinfo.h>
 
-#include "ssl.h"
 #include "net.h"
 #include "log.h"
 #include "web.h"
@@ -240,8 +239,9 @@ void rtty_exit(struct rtty *rtty)
         if (rtty->ttys[i])
             del_tty(rtty->ttys[i]);
 
-#if RTTY_SSL_SUPPORT
-    rtty_ssl_free(rtty->ssl);
+#ifdef SSL_SUPPORT
+    if (rtty->ssl)
+        ssl_session_free(rtty->ssl);
 #endif
 
     if (rtty->sock > 0) {
@@ -352,38 +352,98 @@ static int parse_msg(struct rtty *rtty)
     }
 }
 
+#ifdef SSL_SUPPORT
+static void on_ssl_verify_error(int error, const char *str, void *arg)
+{
+    log_warn("SSL certificate error(%d): %s\n", error, str);
+}
+
+/* -1 error, 0 pending, 1 ok */
+static int ssl_negotiated(struct rtty *rtty)
+{
+    char err_buf[128];
+    int ret;
+
+    ret = ssl_connect(rtty->ssl, false, on_ssl_verify_error, NULL);
+    if (ret == SSL_PENDING)
+        return 0;
+
+    if (ret == SSL_ERROR) {
+        log_err("ssl connect error(%d): %s\n", ssl_err_code, ssl_strerror(ssl_err_code, err_buf, sizeof(err_buf)));
+        return -1;
+    }
+
+    rtty->ssl_negotiated = true;
+
+    return 1;
+}
+#endif
+
+#ifdef SSL_SUPPORT
+static int rtty_ssl_read(int fd, void *buf, size_t count, void *arg)
+{
+    static char err_buf[128];
+    struct rtty *rtty = arg;
+    int ret;
+
+    ret = ssl_read(rtty->ssl, buf, count);
+    if (ret == SSL_ERROR) {
+        log_err("ssl_read(%d): %s\n", ssl_err_code,
+                ssl_strerror(ssl_err_code, err_buf, sizeof(err_buf)));
+        return P_FD_ERR;
+    }
+
+    if (ret == SSL_PENDING)
+        return P_FD_PENDING;
+
+    return ret;
+}
+#endif
+
 static void on_net_read(struct ev_loop *loop, struct ev_io *w, int revents)
 {
     struct rtty *rtty = container_of(w, struct rtty, ior);
-    bool eof;
+    bool eof = false;
     int ret;
 
-#if RTTY_SSL_SUPPORT
-    if (rtty->ssl)
-        ret = buffer_put_fd_ex(&rtty->rb, w->fd, 4096, &eof, rtty_ssl_read, rtty->ssl);
-    else
-#endif
-        ret = buffer_put_fd(&rtty->rb, w->fd, 4096, &eof);
-    if (ret < 0) {
-        if (errno)
+    if (rtty->ssl_on) {
+#ifdef SSL_SUPPORT
+        if (unlikely(!rtty->ssl_negotiated)) {
+            ret = ssl_negotiated(rtty);
+            if (ret < 0)
+                goto err;
+            if (ret == 0)
+                return;
+        }
+
+        ret = buffer_put_fd_ex(&rtty->rb, w->fd, 4096, &eof, rtty_ssl_read, rtty);
+        if (ret < 0) {
             log_err("socket read error: %s\n", strerror(errno));
-        return;
+            goto err;
+        }
+#endif
+    } else {
+        ret = buffer_put_fd(&rtty->rb, w->fd, 4096, &eof);
+        if (ret < 0) {
+            log_err("socket read error: %s\n", strerror(errno));
+            goto err;
+        }
     }
 
     rtty->ninactive = 0;
     rtty->active = ev_now(loop);
 
     if (parse_msg(rtty))
-        goto done;
+        goto err;
 
     if (eof) {
         log_info("socket closed by server\n");
-        goto done;
+        goto err;
     }
 
     return;
 
-done:
+err:
     rtty_exit(rtty);
 }
 
@@ -392,21 +452,46 @@ static void on_net_write(struct ev_loop *loop, struct ev_io *w, int revents)
     struct rtty *rtty = container_of(w, struct rtty, iow);
     int ret;
 
-#if RTTY_SSL_SUPPORT
-    if (rtty->ssl)
-        ret = buffer_pull_to_fd_ex(&rtty->wb, w->fd, -1, rtty_ssl_write, rtty->ssl);
-    else
+    if (rtty->ssl_on) {
+#ifdef SSL_SUPPORT
+        static char err_buf[128];
+        struct buffer *b = &rtty->wb;
+
+        if (unlikely(!rtty->ssl_negotiated)) {
+            ret = ssl_negotiated(rtty);
+            if (ret < 0)
+                goto err;
+            if (ret == 0)
+                return;
+        }
+
+        ret = ssl_write(rtty->ssl, buffer_data(b), buffer_length(b));
+        if (ret == SSL_ERROR) {
+            log_err("ssl_write(%d): %s\n", ssl_err_code,
+                    ssl_strerror(ssl_err_code, err_buf, sizeof(err_buf)));
+            goto err;
+        }
+
+        if (ret == SSL_PENDING)
+            return;
+
+        buffer_pull(b, NULL, ret);
 #endif
+    } else {
         ret = buffer_pull_to_fd(&rtty->wb, w->fd, -1);
-    if (ret < 0) {
-        if (errno)
+        if (ret < 0) {
             log_err("socket write error: %s\n", strerror(errno));
-        rtty_exit(rtty);
-        return;
+            goto err;
+        }
     }
 
     if (buffer_length(&rtty->wb) < 1)
         ev_io_stop(loop, w);
+
+    return;
+
+err:
+    rtty_exit(rtty);
 }
 
 static void on_net_connected(int sock, void *arg)
@@ -430,8 +515,13 @@ static void on_net_connected(int sock, void *arg)
     ev_io_init(&rtty->iow, on_net_write, sock, EV_WRITE);
 
     if (rtty->ssl_on) {
-#if (RTTY_SSL_SUPPORT)
-        rtty_ssl_init((struct rtty_ssl_ctx **)&rtty->ssl, sock, rtty->host, rtty->ssl_key, rtty->ssl_cert);
+#ifdef SSL_SUPPORT
+        rtty->ssl = ssl_session_new(rtty->ssl_ctx, sock);
+        if (!rtty->ssl) {
+            log_err("SSL session create fail\n");
+            ev_break(rtty->loop, EVBREAK_ALL);
+        }
+        ssl_set_server_name(rtty->ssl, rtty->host);
 #endif
     }
 
@@ -479,13 +569,6 @@ static void rtty_timer_cb(struct ev_loop *loop, struct ev_timer *w, int revents)
 
 int rtty_start(struct rtty *rtty)
 {
-    if (rtty->ssl_on) {
-#if (!RTTY_SSL_SUPPORT)
-        log_err("SSL is not enabled at compile\n");
-        return -1;
-#endif
-    }
-
     if (!rtty->devid) {
         log_err("you must specify an id for your device\n");
         return -1;

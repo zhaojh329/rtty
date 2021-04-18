@@ -38,6 +38,7 @@ void log_close();
 
 #define log_debug(fmt...)     log(LOG_DEBUG, fmt)
 #define log_info(fmt...)      log(LOG_INFO, fmt)
+#define log_warn(fmt...)      log(LOG_WARNING, fmt)
 #define log_err(fmt...)       log(LOG_ERR, fmt)
 
 void __ilog(const char *filename, int line, int priority, const char *fmt, ...);

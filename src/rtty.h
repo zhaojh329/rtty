@@ -28,9 +28,14 @@
 #include <stdbool.h>
 #include <ev.h>
 
+#include "config.h"
 #include "buffer.h"
 #include "file.h"
 #include "list.h"
+
+#ifdef SSL_SUPPORT
+#include "ssl/ssl.h"
+#endif
 
 #define RTTY_MAX_TTY                5
 #define RTTY_HEARTBEAT_INTEVAL      5.0
@@ -69,8 +74,6 @@ struct rtty {
     const char *description;
     const char *username;
     bool ssl_on;
-    const char *ssl_key;      /* path to device key */
-    const char *ssl_cert;     /* path to device cert */
     struct buffer rb;
     struct buffer wb;
     struct ev_io iow;
@@ -81,7 +84,11 @@ struct rtty {
     ev_tstamp active;
     ev_tstamp last_heartbeat;
     bool reconnect;
-    void *ssl;              /* Context wrap of openssl, wolfssl and mbedtls */
+#ifdef SSL_SUPPORT
+    struct ssl_context *ssl_ctx;
+    bool ssl_negotiated;
+    void *ssl;
+#endif
     struct tty *ttys[RTTY_MAX_TTY];
     struct file_context file_context;
     struct list_head web_reqs;

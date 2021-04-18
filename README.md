@@ -43,6 +43,11 @@ the world.
 
 # Features
 * The client is writen in C language, very small, suitable for embedded Linux
+```
+    No SSL: rtty(32K) + libev(56K)
+    Support SSL: + libmbedtls(88K) + libmbedcrypto(241K) + libmbedx509(48k)
+```
+
 * Execute command remotely in a batch of devices 
 * SSL support: openssl, mbedtls, CyaSSl(wolfssl)
 * mTLS
@@ -54,7 +59,7 @@ the world.
 
 # Dependencies of the Client side
 * [libev] - A full-featured and high-performance event loop
-* [mbedtls(polarssl)], [CyaSSl(wolfssl)] or [openssl] - If you want to support SSL
+* [mbedtls(polarssl)] or [CyaSSl(wolfssl)] or [openssl] - If you want to support SSL
 
 # [Deploying the server side](https://github.com/zhaojh329/rttys)
 
@@ -93,11 +98,12 @@ Select rtty in menuconfig and compile it
                                  character:letter, number, underline and short line)
         -h, --host=string        Server's host or ipaddr(Default is localhost)
         -p, --port=number        Server port(Default is 5912)
-        -d, --description=string Adding a description to the device(Maximum 126 bytes)
+        -d, --description=string Add a description to the device(Maximum 126 bytes)
         -a                       Auto reconnect to the server
         -s                       SSL on
-        -k, --key                Device key (PEM file) for mTLS\n"
-        -c, --cert               Device certificate (PEM file) for mTLS\n"
+        -C, --cacert             CA certificate to verify peer against"
+        -c, --cert               Certificate file to use"
+        -k, --key                Private key file to use"
         -D                       Run in the background
         -t, --token=string       Authorization token
         -f username              Skip a second login authentication. See man login(1) about the details
@@ -112,7 +118,8 @@ Replace the following parameters with your own parameters
 
     sudo rtty -I 'My-device-ID' -h 'your-server' -p 5912 -a -v -d 'My Device Description'
 
-If your rttys is configured with mTLS enabled (device key and certificate required), add the following parameters(Replace the following with valid paths to your own)
+If your [rttys](https://github.com/zhaojh329/rttys) is configured with mTLS enabled (device key and certificate required),
+add the following parameters(Replace the following with valid paths to your own)
 
     -k /etc/ssl/private/abc.pem -c /etc/ssl/certs/abc.pem
 
