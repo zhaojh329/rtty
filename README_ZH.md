@@ -45,10 +45,8 @@ rtty非常适合远程维护您的或者您的公司的部署在全球各地的�
 
 # 特性
 * 客户端 C 语言实现，非常小，适合嵌入式 Linux
-```
-    不支持 SSL: rtty(32K) + libev(56K)
-    支持 SSL: + libmbedtls(88K) + libmbedcrypto(241K) + libmbedx509(48k)
-```
+  - 不支持 SSL: rtty(32K) + libev(56K)
+  - 支持 SSL: + libmbedtls(88K) + libmbedcrypto(241K) + libmbedx509(48k)
 * 远程批量执行命令
 * 支持SSL: openssl, mbedtls, CyaSSl(wolfssl)
 * SSL 双向认证(mTLS)

@@ -43,11 +43,8 @@ the world.
 
 # Features
 * The client is writen in C language, very small, suitable for embedded Linux
-```
-    No SSL: rtty(32K) + libev(56K)
-    Support SSL: + libmbedtls(88K) + libmbedcrypto(241K) + libmbedx509(48k)
-```
-
+  - No SSL: rtty(32K) + libev(56K)
+  - Support SSL: + libmbedtls(88K) + libmbedcrypto(241K) + libmbedx509(48k)
 * Execute command remotely in a batch of devices 
 * SSL support: openssl, mbedtls, CyaSSl(wolfssl)
 * mTLS
