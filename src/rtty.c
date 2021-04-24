@@ -377,9 +377,7 @@ static int ssl_negotiated(struct rtty *rtty)
 
     return 1;
 }
-#endif
 
-#ifdef SSL_SUPPORT
 static int rtty_ssl_read(int fd, void *buf, size_t count, void *arg)
 {
     static char err_buf[128];
