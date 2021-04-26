@@ -9,10 +9,9 @@ find_package(Libev REQUIRED)
 aux_source_directory(. SRCS)
 aux_source_directory(buffer SRCS)
 
-add_executable(rtty)
+add_executable(rtty ${SRCS})
 target_compile_definitions(rtty PRIVATE _GNU_SOURCE)
 target_compile_options(rtty PRIVATE -O -Wall -Werror --std=gnu99)
-target_sources(rtty PRIVATE ${SRCS})
 target_include_directories(rtty PRIVATE ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/buffer ${LIBEV_INCLUDE_DIR})
 target_link_libraries(rtty PRIVATE ${LIBEV_LIBRARY} util crypt m)
 
