@@ -29,13 +29,13 @@
 #include <sys/sysinfo.h>
 
 #include "net.h"
-#include "log.h"
 #include "web.h"
 #include "file.h"
 #include "rtty.h"
 #include "list.h"
 #include "utils.h"
 #include "command.h"
+#include "log/log.h"
 
 static char login_path[128];       /* /bin/login */
 

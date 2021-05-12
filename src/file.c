@@ -32,7 +32,7 @@
 #include <sys/statvfs.h>
 #include <linux/limits.h>
 
-#include "log.h"
+#include "log/log.h"
 #include "file.h"
 #include "list.h"
 #include "rtty.h"
@@ -143,7 +143,7 @@ static int start_upload_file(struct file_context *ctx, const char *path)
 
     fd = open(path, O_RDONLY);
     if (fd < 0) {
-        log_err("open '%s' fail\n", path, strerror(errno));
+        log_err("open '%s' fail: %s\n", path, strerror(errno));
         return -1;
     }
 
@@ -295,7 +295,7 @@ static void start_download_file(struct file_context *ctx, struct buffer *info, i
     log_info("download file: %s, size: %u\n", savepath, ctx->total_size);
 
     if (fchown(fd, ctx->uid, ctx->gid) < 0)
-        log_err("fchown %s fail: %s\n", strerror(errno));
+        log_err("fchown %s fail: %s\n", savepath, strerror(errno));
 
     if (ctx->total_size == 0)
         close(fd);

@@ -30,7 +30,7 @@ jobs:
           version=${{ steps.get-version.outputs.version-without-v }}
           cd ..
           cp -r rtty rtty-$version
-          rm -rf rtty-$version/.git* rtty-$version/src/buffer/.git* rtty-$version/src/ssl/.git*
+          rm -rf rtty-$version/.git* rtty-$version/src/buffer/.git* rtty-$version/src/ssl/.git* rtty-$version/src/log/.git*
           tar zcfv rtty-$version.tar.gz rtty-$version
           echo "::set-output name=asset-path::../rtty-$version.tar.gz"
           echo "::set-output name=asset-name::rtty-$version.tar.gz"

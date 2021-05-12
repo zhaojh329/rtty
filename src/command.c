@@ -34,7 +34,7 @@
 #include <math.h>
 #include <pwd.h>
 
-#include "log.h"
+#include "log/log.h"
 #include "list.h"
 #include "utils.h"
 #include "command.h"

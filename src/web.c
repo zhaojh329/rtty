@@ -33,7 +33,7 @@
 
 #include "web.h"
 #include "net.h"
-#include "log.h"
+#include "log/log.h"
 
 void web_request_free(struct web_request_ctx *ctx)
 {

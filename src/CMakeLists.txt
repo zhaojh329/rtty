@@ -7,6 +7,7 @@ set(RTTY_VERSION_PATCH 0)
 find_package(Libev REQUIRED)
 
 aux_source_directory(. SRCS)
+aux_source_directory(log SRCS)
 aux_source_directory(buffer SRCS)
 
 add_executable(rtty ${SRCS})

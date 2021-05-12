@@ -27,7 +27,7 @@
 #include <stdlib.h>
 #include <getopt.h>
 
-#include "log.h"
+#include "log/log.h"
 #include "rtty.h"
 
 enum {
@@ -197,8 +197,8 @@ int main(int argc, char **argv)
     if (background && daemon(0, 0))
         log_err("Can't run in the background: %s\n", strerror(errno));
 
-    if (!verbose)
-        set_log_threshold(LOG_ERR);
+    if (verbose)
+        log_level(LOG_DEBUG);
 
     log_info("rtty version %s\n", RTTY_VERSION_STRING);
 

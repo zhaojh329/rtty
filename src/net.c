@@ -32,7 +32,7 @@
 
 #include "list.h"
 #include "net.h"
-#include "log.h"
+#include "log/log.h"
 
 struct net_context {
     struct ev_timer tmr;
