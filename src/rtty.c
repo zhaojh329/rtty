@@ -240,8 +240,10 @@ void rtty_exit(struct rtty *rtty)
             del_tty(rtty->ttys[i]);
 
 #ifdef SSL_SUPPORT
-    if (rtty->ssl)
+    if (rtty->ssl) {
         ssl_session_free(rtty->ssl);
+        rtty->ssl_negotiated = false;
+    }
 #endif
 
     if (rtty->sock > 0) {
