@@ -143,3 +143,6 @@ http://your-server-host:5913/connect/devid2
 # 贡献代码
 如果您想帮助[rtty](https://github.com/zhaojh329/rtty)变得更好，请参考
 [CONTRIBUTING_ZH.md](https://github.com/zhaojh329/rtty/blob/master/CONTRIBUTING_ZH.md)。
+
+# 强烈推荐佐大的 OpenWrt 培训班
+想学习 OpenWrt 开发，但是摸不着门道？自学没毅力？基础太差？怕太难学不会？快来参加<跟着佐大学 OpenWrt 开发入门培训班> 佐大助你能学有所成，培训班报名地址：http://forgotfun.org/2018/04/openwrt-training-2018.html
