@@ -157,17 +157,23 @@ static void tty_login(struct rtty *rtty)
 
     if (sid == RTTY_MAX_TTY) {
         log_info("tty login fail, device busy\n");
-        buffer_put_u16be(&rtty->wb, 1);
-        buffer_put_u8(&rtty->wb, 1);
-        ev_io_start(rtty->loop, &rtty->iow);
-        return;
+        goto err;
+    }
+
+    pid = forkpty(&pty, NULL, NULL, NULL);
+    if (pid < 0) {
+        log_err("forkpty: %s\n", strerror(errno));
+        goto err;
+    }
+
+    if (pid == 0) {
+        if (rtty->username)
+            execl(login_path, "login", "-f", rtty->username, NULL);
+        else
+            execl(login_path, "login", NULL);
     }
 
     tty = calloc(1, sizeof(struct tty));
-
-    pid = forkpty(&pty, NULL, NULL, NULL);
-    if (pid == 0)
-        rtty->username ? execl(login_path, "-p", "-f", rtty->username, NULL) : execl(login_path, login_path, NULL);
 
     tty->sid = sid;
     tty->pid = pid;
@@ -192,6 +198,13 @@ static void tty_login(struct rtty *rtty)
     ev_io_start(rtty->loop, &rtty->iow);
 
     log_info("new tty: %d\n", sid);
+
+    return;
+
+err:
+    buffer_put_u16be(&rtty->wb, 1);
+    buffer_put_u8(&rtty->wb, 1);
+    ev_io_start(rtty->loop, &rtty->iow);
 }
 
 static void write_data_to_tty(struct rtty *rtty, int sid, int len)
