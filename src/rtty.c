@@ -448,7 +448,7 @@ static void on_net_read(struct ev_loop *loop, struct ev_io *w, int revents)
         goto err;
 
     if (eof) {
-        log_info("socket closed by server\n");
+        log_err("socket closed by server\n");
         goto err;
     }
 
