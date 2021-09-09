@@ -313,6 +313,11 @@ static int parse_msg(struct rtty *rtty)
             return 0;
 
         msgtype = buffer_pull_u8(rb);
+        if (msgtype > MSG_TYPE_MAX) {
+            log_err("invalid message type: %d\n", msgtype);
+            return -1;
+        }
+
         buffer_pull_u16(rb);
 
         switch (msgtype) {
@@ -360,8 +365,7 @@ static int parse_msg(struct rtty *rtty)
             break;
 
         default:
-            log_err("invalid message type: %d\n", msgtype);
-            buffer_pull(rb, NULL, msglen);
+            /* never to here */
             break;
         }
     }
