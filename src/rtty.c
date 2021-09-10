@@ -543,6 +543,7 @@ static void on_net_connected(int sock, void *arg)
         if (!rtty->ssl) {
             log_err("SSL session create fail\n");
             ev_break(rtty->loop, EVBREAK_ALL);
+            return;
         }
         ssl_set_server_name(rtty->ssl, rtty->host);
 #endif
