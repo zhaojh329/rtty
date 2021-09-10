@@ -1,9 +1,9 @@
 [submodule "src/buffer"]
 	path = src/buffer
-	url = https://gitee.com/zhaojh329/buffer.git
+	url = https://github.com/zhaojh329/buffer.git
 [submodule "src/ssl"]
 	path = src/ssl
-	url = https://gitee.com/zhaojh329/ssl.git
+	url = https://github.com/zhaojh329/ssl.git
 [submodule "src/log"]
 	path = src/log
 	url = https://github.com/zhaojh329/log.git
