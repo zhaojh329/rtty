@@ -374,16 +374,21 @@ static int parse_msg(struct rtty *rtty)
 #ifdef SSL_SUPPORT
 static void on_ssl_verify_error(int error, const char *str, void *arg)
 {
+    bool *valid_cert = arg;
+
+    *valid_cert = false;
+
     log_warn("SSL certificate error(%d): %s\n", error, str);
 }
 
 /* -1 error, 0 pending, 1 ok */
 static int ssl_negotiated(struct rtty *rtty)
 {
+    bool valid_cert = true;
     char err_buf[128];
     int ret;
 
-    ret = ssl_connect(rtty->ssl, false, on_ssl_verify_error, NULL);
+    ret = ssl_connect(rtty->ssl, false, on_ssl_verify_error, &valid_cert);
     if (ret == SSL_PENDING)
         return 0;
 
@@ -391,6 +396,9 @@ static int ssl_negotiated(struct rtty *rtty)
         log_err("ssl connect error(%d): %s\n", ssl_err_code, ssl_strerror(ssl_err_code, err_buf, sizeof(err_buf)));
         return -1;
     }
+
+    if (!valid_cert && !rtty->insecure)
+        return -1;
 
     rtty->ssl_negotiated = true;
 
