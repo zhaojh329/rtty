@@ -39,6 +39,7 @@
 
 #define RTTY_MAX_TTY                5
 #define RTTY_HEARTBEAT_INTEVAL      5.0
+#define RTTY_TTY_TIMEOUT            600
 
 enum {
     MSG_TYPE_REGISTER,
@@ -64,6 +65,8 @@ struct tty {
     struct ev_child cw;
     struct buffer wb;
     struct rtty *rtty;
+    ev_tstamp active;
+    struct ev_timer tmr;
 };
 
 struct rtty {

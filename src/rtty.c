@@ -46,6 +46,7 @@ static void del_tty(struct tty *tty)
 
     ev_io_stop(loop, &tty->ior);
     ev_io_stop(loop, &tty->iow);
+    ev_timer_stop(loop, &tty->tmr);
     ev_child_stop(loop, &tty->cw);
 
     buffer_free(&tty->wb);
@@ -83,6 +84,8 @@ static void pty_on_read(struct ev_loop *loop, struct ev_io *w, int revents)
     struct buffer *wb = &rtty->wb;
     static uint8_t buf[4096];
     int len;
+
+    tty->active = ev_now(loop);
 
     while (1) {
         len = read(w->fd, buf, sizeof(buf));
@@ -141,6 +144,20 @@ static void pty_on_exit(struct ev_loop *loop, struct ev_child *w, int revents)
     del_tty(tty);
 }
 
+static void tty_timer_cb(struct ev_loop *loop, struct ev_timer *w, int revents)
+{
+    struct tty *tty = container_of(w, struct tty, tmr);
+    ev_tstamp now = ev_now(loop);
+
+    if (now - tty->active < RTTY_TTY_TIMEOUT)
+        return;
+
+    ev_timer_stop(loop, w);
+    kill(tty->pid, SIGTERM);
+
+    log_err("tty(%d) inactive over %ds, now kill it\n", tty->sid, RTTY_TTY_TIMEOUT);
+}
+
 static void tty_login(struct rtty *rtty)
 {
     struct tty *tty;
@@ -190,6 +207,9 @@ static void tty_login(struct rtty *rtty)
     ev_child_init(&tty->cw, pty_on_exit, pid, 0);
     ev_child_start(rtty->loop, &tty->cw);
 
+    ev_timer_init(&tty->tmr, tty_timer_cb, 3, 3);
+    ev_timer_start(rtty->loop, &tty->tmr);
+
     rtty->ttys[sid] = tty;
 
     buffer_put_u16be(&rtty->wb, 2);
@@ -214,6 +234,8 @@ static void write_data_to_tty(struct rtty *rtty, int sid, int len)
         log_err("non-existent sid: %d\n", sid);
         return;
     }
+
+    tty->active = ev_now(rtty->loop);
 
     buffer_put_data(&tty->wb, buffer_data(&rtty->rb), len);
     buffer_pull(&rtty->rb, NULL, len);
