@@ -49,32 +49,31 @@ static void del_tty(struct tty *tty)
     ev_timer_stop(loop, &tty->tmr);
     ev_child_stop(loop, &tty->cw);
 
+    rtty->ntty--;
+    list_del(&tty->node);
+
     buffer_free(&tty->wb);
 
     close(tty->pty);
     kill(tty->pid, SIGTERM);
 
-    rtty->ttys[tty->sid] = NULL;
-
     file_context_reset(&rtty->file_context);
 
-    log_info("delete tty: %d\n", tty->sid);
+    log_info("delete tty: %s\n", tty->sid);
 
     free(tty);
 }
 
-static inline struct tty *find_tty(struct rtty *rtty, int sid)
+static inline struct tty *find_tty(struct rtty *rtty, const char *sid)
 {
-    if (sid > RTTY_MAX_TTY - 1)
-        return NULL;
-    return rtty->ttys[sid];
-}
+    struct tty *tty;
 
-static inline void tty_logout(struct rtty *rtty, int sid)
-{
-    struct tty *tty = find_tty(rtty, sid);
-    if (tty)
-        del_tty(tty);
+    list_for_each_entry(tty, &rtty->ttys, node) {
+        if (!strcmp(tty->sid, sid))
+            return tty;
+    }
+
+    return NULL;
 }
 
 static void pty_on_read(struct ev_loop *loop, struct ev_io *w, int revents)
@@ -83,7 +82,7 @@ static void pty_on_read(struct ev_loop *loop, struct ev_io *w, int revents)
     struct rtty *rtty = tty->rtty;
     struct buffer *wb = &rtty->wb;
     static uint8_t buf[4096];
-    int len;
+    int len = 0;
 
     tty->active = ev_now(loop);
 
@@ -108,8 +107,8 @@ static void pty_on_read(struct ev_loop *loop, struct ev_io *w, int revents)
         return;
 
     buffer_put_u8(wb, MSG_TYPE_TERMDATA);
-    buffer_put_u16be(wb, len + 1);
-    buffer_put_u8(wb, tty->sid);
+    buffer_put_u16be(wb, 32 + len);
+    buffer_put_data(wb, tty->sid, 32);
     buffer_put_data(wb, buf, len);
     ev_io_start(loop, &rtty->iow);
 }
@@ -137,8 +136,8 @@ static void pty_on_exit(struct ev_loop *loop, struct ev_child *w, int revents)
     struct buffer *wb = &rtty->wb;
 
     buffer_put_u8(wb, MSG_TYPE_LOGOUT);
-    buffer_put_u16be(wb, 1);
-    buffer_put_u8(wb, tty->sid);
+    buffer_put_u16be(wb, 32);
+    buffer_put_data(wb, tty->sid, 32);
     ev_io_start(loop, &rtty->iow);
 
     del_tty(tty);
@@ -155,32 +154,35 @@ static void tty_timer_cb(struct ev_loop *loop, struct ev_timer *w, int revents)
     ev_timer_stop(loop, w);
     kill(tty->pid, SIGTERM);
 
-    log_err("tty(%d) inactive over %ds, now kill it\n", tty->sid, RTTY_TTY_TIMEOUT);
+    log_err("tty(%s) inactive over %ds, now kill it\n", tty->sid, RTTY_TTY_TIMEOUT);
 }
 
-static void tty_login(struct rtty *rtty)
+static void tty_login(struct rtty *rtty, const char *sid)
 {
-    struct tty *tty;
+    struct tty *tty = NULL;
+    int code = 1;
     pid_t pid;
     int pty;
-    int sid;
 
     buffer_put_u8(&rtty->wb, MSG_TYPE_LOGIN);
+    buffer_put_u16be(&rtty->wb, 33);
+    buffer_put_data(&rtty->wb, sid, 32);
 
-    for (sid = 0; sid < RTTY_MAX_TTY; sid++) {
-        if (!rtty->ttys[sid])
-            break;
+    if (rtty->ntty == RTTY_MAX_TTY) {
+        log_info("tty login fail, device busy\n");
+        goto done;
     }
 
-    if (sid == RTTY_MAX_TTY) {
-        log_info("tty login fail, device busy\n");
-        goto err;
+    tty = calloc(1, sizeof(struct tty));
+    if (!tty) {
+        log_err("calloc: %s\n", strerror(errno));
+        goto done;
     }
 
     pid = forkpty(&pty, NULL, NULL, NULL);
     if (pid < 0) {
         log_err("forkpty: %s\n", strerror(errno));
-        goto err;
+        goto done;
     }
 
     if (pid == 0) {
@@ -188,14 +190,18 @@ static void tty_login(struct rtty *rtty)
             execl(login_path, "login", "-f", rtty->username, NULL);
         else
             execl(login_path, "login", NULL);
+
+        exit(1);
     }
 
-    tty = calloc(1, sizeof(struct tty));
-
-    tty->sid = sid;
     tty->pid = pid;
     tty->pty = pty;
     tty->rtty = rtty;
+
+    strcpy(tty->sid, sid);
+
+    rtty->ntty++;
+    list_add(&tty->node, &rtty->ttys);
 
     fcntl(pty, F_SETFL, fcntl(pty, F_GETFL, 0) | O_NONBLOCK);
 
@@ -210,30 +216,21 @@ static void tty_login(struct rtty *rtty)
     ev_timer_init(&tty->tmr, tty_timer_cb, 3, 3);
     ev_timer_start(rtty->loop, &tty->tmr);
 
-    rtty->ttys[sid] = tty;
+    code = 0;
 
-    buffer_put_u16be(&rtty->wb, 2);
-    buffer_put_u8(&rtty->wb, 0);
-    buffer_put_u8(&rtty->wb, sid);
-    ev_io_start(rtty->loop, &rtty->iow);
+    log_info("new tty: %d/%d %s\n", rtty->ntty, RTTY_MAX_TTY, sid);
 
-    log_info("new tty: %d\n", sid);
+done:
+    if (code)
+        free(tty);
 
-    return;
-
-err:
-    buffer_put_u16be(&rtty->wb, 1);
-    buffer_put_u8(&rtty->wb, 1);
+    buffer_put_u8(&rtty->wb, code);
     ev_io_start(rtty->loop, &rtty->iow);
 }
 
-static void write_data_to_tty(struct rtty *rtty, int sid, int len)
+static void write_data_to_tty(struct tty *tty, int len)
 {
-    struct tty *tty = find_tty(rtty, sid);
-    if (!tty) {
-        log_err("non-existent sid: %d\n", sid);
-        return;
-    }
+    struct rtty *rtty = tty->rtty;
 
     tty->active = ev_now(rtty->loop);
 
@@ -242,15 +239,10 @@ static void write_data_to_tty(struct rtty *rtty, int sid, int len)
     ev_io_start(rtty->loop, &tty->iow);
 }
 
-static void set_tty_winsize(struct rtty *rtty, int sid)
+static void set_tty_winsize(struct tty *tty)
 {
-    struct tty *tty = find_tty(rtty, sid);
+    struct rtty *rtty = tty->rtty;
     struct winsize size = {};
-
-    if (!tty) {
-        log_err("non-existent sid: %d\n", sid);
-        return;
-    }
 
     size.ws_col = buffer_pull_u16be(&rtty->rb);
     size.ws_row = buffer_pull_u16be(&rtty->rb);
@@ -261,6 +253,8 @@ static void set_tty_winsize(struct rtty *rtty, int sid)
 
 void rtty_exit(struct rtty *rtty)
 {
+    struct tty *tty, *ntty;
+
     if (rtty->sock < 0)
         return;
 
@@ -270,9 +264,9 @@ void rtty_exit(struct rtty *rtty)
     buffer_free(&rtty->rb);
     buffer_free(&rtty->wb);
 
-    for (int i = 0; i < RTTY_MAX_TTY; i++)
-        if (rtty->ttys[i])
-            del_tty(rtty->ttys[i]);
+    list_for_each_entry_safe(tty, ntty, &rtty->ttys, node) {
+        del_tty(tty);
+    }
 
 #ifdef SSL_SUPPORT
     if (rtty->ssl) {
@@ -320,6 +314,42 @@ static void rtty_register(struct rtty *rtty)
     ev_io_start(rtty->loop, &rtty->iow);
 }
 
+static void parse_tty_msg(struct rtty *rtty, int type, int len)
+{
+    struct tty *tty = NULL;
+    char sid[33] = "";
+
+    buffer_pull(&rtty->rb, sid, 32);
+    len -= 32;
+
+    if (type != MSG_TYPE_LOGIN) {
+        tty = find_tty(rtty, sid);
+        if (!tty) {
+            log_err("non-existent sid: %s\n", sid);
+            buffer_pull(&rtty->rb, NULL, len);
+            return;
+        }
+    }
+
+    switch (type) {
+    case MSG_TYPE_LOGIN:
+        tty_login(rtty, sid);
+        break;
+    case MSG_TYPE_LOGOUT:
+        del_tty(tty);
+        break;
+    case MSG_TYPE_TERMDATA:
+        write_data_to_tty(tty, len);
+        break;
+    case MSG_TYPE_WINSIZE:
+        set_tty_winsize(tty);
+        break;
+    default:
+        /* never to here */
+        break;
+    }
+}
+
 static int parse_msg(struct rtty *rtty)
 {
     struct buffer *rb = &rtty->rb;
@@ -355,19 +385,10 @@ static int parse_msg(struct rtty *rtty)
             break;
 
         case MSG_TYPE_LOGIN:
-            tty_login(rtty);
-            break;
-
         case MSG_TYPE_LOGOUT:
-            tty_logout(rtty, buffer_pull_u8(rb));
-            break;
-
         case MSG_TYPE_TERMDATA:
-            write_data_to_tty(rtty, buffer_pull_u8(rb), msglen - 1);
-            break;
-
         case MSG_TYPE_WINSIZE:
-            set_tty_winsize(rtty, buffer_pull_u8(rb));
+            parse_tty_msg(rtty, msgtype, msglen);
             break;
 
         case MSG_TYPE_CMD:
@@ -637,6 +658,7 @@ int rtty_start(struct rtty *rtty)
 
     rtty->file_context.fd = -1;
 
+    INIT_LIST_HEAD(&rtty->ttys);
     INIT_LIST_HEAD(&rtty->web_reqs);
 
     rtty->active = ev_now(rtty->loop);

@@ -37,7 +37,7 @@
 #include "ssl/ssl.h"
 #endif
 
-#define RTTY_MAX_TTY                5
+#define RTTY_MAX_TTY                10
 #define RTTY_HEARTBEAT_INTEVAL      5.0
 #define RTTY_TTY_TIMEOUT            600
 
@@ -59,7 +59,7 @@ struct rtty;
 struct tty {
     pid_t pid;
     int pty;
-    int sid;
+    char sid[33];
     struct ev_io ior;
     struct ev_io iow;
     struct ev_child cw;
@@ -67,6 +67,7 @@ struct tty {
     struct rtty *rtty;
     ev_tstamp active;
     struct ev_timer tmr;
+    struct list_head node;
 };
 
 struct rtty {
@@ -94,7 +95,8 @@ struct rtty {
     bool ssl_negotiated;
     void *ssl;
 #endif
-    struct tty *ttys[RTTY_MAX_TTY];
+    int ntty;   /* tty number */
+    struct list_head ttys;
     struct file_context file_context;
     struct list_head web_reqs;
 };

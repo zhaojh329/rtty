@@ -81,8 +81,8 @@ void file_context_reset(struct file_context *ctx)
 static void notify_user_canceled(struct rtty *rtty)
 {
     buffer_put_u8(&rtty->wb, MSG_TYPE_FILE);
-    buffer_put_u16be(&rtty->wb, 2);
-    buffer_put_u8(&rtty->wb, rtty->file_context.sid);
+    buffer_put_u16be(&rtty->wb, 33);
+    buffer_put_data(&rtty->wb, rtty->file_context.sid, 32);
     buffer_put_u8(&rtty->wb, RTTY_FILE_MSG_CANCELED);
     ev_io_start(rtty->loop, &rtty->iow);
 }
@@ -113,8 +113,8 @@ static void send_file_data(struct file_context *ctx)
     ctx->remain_size -= ret;
 
     buffer_put_u8(&rtty->wb, MSG_TYPE_FILE);
-    buffer_put_u16be(&rtty->wb, 2 + ret);
-    buffer_put_u8(&rtty->wb, ctx->sid);
+    buffer_put_u16be(&rtty->wb, 33 + ret);
+    buffer_put_data(&rtty->wb, ctx->sid, 32);
     buffer_put_u8(&rtty->wb, RTTY_FILE_MSG_DATA);
     buffer_put_data(&rtty->wb, buf, ret);
     ev_io_start(rtty->loop, &rtty->iow);
@@ -150,8 +150,8 @@ static int start_upload_file(struct file_context *ctx, const char *path)
     fstat(fd, &st);
 
     buffer_put_u8(&rtty->wb, MSG_TYPE_FILE);
-    buffer_put_u16be(&rtty->wb, 2 + strlen(name));
-    buffer_put_u8(&rtty->wb, ctx->sid);
+    buffer_put_u16be(&rtty->wb, 33 + strlen(name));
+    buffer_put_data(&rtty->wb, ctx->sid, 32);
     buffer_put_u8(&rtty->wb, RTTY_FILE_MSG_INFO);
     buffer_put_string(&rtty->wb, name);
     ev_io_start(rtty->loop, &rtty->iow);
@@ -165,7 +165,7 @@ static int start_upload_file(struct file_context *ctx, const char *path)
     return 0;
 }
 
-bool detect_file_operation(uint8_t *buf, int len, int sid, struct file_context *ctx)
+bool detect_file_operation(uint8_t *buf, int len, const char *sid, struct file_context *ctx)
 {
     struct rtty *rtty = container_of(ctx, struct rtty, file_context);
     char fifo_name[128];
@@ -208,13 +208,13 @@ bool detect_file_operation(uint8_t *buf, int len, int sid, struct file_context *
         return true;
     }
 
-    ctx->sid = sid;
     ctx->ctlfd = ctlfd;
+    strcpy(ctx->sid, sid);
 
     if (buf[3] == 'R') {
         buffer_put_u8(&rtty->wb, MSG_TYPE_FILE);
-        buffer_put_u16be(&rtty->wb, 2);
-        buffer_put_u8(&rtty->wb, ctx->sid);
+        buffer_put_u16be(&rtty->wb, 33);
+        buffer_put_data(&rtty->wb, ctx->sid, 32);
         buffer_put_u8(&rtty->wb, RTTY_FILE_MSG_START_DOWNLOAD);
         ev_io_start(rtty->loop, &rtty->iow);
 
@@ -319,8 +319,8 @@ open_fail:
 static void send_file_data_ack(struct rtty *rtty)
 {
     buffer_put_u8(&rtty->wb, MSG_TYPE_FILE);
-    buffer_put_u16be(&rtty->wb, 2);
-    buffer_put_u8(&rtty->wb, rtty->file_context.sid);
+    buffer_put_u16be(&rtty->wb, 33);
+    buffer_put_data(&rtty->wb, rtty->file_context.sid, 32);
     buffer_put_u8(&rtty->wb, RTTY_FILE_MSG_DATA_ACK);
     ev_io_start(rtty->loop, &rtty->iow);
 }

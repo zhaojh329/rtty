@@ -48,19 +48,19 @@ struct file_control_msg {
 };
 
 struct file_context {
-    int sid;
     int fd;
     bool busy;
     int ctlfd;
     uid_t uid;
     gid_t gid;
+    char sid[33];
     uint32_t total_size;
     uint32_t remain_size;
 };
 
 void request_transfer_file(char type, const char *path);
 
-bool detect_file_operation(uint8_t *buf, int len, int sid, struct file_context *ctx);
+bool detect_file_operation(uint8_t *buf, int len, const char *sid, struct file_context *ctx);
 
 void parse_file_msg(struct file_context *ctx, struct buffer *data, int len);
 
