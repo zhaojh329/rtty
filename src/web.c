@@ -150,11 +150,6 @@ void web_request(struct rtty *rtty, int len)
     uint8_t addr[18];
     void *data;
 
-    if (len == 0) {
-        web_reqs_free(&rtty->web_reqs);
-        return;
-    }
-
     buffer_pull(&rtty->rb, addr, 18);
 
     req_len = len - 18;
