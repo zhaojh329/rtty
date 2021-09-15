@@ -122,7 +122,7 @@ static void on_connected(int sock, void *arg)
     ev_io_init(&ctx->iow, on_net_write, sock, EV_WRITE);
     ev_io_start(loop, &ctx->iow);
 
-    ev_timer_init(&ctx->tmr, on_timer_cb, 1, 0);
+    ev_timer_init(&ctx->tmr, on_timer_cb, 3, 3);
     ev_timer_start(loop, &ctx->tmr);
 
     ctx->sock = sock;
