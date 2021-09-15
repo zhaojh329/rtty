@@ -1,7 +1,7 @@
 # The version number.
 set(RTTY_VERSION_MAJOR 7)
-set(RTTY_VERSION_MINOR 4)
-set(RTTY_VERSION_PATCH 2)
+set(RTTY_VERSION_MINOR 5)
+set(RTTY_VERSION_PATCH 0)
 
 # Check the third party Libraries
 find_package(Libev REQUIRED)
