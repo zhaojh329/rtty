@@ -288,7 +288,7 @@ void rtty_exit(struct rtty *rtty)
 
 static void rtty_register(struct rtty *rtty)
 {
-    size_t len = 3 + strlen(rtty->devid);
+    size_t len = 4 + strlen(rtty->devid);
     struct buffer *wb = &rtty->wb;
 
     if (rtty->description)
@@ -299,6 +299,8 @@ static void rtty_register(struct rtty *rtty)
 
     buffer_put_u8(wb, MSG_TYPE_REGISTER);
     buffer_put_u16be(wb, len);
+
+    buffer_put_u8(wb, RTTY_PROTO_VER);
 
     buffer_put_string(wb, rtty->devid);
     buffer_put_u8(wb, '\0');
