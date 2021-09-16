@@ -31,34 +31,34 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-#include "web.h"
+#include "http.h"
 #include "net.h"
 #include "log/log.h"
 
-void web_request_free(struct web_request_ctx *ctx)
+void http_conn_free(struct http_connection *con)
 {
-    struct rtty *rtty = ctx->rtty;
+    struct rtty *rtty = con->rtty;
     struct ev_loop *loop = rtty->loop;
 
-    if (ctx->sock > 0) {
-        ev_io_stop(loop, &ctx->ior);
-        ev_io_stop(loop, &ctx->iow);
-        ev_timer_stop(loop, &ctx->tmr);
-        close(ctx->sock);
+    if (con->sock > 0) {
+        ev_io_stop(loop, &con->ior);
+        ev_io_stop(loop, &con->iow);
+        ev_timer_stop(loop, &con->tmr);
+        close(con->sock);
     }
 
-    buffer_free(&ctx->rb);
-    buffer_free(&ctx->wb);
+    buffer_free(&con->rb);
+    buffer_free(&con->wb);
 
-    list_del(&ctx->head);
+    list_del(&con->head);
 
-    free(ctx);
+    free(con);
 }
 
 static void on_net_read(struct ev_loop *loop, struct ev_io *w, int revents)
 {
-    struct web_request_ctx *ctx = container_of(w, struct web_request_ctx, ior);
-    struct rtty *rtty = ctx->rtty;
+    struct http_connection *conn = container_of(w, struct http_connection, ior);
+    struct rtty *rtty = conn->rtty;
     struct buffer *wb = &rtty->wb;
     uint8_t buf[4096];
     int ret;
@@ -67,28 +67,28 @@ static void on_net_read(struct ev_loop *loop, struct ev_io *w, int revents)
     if (ret <= 0)
         goto done;
 
-    buffer_put_u8(wb, MSG_TYPE_WEB);
+    buffer_put_u8(wb, MSG_TYPE_HTTP);
     buffer_put_u16be(wb, 18 + ret);
-    buffer_put_data(wb, ctx->addr, 18);
+    buffer_put_data(wb, conn->addr, 18);
     buffer_put_data(wb, buf, ret);
     ev_io_start(rtty->loop, &rtty->iow);
 
-    ctx->active = ev_now(rtty->loop);
+    conn->active = ev_now(rtty->loop);
 
     return;
 
 done:
-    web_request_free(ctx);
+    http_conn_free(conn);
 }
 
 static void on_net_write(struct ev_loop *loop, struct ev_io *w, int revents)
 {
-    struct web_request_ctx *ctx = container_of(w, struct web_request_ctx, iow);
+    struct http_connection *conn = container_of(w, struct http_connection, iow);
 
-    if (buffer_pull_to_fd(&ctx->wb, w->fd, -1) < 0)
+    if (buffer_pull_to_fd(&conn->wb, w->fd, -1) < 0)
         goto err;
 
-    if (buffer_length(&ctx->wb) > 0)
+    if (buffer_length(&conn->wb) > 0)
         return;
 
 err:
@@ -97,52 +97,52 @@ err:
 
 static void on_timer_cb(struct ev_loop *loop, struct ev_timer *w, int revents)
 {
-    struct web_request_ctx *ctx = container_of(w, struct web_request_ctx, tmr);
+    struct http_connection *conn = container_of(w, struct http_connection, tmr);
     ev_tstamp now = ev_now(loop);
 
-    if (now - ctx->active < 30)
+    if (now - conn->active < 30)
         return;
 
-    web_request_free(ctx);
+    http_conn_free(conn);
 }
 
 static void on_connected(int sock, void *arg)
 {
-    struct web_request_ctx *ctx = (struct web_request_ctx *)arg;
-    struct ev_loop *loop = ctx->rtty->loop;
+    struct http_connection *conn = (struct http_connection *)arg;
+    struct ev_loop *loop = conn->rtty->loop;
 
     if (sock < 0) {
-        web_request_free(ctx);
+        http_conn_free(conn);
         return;
     }
 
-    ev_io_init(&ctx->ior, on_net_read, sock, EV_READ);
-    ev_io_start(loop, &ctx->ior);
+    ev_io_init(&conn->ior, on_net_read, sock, EV_READ);
+    ev_io_start(loop, &conn->ior);
 
-    ev_io_init(&ctx->iow, on_net_write, sock, EV_WRITE);
-    ev_io_start(loop, &ctx->iow);
+    ev_io_init(&conn->iow, on_net_write, sock, EV_WRITE);
+    ev_io_start(loop, &conn->iow);
 
-    ev_timer_init(&ctx->tmr, on_timer_cb, 3, 3);
-    ev_timer_start(loop, &ctx->tmr);
+    ev_timer_init(&conn->tmr, on_timer_cb, 3, 3);
+    ev_timer_start(loop, &conn->tmr);
 
-    ctx->sock = sock;
+    conn->sock = sock;
 }
 
-static struct web_request_ctx *find_exist_ctx(struct list_head *reqs, uint8_t *addr)
+static struct http_connection *find_exist_connection(struct list_head *conns, uint8_t *addr)
 {
-    struct web_request_ctx *ctx;
+    struct http_connection *conn;
 
-    list_for_each_entry(ctx, reqs, head) {
-        if (!memcmp(ctx->addr, addr, 18))
-            return ctx;
+    list_for_each_entry(conn, conns, head) {
+        if (!memcmp(conn->addr, addr, 18))
+            return conn;
     }
 
     return NULL;
 }
 
-void web_request(struct rtty *rtty, int len)
+void http_request(struct rtty *rtty, int len)
 {
-    struct web_request_ctx *ctx;
+    struct http_connection *conn;
     struct sockaddr_in addrin = {
         .sin_family = AF_INET
     };
@@ -157,16 +157,16 @@ void web_request(struct rtty *rtty, int len)
     if (req_len == 0)
         return;
 
-    ctx = find_exist_ctx(&rtty->web_reqs, addr);
-    if (ctx) {
+    conn = find_exist_connection(&rtty->http_conns, addr);
+    if (conn) {
         buffer_pull(&rtty->rb, NULL, 6);
         req_len -= 6;
 
-        data = buffer_put(&ctx->wb, req_len);
+        data = buffer_put(&conn->wb, req_len);
         buffer_pull(&rtty->rb, data, req_len);
 
-        if (ctx->sock > 0)
-            ev_io_start(rtty->loop, &ctx->iow);
+        if (conn->sock > 0)
+            ev_io_start(rtty->loop, &conn->iow);
         return;
     }
 
@@ -175,26 +175,26 @@ void web_request(struct rtty *rtty, int len)
 
     req_len -= 6;
 
-    ctx = (struct web_request_ctx *)calloc(1, sizeof(struct web_request_ctx));
-    ctx->rtty = rtty;
-    ctx->active = ev_now(rtty->loop);
+    conn = (struct http_connection *)calloc(1, sizeof(struct http_connection));
+    conn->rtty = rtty;
+    conn->active = ev_now(rtty->loop);
 
-    memcpy(ctx->addr, addr, 18);
+    memcpy(conn->addr, addr, 18);
 
-    data = buffer_put(&ctx->wb, req_len);
+    data = buffer_put(&conn->wb, req_len);
     buffer_pull(&rtty->rb, data, req_len);
 
-    list_add(&ctx->head, &rtty->web_reqs);
+    list_add(&conn->head, &rtty->http_conns);
 
-    sock = tcp_connect_sockaddr(rtty->loop, (struct sockaddr *)&addrin, sizeof(addrin), on_connected, ctx);
+    sock = tcp_connect_sockaddr(rtty->loop, (struct sockaddr *)&addrin, sizeof(addrin), on_connected, conn);
     if (sock < 0)
-        web_request_free(ctx);
+        http_conn_free(conn);
 }
 
-void web_reqs_free(struct list_head *reqs)
+void http_conns_free(struct list_head *reqs)
 {
-    struct web_request_ctx *ctx, *tmp;
+    struct http_connection *con, *tmp;
 
-    list_for_each_entry_safe(ctx, tmp, reqs, head)
-        web_request_free(ctx);
+    list_for_each_entry_safe(con, tmp, reqs, head)
+        http_conn_free(con);
 }

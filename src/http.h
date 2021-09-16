@@ -27,7 +27,7 @@
 
 #include "rtty.h"
 
-struct web_request_ctx {
+struct http_connection {
     struct list_head head;
     struct rtty *rtty;
     struct ev_timer tmr;
@@ -40,8 +40,8 @@ struct web_request_ctx {
     uint8_t addr[18];   /* upstream connection address: [port ip] */
 };
 
-void web_request(struct rtty *rtty, int len);
-void web_request_free(struct web_request_ctx *ctx);
-void web_reqs_free(struct list_head *reqs);
+void http_request(struct rtty *rtty, int len);
+void web_request_free(struct http_connection *ctx);
+void http_conns_free(struct list_head *reqs);
 
 #endif

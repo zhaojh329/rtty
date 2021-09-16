@@ -51,8 +51,8 @@ enum {
     MSG_TYPE_CMD,
     MSG_TYPE_HEARTBEAT,
     MSG_TYPE_FILE,
-    MSG_TYPE_WEB,
-    MSG_TYPE_MAX = MSG_TYPE_WEB
+    MSG_TYPE_HTTP,
+    MSG_TYPE_MAX = MSG_TYPE_HTTP
 };
 
 struct rtty;
@@ -99,7 +99,7 @@ struct rtty {
 #endif
     int ntty;   /* tty number */
     struct list_head ttys;
-    struct list_head web_reqs;
+    struct list_head http_conns;
 };
 
 int rtty_start(struct rtty *rtty);

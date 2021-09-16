@@ -29,7 +29,7 @@
 #include <sys/sysinfo.h>
 
 #include "net.h"
-#include "web.h"
+#include "http.h"
 #include "file.h"
 #include "rtty.h"
 #include "list.h"
@@ -281,7 +281,7 @@ void rtty_exit(struct rtty *rtty)
         rtty->sock = -1;
     }
 
-    web_reqs_free(&rtty->web_reqs);
+    http_conns_free(&rtty->http_conns);
 
     if (!rtty->reconnect)
         ev_break(rtty->loop, EVBREAK_ALL);
@@ -406,8 +406,8 @@ static int parse_msg(struct rtty *rtty)
         case MSG_TYPE_HEARTBEAT:
             break;
 
-        case MSG_TYPE_WEB:
-            web_request(rtty, msglen);
+        case MSG_TYPE_HTTP:
+            http_request(rtty, msglen);
             break;
 
         default:
@@ -660,7 +660,7 @@ int rtty_start(struct rtty *rtty)
         return -1;
 
     INIT_LIST_HEAD(&rtty->ttys);
-    INIT_LIST_HEAD(&rtty->web_reqs);
+    INIT_LIST_HEAD(&rtty->http_conns);
 
     rtty->active = ev_now(rtty->loop);
 
