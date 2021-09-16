@@ -41,6 +41,7 @@
 #define RTTY_MAX_TTY                10
 #define RTTY_HEARTBEAT_INTEVAL      5.0
 #define RTTY_TTY_TIMEOUT            600
+#define RTTY_TTY_ACK_BLOCK          4096
 
 enum {
     MSG_TYPE_REGISTER,
@@ -52,7 +53,8 @@ enum {
     MSG_TYPE_HEARTBEAT,
     MSG_TYPE_FILE,
     MSG_TYPE_HTTP,
-    MSG_TYPE_MAX = MSG_TYPE_HTTP
+    MSG_TYPE_ACK,
+    MSG_TYPE_MAX = MSG_TYPE_ACK
 };
 
 struct rtty;
@@ -67,6 +69,7 @@ struct tty {
     struct buffer wb;
     struct rtty *rtty;
     ev_tstamp active;
+    uint32_t wait_ack;
     struct ev_timer tmr;
     struct list_head node;
     struct file_context file;

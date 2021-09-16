@@ -106,6 +106,12 @@ static void pty_on_read(struct ev_loop *loop, struct ev_io *w, int revents)
     if (detect_file_operation(buf, len, tty->sid, &tty->file))
         return;
 
+    tty->wait_ack += len;
+
+    /* stop until received ack */
+    if (tty->wait_ack > RTTY_TTY_ACK_BLOCK)
+        ev_io_stop(loop, w);
+
     buffer_put_u8(wb, MSG_TYPE_TERMDATA);
     buffer_put_u16be(wb, 32 + len);
     buffer_put_data(wb, tty->sid, 32);
@@ -319,10 +325,11 @@ static void rtty_register(struct rtty *rtty)
 
 static void parse_tty_msg(struct rtty *rtty, int type, int len)
 {
+    struct buffer *b = &rtty->rb;
     struct tty *tty = NULL;
     char sid[33] = "";
 
-    buffer_pull(&rtty->rb, sid, 32);
+    buffer_pull(b, sid, 32);
     len -= 32;
 
     if (type != MSG_TYPE_LOGIN) {
@@ -348,7 +355,11 @@ static void parse_tty_msg(struct rtty *rtty, int type, int len)
         set_tty_winsize(tty);
         break;
     case MSG_TYPE_FILE:
-        parse_file_msg(&tty->file, &rtty->rb, len);
+        parse_file_msg(&tty->file, b, len);
+        break;
+    case MSG_TYPE_ACK:
+        tty->wait_ack -= buffer_pull_u16be(b);
+        ev_io_start(rtty->loop, &tty->ior);
         break;
     default:
         /* never to here */
@@ -395,6 +406,7 @@ static int parse_msg(struct rtty *rtty)
         case MSG_TYPE_TERMDATA:
         case MSG_TYPE_WINSIZE:
         case MSG_TYPE_FILE:
+        case MSG_TYPE_ACK:
             parse_tty_msg(rtty, msgtype, msglen);
             break;
 
