@@ -69,6 +69,7 @@ struct tty {
     ev_tstamp active;
     struct ev_timer tmr;
     struct list_head node;
+    struct file_context file;
 };
 
 struct rtty {
@@ -98,7 +99,6 @@ struct rtty {
 #endif
     int ntty;   /* tty number */
     struct list_head ttys;
-    struct file_context file_context;
     struct list_head web_reqs;
 };
 

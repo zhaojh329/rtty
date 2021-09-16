@@ -78,11 +78,13 @@ void file_context_reset(struct file_context *ctx)
     ctx->busy = false;
 }
 
-static void notify_user_canceled(struct rtty *rtty)
+static void notify_user_canceled(struct tty *tty)
 {
+    struct rtty *rtty = tty->rtty;
+
     buffer_put_u8(&rtty->wb, MSG_TYPE_FILE);
     buffer_put_u16be(&rtty->wb, 33);
-    buffer_put_data(&rtty->wb, rtty->file_context.sid, 32);
+    buffer_put_data(&rtty->wb, tty->file.sid, 32);
     buffer_put_u8(&rtty->wb, RTTY_FILE_MSG_CANCELED);
     ev_io_start(rtty->loop, &rtty->iow);
 }
@@ -97,7 +99,8 @@ static int notify_progress(struct file_context *ctx)
 
 static void send_file_data(struct file_context *ctx)
 {
-    struct rtty *rtty = container_of(ctx, struct rtty, file_context);
+    struct tty *tty = container_of(ctx, struct tty, file);
+    struct rtty *rtty = tty->rtty;
     uint8_t buf[4096 * 4];
     int ret;
 
@@ -130,13 +133,14 @@ static void send_file_data(struct file_context *ctx)
     return;
 
 err:
-    notify_user_canceled(rtty);
+    notify_user_canceled(tty);
     file_context_reset(ctx);
 }
 
 static int start_upload_file(struct file_context *ctx, const char *path)
 {
-    struct rtty *rtty = container_of(ctx, struct rtty, file_context);
+    struct tty *tty = container_of(ctx, struct tty, file);
+    struct rtty *rtty = tty->rtty;
     const char *name = basename(path);
     struct stat st;
     int fd;
@@ -167,7 +171,8 @@ static int start_upload_file(struct file_context *ctx, const char *path)
 
 bool detect_file_operation(uint8_t *buf, int len, const char *sid, struct file_context *ctx)
 {
-    struct rtty *rtty = container_of(ctx, struct rtty, file_context);
+    struct tty *tty = container_of(ctx, struct tty, file);
+    struct rtty *rtty = tty->rtty;
     char fifo_name[128];
     pid_t pid;
     int ctlfd;
@@ -261,7 +266,7 @@ bool detect_file_operation(uint8_t *buf, int len, const char *sid, struct file_c
 
 static void start_download_file(struct file_context *ctx, struct buffer *info, int len)
 {
-    struct rtty *rtty = container_of(ctx, struct rtty, file_context);
+    struct tty *tty = container_of(ctx, struct tty, file);
     char *name = savepath + strlen(savepath);
     struct mntent *ment;
     struct statvfs sfs;
@@ -284,6 +289,12 @@ static void start_download_file(struct file_context *ctx, struct buffer *info, i
     }
 
     buffer_pull(info, name, len - 4);
+
+    if (!access(savepath, F_OK)) {
+        send_file_control_msg(ctx->ctlfd, RTTY_FILE_MSG_ERR_EXIST, NULL, 0);
+        log_err("the file '%s' already exists\n", name);
+        goto open_fail;
+    }
 
     fd = open(savepath, O_WRONLY | O_TRUNC | O_CREAT, 0644);
     if (fd < 0) {
@@ -312,22 +323,24 @@ static void start_download_file(struct file_context *ctx, struct buffer *info, i
 check_space_fail:
     buffer_pull(info, name, len - 4);
 open_fail:
-    notify_user_canceled(rtty);
+    notify_user_canceled(tty);
     file_context_reset(ctx);
 }
 
-static void send_file_data_ack(struct rtty *rtty)
+static void send_file_data_ack(struct tty *tty)
 {
+    struct rtty *rtty = tty->rtty;
+
     buffer_put_u8(&rtty->wb, MSG_TYPE_FILE);
     buffer_put_u16be(&rtty->wb, 33);
-    buffer_put_data(&rtty->wb, rtty->file_context.sid, 32);
+    buffer_put_data(&rtty->wb, tty->file.sid, 32);
     buffer_put_u8(&rtty->wb, RTTY_FILE_MSG_DATA_ACK);
     ev_io_start(rtty->loop, &rtty->iow);
 }
 
 void parse_file_msg(struct file_context *ctx, struct buffer *data, int len)
 {
-    struct rtty *rtty = container_of(ctx, struct rtty, file_context);
+    struct tty *tty = container_of(ctx, struct tty, file);
     int type = buffer_pull_u8(data);
 
     len--;
@@ -344,13 +357,13 @@ void parse_file_msg(struct file_context *ctx, struct buffer *data, int len)
                 ctx->remain_size -= len;
 
                 if (notify_progress(ctx) < 0) {
-                    notify_user_canceled(rtty);
+                    notify_user_canceled(tty);
                     file_context_reset(ctx);
                 } else {
                     if (ctx->remain_size == 0)
                         file_context_reset(ctx);
                     else
-                        send_file_data_ack(rtty);
+                        send_file_data_ack(tty);
                 }
             } else {
                 buffer_pull(data, NULL, len);

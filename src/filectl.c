@@ -134,6 +134,10 @@ static void handle_file_control_msg(int fd, int sfd, const char *path)
             printf("\033[31mNo enough space\033[0m\n");
             goto done;
 
+        case RTTY_FILE_MSG_ERR_EXIST:
+            printf("\033[31mThe file already exists\033[0m\n");
+            goto done;
+
         default:
             goto done;
         }

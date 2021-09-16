@@ -57,7 +57,7 @@ static void del_tty(struct tty *tty)
     close(tty->pty);
     kill(tty->pid, SIGTERM);
 
-    file_context_reset(&rtty->file_context);
+    file_context_reset(&tty->file);
 
     log_info("delete tty: %s\n", tty->sid);
 
@@ -103,7 +103,7 @@ static void pty_on_read(struct ev_loop *loop, struct ev_io *w, int revents)
             return;
     }
 
-    if (detect_file_operation(buf, len, tty->sid, &rtty->file_context))
+    if (detect_file_operation(buf, len, tty->sid, &tty->file))
         return;
 
     buffer_put_u8(wb, MSG_TYPE_TERMDATA);
@@ -197,6 +197,7 @@ static void tty_login(struct rtty *rtty, const char *sid)
     tty->pid = pid;
     tty->pty = pty;
     tty->rtty = rtty;
+    tty->file.fd = -1;
 
     strcpy(tty->sid, sid);
 
@@ -346,6 +347,9 @@ static void parse_tty_msg(struct rtty *rtty, int type, int len)
     case MSG_TYPE_WINSIZE:
         set_tty_winsize(tty);
         break;
+    case MSG_TYPE_FILE:
+        parse_file_msg(&tty->file, &rtty->rb, len);
+        break;
     default:
         /* never to here */
         break;
@@ -390,6 +394,7 @@ static int parse_msg(struct rtty *rtty)
         case MSG_TYPE_LOGOUT:
         case MSG_TYPE_TERMDATA:
         case MSG_TYPE_WINSIZE:
+        case MSG_TYPE_FILE:
             parse_tty_msg(rtty, msgtype, msglen);
             break;
 
@@ -399,10 +404,6 @@ static int parse_msg(struct rtty *rtty)
             break;
 
         case MSG_TYPE_HEARTBEAT:
-            break;
-
-        case MSG_TYPE_FILE:
-            parse_file_msg(&rtty->file_context, rb, msglen);
             break;
 
         case MSG_TYPE_WEB:
@@ -657,8 +658,6 @@ int rtty_start(struct rtty *rtty)
     if (tcp_connect(rtty->loop, rtty->host, rtty->port, on_net_connected, rtty) < 0
             && !rtty->reconnect)
         return -1;
-
-    rtty->file_context.fd = -1;
 
     INIT_LIST_HEAD(&rtty->ttys);
     INIT_LIST_HEAD(&rtty->web_reqs);
