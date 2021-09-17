@@ -76,6 +76,11 @@ void file_context_reset(struct file_context *ctx)
     }
 
     ctx->busy = false;
+
+    if (ctx->buf) {
+        free(ctx->buf);
+        ctx->buf = NULL;
+    }
 }
 
 static void notify_user_canceled(struct tty *tty)
@@ -101,13 +106,21 @@ static void send_file_data(struct file_context *ctx)
 {
     struct tty *tty = container_of(ctx, struct tty, file);
     struct rtty *rtty = tty->rtty;
-    uint8_t buf[4096 * 4];
     int ret;
+
+    if (!ctx->buf) {
+        ctx->buf = malloc(UPLOAD_FILE_BUF_SIZE);
+        if (!ctx->buf) {
+            log_err("malloc: %s\n", strerror(errno));
+            send_file_control_msg(ctx->ctlfd, RTTY_FILE_MSG_ERR, NULL, 0);
+            goto err;
+        }
+    }
 
     if (ctx->fd < 0)
         return;
 
-    ret = read(ctx->fd, buf, sizeof(buf));
+    ret = read(ctx->fd, ctx->buf, UPLOAD_FILE_BUF_SIZE);
     if (ret < 0) {
         send_file_control_msg(ctx->ctlfd, RTTY_FILE_MSG_ERR, NULL, 0);
         goto err;
@@ -119,7 +132,7 @@ static void send_file_data(struct file_context *ctx)
     buffer_put_u16be(&rtty->wb, 33 + ret);
     buffer_put_data(&rtty->wb, ctx->sid, 32);
     buffer_put_u8(&rtty->wb, RTTY_FILE_MSG_DATA);
-    buffer_put_data(&rtty->wb, buf, ret);
+    buffer_put_data(&rtty->wb, ctx->buf, ret);
     ev_io_start(rtty->loop, &rtty->iow);
 
     if (ret == 0) {

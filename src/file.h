@@ -43,6 +43,8 @@ enum {
     RTTY_FILE_MSG_ERR
 };
 
+#define UPLOAD_FILE_BUF_SIZE (1024 * 16)
+
 struct file_control_msg {
     int type;
     uint8_t buf[128];
@@ -55,6 +57,7 @@ struct file_context {
     uid_t uid;
     gid_t gid;
     char sid[33];
+    uint8_t *buf;
     uint32_t total_size;
     uint32_t remain_size;
 };
