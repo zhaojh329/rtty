@@ -55,10 +55,8 @@ static int send_file_control_msg(int fd, int type, void *buf, int len)
     if (buf)
         memcpy(msg.buf, buf, len);
 
-    if (write(fd, &msg, sizeof(msg)) < 0) {
-        log_err("write fifo: %s\n", strerror(errno));
+    if (write(fd, &msg, sizeof(msg)) < 0)
         return -1;
-    }
 
     return 0;
 }
@@ -90,7 +88,7 @@ static void notify_user_canceled(struct tty *tty)
     buffer_put_u8(&rtty->wb, MSG_TYPE_FILE);
     buffer_put_u16be(&rtty->wb, 33);
     buffer_put_data(&rtty->wb, tty->file.sid, 32);
-    buffer_put_u8(&rtty->wb, RTTY_FILE_MSG_CANCELED);
+    buffer_put_u8(&rtty->wb, RTTY_FILE_MSG_ABORT);
     ev_io_start(rtty->loop, &rtty->iow);
 }
 
@@ -169,7 +167,7 @@ static int start_upload_file(struct file_context *ctx, const char *path)
     buffer_put_u8(&rtty->wb, MSG_TYPE_FILE);
     buffer_put_u16be(&rtty->wb, 33 + strlen(name));
     buffer_put_data(&rtty->wb, ctx->sid, 32);
-    buffer_put_u8(&rtty->wb, RTTY_FILE_MSG_INFO);
+    buffer_put_u8(&rtty->wb, RTTY_FILE_MSG_SEND);
     buffer_put_string(&rtty->wb, name);
     ev_io_start(rtty->loop, &rtty->iow);
 
@@ -233,7 +231,7 @@ bool detect_file_operation(uint8_t *buf, int len, const char *sid, struct file_c
         buffer_put_u8(&rtty->wb, MSG_TYPE_FILE);
         buffer_put_u16be(&rtty->wb, 33);
         buffer_put_data(&rtty->wb, ctx->sid, 32);
-        buffer_put_u8(&rtty->wb, RTTY_FILE_MSG_START_DOWNLOAD);
+        buffer_put_u8(&rtty->wb, RTTY_FILE_MSG_RECV);
         ev_io_start(rtty->loop, &rtty->iow);
 
         send_file_control_msg(ctlfd, RTTY_FILE_MSG_REQUEST_ACCEPT, NULL, 0);
@@ -279,7 +277,6 @@ bool detect_file_operation(uint8_t *buf, int len, const char *sid, struct file_c
 
 static void start_download_file(struct file_context *ctx, struct buffer *info, int len)
 {
-    struct tty *tty = container_of(ctx, struct tty, file);
     char *name = savepath + strlen(savepath);
     struct mntent *ment;
     struct statvfs sfs;
@@ -336,7 +333,6 @@ static void start_download_file(struct file_context *ctx, struct buffer *info, i
 check_space_fail:
     buffer_pull(info, name, len - 4);
 open_fail:
-    notify_user_canceled(tty);
     file_context_reset(ctx);
 }
 
@@ -347,7 +343,7 @@ static void send_file_data_ack(struct tty *tty)
     buffer_put_u8(&rtty->wb, MSG_TYPE_FILE);
     buffer_put_u16be(&rtty->wb, 33);
     buffer_put_data(&rtty->wb, tty->file.sid, 32);
-    buffer_put_u8(&rtty->wb, RTTY_FILE_MSG_DATA_ACK);
+    buffer_put_u8(&rtty->wb, RTTY_FILE_MSG_ACK);
     ev_io_start(rtty->loop, &rtty->iow);
 }
 
@@ -370,7 +366,6 @@ void parse_file_msg(struct file_context *ctx, struct buffer *data, int len)
                 ctx->remain_size -= len;
 
                 if (notify_progress(ctx) < 0) {
-                    notify_user_canceled(tty);
                     file_context_reset(ctx);
                 } else {
                     if (ctx->remain_size == 0)
@@ -386,20 +381,13 @@ void parse_file_msg(struct file_context *ctx, struct buffer *data, int len)
         }
         break;
 
-    case RTTY_FILE_MSG_DATA_ACK:
+    case RTTY_FILE_MSG_ACK:
         send_file_data(ctx);
         break;
 
-    case RTTY_FILE_MSG_CANCELED:
-        if (ctx->fd > -1) {
-            close(ctx->fd);
-            ctx->fd = -1;
-        }
-
-        send_file_control_msg(ctx->ctlfd, RTTY_FILE_MSG_CANCELED, NULL, 0);
-        close(ctx->ctlfd);
-
-        ctx->busy = false;
+    case RTTY_FILE_MSG_ABORT:
+        send_file_control_msg(ctx->ctlfd, RTTY_FILE_MSG_ABORT, NULL, 0);
+        file_context_reset(ctx);
         break;
 
     default:

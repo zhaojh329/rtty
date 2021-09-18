@@ -122,7 +122,7 @@ static void handle_file_control_msg(int fd, int sfd, const char *path)
             }
             break;
         
-        case RTTY_FILE_MSG_CANCELED:
+        case RTTY_FILE_MSG_ABORT:
             puts("");
             goto done;
 
