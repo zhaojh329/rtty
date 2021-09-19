@@ -35,31 +35,45 @@
 #include "net.h"
 #include "log/log.h"
 
-void http_conn_free(struct http_connection *con)
+static void send_http_msg(struct http_connection *conn, size_t len, uint8_t *data)
 {
-    struct rtty *rtty = con->rtty;
+    struct rtty *rtty = conn->rtty;
+    struct buffer *wb = &rtty->wb;
+
+    buffer_put_u8(wb, MSG_TYPE_HTTP);
+    buffer_put_u16be(wb, 18 + len);
+    buffer_put_data(wb, conn->addr, 18);
+    buffer_put_data(wb, data, len);
+    ev_io_start(rtty->loop, &rtty->iow);
+
+    conn->active = ev_now(rtty->loop);
+}
+
+void http_conn_free(struct http_connection *conn)
+{
+    struct rtty *rtty = conn->rtty;
     struct ev_loop *loop = rtty->loop;
 
-    if (con->sock > 0) {
-        ev_io_stop(loop, &con->ior);
-        ev_io_stop(loop, &con->iow);
-        ev_timer_stop(loop, &con->tmr);
-        close(con->sock);
+    send_http_msg(conn, 0, NULL);
+
+    if (conn->sock > 0) {
+        ev_io_stop(loop, &conn->ior);
+        ev_io_stop(loop, &conn->iow);
+        ev_timer_stop(loop, &conn->tmr);
+        close(conn->sock);
     }
 
-    buffer_free(&con->rb);
-    buffer_free(&con->wb);
+    buffer_free(&conn->rb);
+    buffer_free(&conn->wb);
 
-    list_del(&con->head);
+    list_del(&conn->head);
 
-    free(con);
+    free(conn);
 }
 
 static void on_net_read(struct ev_loop *loop, struct ev_io *w, int revents)
 {
     struct http_connection *conn = container_of(w, struct http_connection, ior);
-    struct rtty *rtty = conn->rtty;
-    struct buffer *wb = &rtty->wb;
     uint8_t buf[4096];
     int ret;
 
@@ -67,13 +81,7 @@ static void on_net_read(struct ev_loop *loop, struct ev_io *w, int revents)
     if (ret <= 0)
         goto done;
 
-    buffer_put_u8(wb, MSG_TYPE_HTTP);
-    buffer_put_u16be(wb, 18 + ret);
-    buffer_put_data(wb, conn->addr, 18);
-    buffer_put_data(wb, buf, ret);
-    ev_io_start(rtty->loop, &rtty->iow);
-
-    conn->active = ev_now(rtty->loop);
+    send_http_msg(conn, ret, buf);
 
     return;
 
