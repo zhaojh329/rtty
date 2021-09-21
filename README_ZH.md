@@ -100,7 +100,8 @@ rtty非常适合远程维护您的或者您的公司的部署在全球各地的�
         -d, --description=string Add a description to the device(Maximum 126 bytes)
         -a                       Auto reconnect to the server
         -s                       SSL on
-        -C, --cacert             CA certificate to verify peer against"
+        -C, --cacert             CA certificate to verify peer against
+        -x, --insecure           Allow insecure server connections when using SSL
         -c, --cert               Certificate file to use"
         -k, --key                Private key file to use"
         -D                       Run in the background
