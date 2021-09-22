@@ -1,6 +1,6 @@
 # The version number.
-set(RTTY_VERSION_MAJOR 7)
-set(RTTY_VERSION_MINOR 5)
+set(RTTY_VERSION_MAJOR 8)
+set(RTTY_VERSION_MINOR 0)
 set(RTTY_VERSION_PATCH 0)
 
 # Check the third party Libraries
