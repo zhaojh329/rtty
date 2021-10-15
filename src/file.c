@@ -31,6 +31,7 @@
 #include <inttypes.h>
 #include <sys/statvfs.h>
 #include <linux/limits.h>
+#include <sys/sysinfo.h>
 
 #include "log/log.h"
 #include "file.h"
@@ -287,13 +288,29 @@ static void start_download_file(struct file_context *ctx, struct buffer *info, i
 
     ment = find_mount_point(savepath);
     if (ment) {
-        if (statvfs(ment->mnt_dir, &sfs) == 0 && ctx->total_size > sfs.f_bavail * sfs.f_frsize) {
-            send_file_control_msg(ctx->ctlfd, RTTY_FILE_MSG_NO_SPACE, NULL, 0);
+        uint64_t avail;
+
+        if (!strcmp(ment->mnt_type, "ramfs")) {
+            struct sysinfo si;
+
+            if (sysinfo(&si)) {
+                log_err("download file fail: '%s'\n", strerror(errno));
+                goto check_space_fail;
+            }
+
+            avail = si.freeram;
+        } else if (!statvfs(ment->mnt_dir, &sfs)) {
+            avail = sfs.f_bavail * sfs.f_frsize;
+        } else {
+            log_err("download file fail: '%s'\n", strerror(errno));
+            goto check_space_fail;
+        }
+
+        if (ctx->total_size > avail) {
             log_err("download file fail: no enough space\n");
             goto check_space_fail;
         }
     } else {
-        send_file_control_msg(ctx->ctlfd, RTTY_FILE_MSG_NO_SPACE, NULL, 0);
         log_err("download file fail: not found mount point of '%s'\n", savepath);
         goto check_space_fail;
     }
@@ -331,6 +348,7 @@ static void start_download_file(struct file_context *ctx, struct buffer *info, i
     return;
 
 check_space_fail:
+    send_file_control_msg(ctx->ctlfd, RTTY_FILE_MSG_NO_SPACE, NULL, 0);
     buffer_pull(info, name, len - 4);
 open_fail:
     file_context_reset(ctx);
