@@ -63,7 +63,7 @@ static u_int32_t update_progress(uint8_t *buf)
     memcpy(&remain, buf, 4);
 
     printf("%100c\r", ' ');
-    printf("  %lu%%    %s     %.3fs\r", (total_size - remain) * 100UL / total_size,
+    printf("  %llu%%    %s     %.3fs\r", (total_size - remain) * 100ULL / total_size,
            format_size(total_size - remain),
            (now.tv_sec + now.tv_usec / 1000.0 / 1000) - (start_time.tv_sec + start_time.tv_usec / 1000.0 / 1000));
     fflush(stdout);
