@@ -31,10 +31,10 @@
 [vue]: https://github.com/vuejs/vue
 [服务端]: https://github.com/zhaojh329/rttys
 
-![](https://raw.githubusercontent.com/zhaojh329/rtty/doc/diagram.png)
-![](https://raw.githubusercontent.com/zhaojh329/rtty/doc/terminal.gif)
-![](https://raw.githubusercontent.com/zhaojh329/rtty/doc/file.gif)
-![](https://raw.githubusercontent.com/zhaojh329/rtty/doc/web.gif)
+![](/doc/diagram.png)
+![](/doc/terminal.gif)
+![](/doc/file.gif)
+![](/doc/web.gif)
 
 它由客户端和[服务端]组成。客户端采用纯C实现。[服务端]采用GO语言实现，前端界面采用[vue]实现。
 
@@ -141,8 +141,18 @@ http://your-server-host:5913/connect/devid2
 ## [远程执行命令](/COMMAND_ZH.md)
 
 # 贡献代码
-如果您想帮助[rtty](https://github.com/zhaojh329/rtty)变得更好，请参考
-[CONTRIBUTING_ZH.md](https://github.com/zhaojh329/rtty/blob/master/CONTRIBUTING_ZH.md)。
+如果您想帮助 rtty 变得更好，请参考 [CONTRIBUTING_ZH.md](/CONTRIBUTING_ZH.md)。
 
 # 强烈推荐佐大的 OpenWrt 培训班
 想学习 OpenWrt 开发，但是摸不着门道？自学没毅力？基础太差？怕太难学不会？快来参加<跟着佐大学 OpenWrt 开发入门培训班> 佐大助你能学有所成，培训班报名地址：http://forgotfun.org/2018/04/openwrt-training-2018.html
+
+# 捐贈
+如果你觉得此项目对你有帮助，可以捐助开发者，以鼓励项目能持续发展，更加完善
+
+## 支付宝
+
+<img src="/doc/alipay_donate.jpg" width="200px" height="200px"/>
+
+## 微信
+
+<img src="/doc/wechat_donate.jpg" width="200px" height="200px"/>

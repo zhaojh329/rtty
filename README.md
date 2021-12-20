@@ -28,10 +28,10 @@
 [vue]: https://github.com/vuejs/vue
 [server]: https://github.com/zhaojh329/rttys
 
-![](https://raw.githubusercontent.com/zhaojh329/rtty/doc/diagram.png)
-![](https://raw.githubusercontent.com/zhaojh329/rtty/doc/terminal.gif)
-![](https://raw.githubusercontent.com/zhaojh329/rtty/doc/file.gif)
-![](https://raw.githubusercontent.com/zhaojh329/rtty/doc/web.gif)
+![](/doc/diagram.png)
+![](/doc/terminal.gif)
+![](/doc/file.gif)
+![](/doc/web.gif)
 
 It is composed of a client and a [server]. The client is written in pure C. The [server] is written in go language
 and the front-end is written in [Vue].
@@ -151,3 +151,13 @@ Transfer file from remote device to the local
 If you would like to help making [rtty](https://github.com/zhaojh329/rtty) better,
 see the [CONTRIBUTING.md](https://github.com/zhaojh329/rtty/blob/master/CONTRIBUTING.md) file.
 
+# Donation
+If this project does help you, please consider donating to support the development of this project.
+
+## Alipay
+
+<img src="doc/alipay_donate.jpg" width="200px" height="200px"/>
+
+## WeChat
+
+<img src="doc/wechat_donate.jpg" width="200px" height="200px"/>
