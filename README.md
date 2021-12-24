@@ -10,7 +10,6 @@
 [8]: https://github.com/zhaojh329/rtty/releases
 [9]: https://github.com/zhaojh329/rtty/workflows/build/badge.svg
 [10]: https://img.shields.io/badge/Support%20rtty-Donate-blueviolet.svg
-[11]: https://paypal.me/zjh329
 
 [![license][1]][2]
 [![PRs Welcome][3]][4]
@@ -18,7 +17,7 @@
 [![Release Version][7]][8]
 ![Build Status][9]
 ![visitors](https://visitor-badge.laobi.icu/badge?page_id=zhaojh329.rtty)
-[![Support rtty][10]][11]
+[![Support rtty][10]](#donation)
 
 [Xterm.js]: https://github.com/xtermjs/xterm.js
 [libev]: http://software.schmorp.de/pkg/libev.html

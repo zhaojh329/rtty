@@ -10,9 +10,8 @@
 [8]: https://github.com/zhaojh329/rtty/releases
 [9]: https://github.com/zhaojh329/rtty/workflows/build/badge.svg
 [10]: https://img.shields.io/badge/支持rtty-赞助作者-blueviolet.svg
-[11]: #贡献代码
-[12]: https://img.shields.io/badge/技术交流群-点击加入：153530783-brightgreen.svg
-[13]: https://jq.qq.com/?_wv=1027&k=5PKxbTV
+[11]: https://img.shields.io/badge/技术交流群-点击加入：153530783-brightgreen.svg
+[12]: https://jq.qq.com/?_wv=1027&k=5PKxbTV
 
 [![license][1]][2]
 [![PRs Welcome][3]][4]
@@ -20,8 +19,8 @@
 [![Release Version][7]][8]
 ![Build Status][9]
 ![visitors](https://visitor-badge.laobi.icu/badge?page_id=zhaojh329.rtty)
-[![Support rtty][10]][11]
-[![Chinese Chat][12]][13]
+[![Support rtty][10]](#捐贈)
+[![Chinese Chat][11]][12]
 
 [Xterm.js]: https://github.com/xtermjs/xterm.js
 [libev]: http://software.schmorp.de/pkg/libev.html
