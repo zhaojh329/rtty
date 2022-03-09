@@ -1,5 +1,7 @@
 # rtty([中文](/README_ZH.md))
 
+**This project is officially supported by [GL.iNet](https://github.com/gl-inet).**
+
 [1]: https://img.shields.io/badge/license-MIT-brightgreen.svg?style=plastic
 [2]: /LICENSE
 [3]: https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=plastic
