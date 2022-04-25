@@ -29,8 +29,10 @@
 #include <string.h>
 #include <ctype.h>
 #include <unistd.h>
+#include <errno.h>
 
 #include "utils.h"
+#include "log/log.h"
 
 int find_login(char *buf, int len)
 {
@@ -221,4 +223,39 @@ bool getgid_by_pid(pid_t pid, gid_t *gid)
     sscanf(line, "Gid:\t%u", gid);
     
     return true;
+}
+
+void rtty_run_state(int state)
+{
+	static int _st = -1;
+	const char *rtty_statefile = "/var/run/rtty";
+	FILE *sf;
+	const char *str_state = "Disconnected\n";
+
+	if (_st == state) {
+		return;	
+	}
+
+	_st = state;
+
+	sf = fopen(rtty_statefile, "w+");
+	if (!sf) {
+		log_err("Cannot create state %s: %s", rtty_statefile, strerror(errno));
+		return;
+	}
+
+	switch(_st){
+	case RTTY_STATE_CONNECTED:
+		str_state = "Connected\n";
+		break;
+	default:
+		break;
+	}
+
+	fwrite(str_state, strlen(str_state), 1, sf);
+
+	fsync(fileno(sf));
+	fclose(sf);
+
+	return;
 }
