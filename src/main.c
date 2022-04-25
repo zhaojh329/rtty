@@ -29,6 +29,7 @@
 #include <glob.h>
 
 #include "log/log.h"
+#include "utils.h"
 #include "rtty.h"
 
 enum {
@@ -240,6 +241,8 @@ int main(int argc, char **argv)
     if (rtty.ssl_ctx && !has_cacert)
         load_default_ca_cert(rtty.ssl_ctx);
 #endif
+
+	rtty_run_state(RTTY_STATE_DISCONNECTED);
 
     if (rtty_start(&rtty) < 0)
         return -1;

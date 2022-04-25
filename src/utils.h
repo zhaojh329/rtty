@@ -44,4 +44,11 @@ bool getuid_by_pid(pid_t pid, uid_t *uid);
 
 bool getgid_by_pid(pid_t pid, gid_t *gid);
 
+enum {
+	RTTY_STATE_CONNECTED = 1,
+	RTTY_STATE_DISCONNECTED
+};
+
+void rtty_run_state(int state);
+
 #endif
