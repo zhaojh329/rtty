@@ -241,6 +241,8 @@ int main(int argc, char **argv)
         load_default_ca_cert(rtty.ssl_ctx);
 #endif
 
+	rtty_run_state(RTTY_STATE_DISCONNECTED);
+
     if (rtty_start(&rtty) < 0)
         return -1;
 
