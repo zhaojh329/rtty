@@ -446,7 +446,7 @@ static int ssl_negotiated(struct rtty *rtty)
     char err_buf[128];
     int ret;
 
-    ret = ssl_connect(rtty->ssl, false, on_ssl_verify_error, &valid_cert);
+    ret = ssl_connect(rtty->ssl, on_ssl_verify_error, &valid_cert);
     if (ret == SSL_PENDING)
         return 0;
 
