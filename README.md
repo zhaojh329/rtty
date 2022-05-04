@@ -42,7 +42,7 @@ You can access your device's terminal from anywhere via the web. Differentiate y
 rtty is very suitable for remote maintenance your or your company's thousands of Linux devices deployed around
 the world.
 
-# Features
+## Features
 * The client is writen in C language, very small, suitable for embedded Linux
   - No SSL: rtty(32K) + libev(56K)
   - Support SSL: + libmbedtls(88K) + libmbedcrypto(241K) + libmbedx509(48k)
@@ -55,41 +55,42 @@ the world.
 * Fully-featured terminal based on [Xterm.js]
 * Simple to deployment and easy to use
 
-# Dependencies of the Client side
+## Dependencies of the Client side
 * [libev] - A full-featured and high-performance event loop
 * [mbedtls(polarssl)] or [CyaSSl(wolfssl)] or [openssl] - If you want to support SSL
 
-# [Deploying the server side](https://github.com/zhaojh329/rttys)
+## [Deploying the server side](https://github.com/zhaojh329/rttys)
 
-# How to install rtty
-## For Linux distribution
-### Install Dependencies
+## How to install rtty
+### For Linux distribution
+
+Install Dependencies
 
     sudo apt install -y libev-dev libssl-dev      # Ubuntu, Debian
     sudo pacman -S --noconfirm libev openssl      # ArchLinux
     sudo yum install -y libev-devel openssl-devel # Centos
 
-### Clone the code of rtty
+Clone the code of rtty
 
     git clone --recursive https://github.com/zhaojh329/rtty.git
 
-### Build
+Build
 
     cd rtty && mkdir build && cd build
     cmake .. && make install
 
-## For Buildroot
+### For Buildroot
 Select rtty in menuconfig and compile it
 
     Target packages  --->
         Shell and utilities  --->
             [*] rtty
 
-## [For OpenWRT](/OPENWRT.md)
+### [For OpenWRT](/OPENWRT.md)
 
-## [For Other Embedded Linux Platform](/CROSS_COMPILE.md)
+### [For Other Embedded Linux Platform](/CROSS_COMPILE.md)
 
-# Command-line Options
+## Command-line Options
 
     Usage: rtty [option]
         -I, --id=string          Set an ID for the device(Maximum 63 bytes, valid
@@ -112,7 +113,7 @@ Select rtty in menuconfig and compile it
         -V, --version            Show version
         --help                   Show usage
 
-# How to run rtty
+## How to run rtty
 Replace the following parameters with your own parameters
 
     sudo rtty -I 'My-device-ID' -h 'your-server' -p 5912 -a -v -d 'My Device Description'
@@ -129,15 +130,15 @@ If your rttys is configured with a token, add the following parameter(Replace th
 
     -t 34762d07637276694b938d23f10d7164
 
-# Usage
+## Usage
 Use your web browser to access your server: `http://your-server-host:5913`, then click the connection button
 
-## connect devices with no web login required(you need to configure the device white list on the server)
+### connect devices with no web login required(you need to configure the device white list on the server)
 http://your-server-host:5913/connect/devid1
 
 http://your-server-host:5913/connect/devid2
 
-## Transfer file
+### Transfer file
 Transfer file from local to remote device
 
 	rtty -R
@@ -146,19 +147,19 @@ Transfer file from remote device to the local
 
 	rtty -S test.txt
 
-## [Execute command remotely](/COMMAND.md)
+### [Execute command remotely](/COMMAND.md)
 
-# Contributing
+## Contributing
 If you would like to help making [rtty](https://github.com/zhaojh329/rtty) better,
 see the [CONTRIBUTING.md](https://github.com/zhaojh329/rtty/blob/master/CONTRIBUTING.md) file.
 
-# Donation
+## Donation
 If this project does help you, please consider donating to support the development of this project.
 
-## Alipay
+Alipay
 
 <img src="doc/alipay_donate.jpg" width="200px" height="200px"/>
 
-## WeChat
+WeChat
 
 <img src="doc/wechat_donate.jpg" width="200px" height="200px"/>

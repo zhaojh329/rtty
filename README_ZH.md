@@ -41,7 +41,7 @@
 
 rtty非常适合远程维护您的或者您的公司的部署在全球各地的成千上万的Linux设备。
 
-# 特性
+## 特性
 * 客户端 C 语言实现，非常小，适合嵌入式 Linux
   - 不支持 SSL: rtty(32K) + libev(56K)
   - 支持 SSL: + libmbedtls(88K) + libmbedcrypto(241K) + libmbedx509(48k)
@@ -54,41 +54,41 @@ rtty非常适合远程维护您的或者您的公司的部署在全球各地的�
 * 基于[Xterm.js]的全功能终端
 * 部署简单，使用方便
 
-# 客户端依赖
+## 客户端依赖
 * [libev] - 高性能的事件循环库
 * [mbedtls(polarssl)]、[CyaSSl(wolfssl)]或者[openssl] - 如果您需要支持SSL
 
-# [部署服务端](https://github.com/zhaojh329/rttys/blob/master/README_ZH.md)
+## [部署服务端](https://github.com/zhaojh329/rttys/blob/master/README_ZH.md)
 
-# 如何安装rtty
-## 针对Linux发行版
-### 安装依赖
+## 如何安装rtty
+### 针对Linux发行版
+安装依赖
 
     sudo apt install -y libev-dev libssl-dev      # Ubuntu, Debian
     sudo pacman -S --noconfirm libev openssl      # ArchLinux
     sudo yum install -y libev-devel openssl-devel # Centos
 
-### 克隆rtty代码
+克隆rtty代码
 
     git clone --recursive https://github.com/zhaojh329/rtty.git
 
-### 编译
+编译
 
     cd rtty && mkdir build && cd build
     cmake .. && make install
 
-## 如何在Buildroot中使用
+### 如何在Buildroot中使用
 在menuconfig中选中rtty然后编译
 
     Target packages  --->
         Shell and utilities  --->
             [*] rtty
 
-## [如何在OpenWRT中使用](/OPENWRT_ZH.md)
+### [如何在OpenWRT中使用](/OPENWRT_ZH.md)
 
-## [其它嵌入式Linux平台](/CROSS_COMPILE.md)
+### [其它嵌入式Linux平台](/CROSS_COMPILE.md)
 
-# 命令行选项
+## 命令行选项
 
     Usage: rtty [option]
         -I, --id=string          Set an ID for the device(Maximum 63 bytes, valid
@@ -111,7 +111,7 @@ rtty非常适合远程维护您的或者您的公司的部署在全球各地的�
         -V, --version            Show version
         --help                   Show usage
 
-# 运行rtty
+## 运行rtty
 将下面的参数替换为您自己的参数
 
     sudo rtty -I 'My-device-ID' -h 'your-server' -p 5912 -a -v -d 'My Device Description'
@@ -120,15 +120,15 @@ rtty非常适合远程维护您的或者您的公司的部署在全球各地的�
 
     -t 34762d07637276694b938d23f10d7164
 
-# 如何使用
+## 如何使用
 使用您的 Web 浏览器访问您的服务器: `http://your-server-host:5913`，然后点击连接按钮。
 
-## 直接连接设备，无需 Web 登录(需要在服务端配置设备白名单)
+### 直接连接设备，无需 Web 登录(需要在服务端配置设备白名单)
 http://your-server-host:5913/connect/devid1
 
 http://your-server-host:5913/connect/devid2
 
-## 传输文件
+### 传输文件
 从本地传输文件到远程设备
 
     rtty -R
@@ -137,21 +137,21 @@ http://your-server-host:5913/connect/devid2
 
     rtty -S test.txt
 
-## [远程执行命令](/COMMAND_ZH.md)
+### [远程执行命令](/COMMAND_ZH.md)
 
-# 贡献代码
+## 贡献代码
 如果您想帮助 rtty 变得更好，请参考 [CONTRIBUTING_ZH.md](/CONTRIBUTING_ZH.md)。
 
-# 强烈推荐佐大的 OpenWrt 培训班
+## 强烈推荐佐大的 OpenWrt 培训班
 想学习 OpenWrt 开发，但是摸不着门道？自学没毅力？基础太差？怕太难学不会？快来参加<跟着佐大学 OpenWrt 开发入门培训班> 佐大助你能学有所成，培训班报名地址：http://forgotfun.org/2018/04/openwrt-training-2018.html
 
-# 捐贈
+## 捐贈
 如果你觉得此项目对你有帮助，可以捐助开发者，以鼓励项目能持续发展，更加完善
 
-## 支付宝
+支付宝
 
 <img src="/doc/alipay_donate.jpg" width="200px" height="200px"/>
 
-## 微信
+微信
 
 <img src="/doc/wechat_donate.jpg" width="200px" height="200px"/>
