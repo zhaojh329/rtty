@@ -289,6 +289,8 @@ void rtty_exit(struct rtty *rtty)
 
     http_conns_free(&rtty->http_conns);
 
+	rtty_run_state(RTTY_STATE_DISCONNECTED);
+
     if (!rtty->reconnect)
         ev_break(rtty->loop, EVBREAK_ALL);
 }
@@ -399,6 +401,7 @@ static int parse_msg(struct rtty *rtty)
             }
             buffer_pull(rb, NULL, msglen - 1);
             log_info("register success\n");
+			rtty_run_state(RTTY_STATE_CONNECTED);
             break;
 
         case MSG_TYPE_LOGIN:
