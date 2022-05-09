@@ -38,6 +38,11 @@ struct http_connection {
     ev_tstamp active;
     int sock;
     uint8_t addr[18];   /* upstream connection address: [port ip] */
+    bool https;
+#ifdef SSL_SUPPORT
+    bool ssl_negotiated;
+    void *ssl;
+#endif
 };
 
 void http_request(struct rtty *rtty, int len);

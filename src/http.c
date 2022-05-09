@@ -71,8 +71,35 @@ void http_conn_free(struct http_connection *conn)
 
     list_del(&conn->head);
 
+#ifdef SSL_SUPPORT
+    if (conn->ssl)
+        ssl_session_free(conn->ssl);
+#endif
+
     free(conn);
 }
+
+#ifdef SSL_SUPPORT
+/* -1 error, 0 pending, 1 ok */
+static int ssl_negotiated(struct http_connection *conn)
+{
+    char err_buf[128];
+    int ret;
+
+    ret = ssl_connect(conn->ssl, NULL, NULL);
+    if (ret == SSL_PENDING)
+        return 0;
+
+    if (ret == SSL_ERROR) {
+        log_err("ssl connect error: %s\n", ssl_last_error_string(err_buf, sizeof(err_buf)));
+        return -1;
+    }
+
+    conn->ssl_negotiated = true;
+
+    return 1;
+}
+#endif
 
 static void on_net_read(struct ev_loop *loop, struct ev_io *w, int revents)
 {
@@ -80,9 +107,34 @@ static void on_net_read(struct ev_loop *loop, struct ev_io *w, int revents)
     uint8_t buf[4096];
     int ret;
 
-    ret = read(w->fd, buf, 4096);
-    if (ret <= 0)
-        goto done;
+#ifdef SSL_SUPPORT
+    if (conn->ssl) {
+        static char err_buf[128];
+
+        if (unlikely(!conn->ssl_negotiated)) {
+            ret = ssl_negotiated(conn);
+            if (ret < 0)
+                goto done;
+            if (ret == 0)
+                return;
+        }
+
+        ret = ssl_read(conn->ssl, buf, sizeof(buf));
+        if (ret == SSL_ERROR) {
+            log_err("ssl_read: %s\n", ssl_last_error_string(err_buf, sizeof(err_buf)));
+            goto done;
+        }
+        if (ret == SSL_PENDING)
+            return;
+
+    } else {
+#endif
+        ret = read(w->fd, buf, sizeof(buf));
+        if (ret <= 0)
+            goto done;
+#ifdef SSL_SUPPORT
+    }
+#endif
 
     send_http_msg(conn, ret, buf);
 
@@ -95,11 +147,41 @@ done:
 static void on_net_write(struct ev_loop *loop, struct ev_io *w, int revents)
 {
     struct http_connection *conn = container_of(w, struct http_connection, iow);
+    struct buffer *b = &conn->wb;
 
-    if (buffer_pull_to_fd(&conn->wb, w->fd, -1) < 0)
-        goto err;
+#ifdef SSL_SUPPORT
+    if (conn->ssl) {
+        static char err_buf[128];
+        int ret;
 
-    if (buffer_length(&conn->wb) > 0)
+        if (unlikely(!conn->ssl_negotiated)) {
+            ret = ssl_negotiated(conn);
+            if (ret < 0)
+                goto err;
+            if (ret == 0)
+                return;
+        }
+
+        ret = ssl_write(conn->ssl, buffer_data(b), buffer_length(b));
+        if (ret == SSL_ERROR) {
+            log_err("ssl_write: %s\n", ssl_last_error_string(err_buf, sizeof(err_buf)));
+            goto err;
+        }
+
+        if (ret == SSL_PENDING)
+            return;
+
+        buffer_pull(b, NULL, ret);
+
+    } else {
+#endif
+        if (buffer_pull_to_fd(b, w->fd, -1) < 0)
+            goto err;
+#ifdef SSL_SUPPORT
+    }
+#endif
+
+    if (buffer_length(b) > 0)
         return;
 
 err:
@@ -120,7 +202,8 @@ static void on_timer_cb(struct ev_loop *loop, struct ev_timer *w, int revents)
 static void on_connected(int sock, void *arg)
 {
     struct http_connection *conn = (struct http_connection *)arg;
-    struct ev_loop *loop = conn->rtty->loop;
+    struct rtty *rtty = conn->rtty;
+    struct ev_loop *loop = rtty->loop;
 
     if (sock < 0) {
         http_conn_free(conn);
@@ -137,6 +220,16 @@ static void on_connected(int sock, void *arg)
     ev_timer_start(loop, &conn->tmr);
 
     conn->sock = sock;
+
+    if (conn->https) {
+#ifdef SSL_SUPPORT
+        conn->ssl = ssl_session_new(rtty->ssl_ctx, sock);
+        if (!conn->ssl) {
+            log_err("SSL session create fail\n");
+            send_http_msg(conn, 0, NULL);
+        }
+#endif
+    }
 }
 
 static struct http_connection *find_exist_connection(struct list_head *conns, uint8_t *addr)
@@ -160,6 +253,17 @@ void http_request(struct rtty *rtty, int len)
     int sock, req_len;
     uint8_t addr[18];
     void *data;
+    bool https;
+
+    https = buffer_pull_u8(&rtty->rb);
+
+#ifndef SSL_SUPPORT
+    if (https) {
+        buffer_pull(&rtty->rb, NULL, len - 1);
+        log_err("SSL not supported\n");
+        return;
+    }
+#endif
 
     buffer_pull(&rtty->rb, addr, 18);
 
@@ -188,6 +292,7 @@ void http_request(struct rtty *rtty, int len)
 
     conn = (struct http_connection *)calloc(1, sizeof(struct http_connection));
     conn->rtty = rtty;
+    conn->https = https;
     conn->active = ev_now(rtty->loop);
 
     memcpy(conn->addr, addr, 18);
