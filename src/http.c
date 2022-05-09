@@ -40,6 +40,9 @@ static void send_http_msg(struct http_connection *conn, size_t len, uint8_t *dat
     struct rtty *rtty = conn->rtty;
     struct buffer *wb = &rtty->wb;
 
+    if (rtty->sock == -1)
+        return;
+
     buffer_put_u8(wb, MSG_TYPE_HTTP);
     buffer_put_u16be(wb, 18 + len);
     buffer_put_data(wb, conn->addr, 18);

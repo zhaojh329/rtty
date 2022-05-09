@@ -314,10 +314,8 @@ void rtty_exit(struct rtty *rtty)
     }
 #endif
 
-    if (rtty->sock > 0) {
-        close(rtty->sock);
-        rtty->sock = -1;
-    }
+    close(rtty->sock);
+    rtty->sock = -1;
 
     http_conns_free(&rtty->http_conns);
 
