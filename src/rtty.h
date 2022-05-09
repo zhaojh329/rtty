@@ -57,6 +57,11 @@ enum {
     MSG_TYPE_MAX = MSG_TYPE_ACK
 };
 
+enum {
+    RTTY_STATE_DISCONNECTED,
+    RTTY_STATE_CONNECTED
+};
+
 struct rtty;
 
 struct tty {

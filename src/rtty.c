@@ -23,6 +23,7 @@
  */
 
 #include <pty.h>
+#include <stdio.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <stdlib.h>
@@ -258,6 +259,37 @@ static void set_tty_winsize(struct tty *tty)
         log_err("ioctl TIOCSWINSZ failed: %s\n", strerror(errno));
 }
 
+static void rtty_run_state(int state)
+{
+    static int st = RTTY_STATE_DISCONNECTED;
+    const char *file = "/var/run/rtty";
+    const char *str_state;
+    FILE *fp;
+
+    if (st == state)
+        return;
+
+    st = state;
+
+    fp = fopen(file, "w+");
+    if (!fp) {
+        log_err("Cannot create state %s: %s", file, strerror(errno));
+        return;
+    }
+
+    switch(st) {
+    case RTTY_STATE_CONNECTED:
+        str_state = "Connected\n";
+        break;
+    default:
+        str_state = "Disconnected\n";
+        break;
+    }
+
+    fputs(str_state, fp);
+    fclose(fp);
+}
+
 void rtty_exit(struct rtty *rtty)
 {
     struct tty *tty, *ntty;
@@ -289,7 +321,7 @@ void rtty_exit(struct rtty *rtty)
 
     http_conns_free(&rtty->http_conns);
 
-	rtty_run_state(RTTY_STATE_DISCONNECTED);
+    rtty_run_state(RTTY_STATE_DISCONNECTED);
 
     if (!rtty->reconnect)
         ev_break(rtty->loop, EVBREAK_ALL);
@@ -401,7 +433,7 @@ static int parse_msg(struct rtty *rtty)
             }
             buffer_pull(rb, NULL, msglen - 1);
             log_info("register success\n");
-			rtty_run_state(RTTY_STATE_CONNECTED);
+            rtty_run_state(RTTY_STATE_CONNECTED);
             break;
 
         case MSG_TYPE_LOGIN:
@@ -666,6 +698,8 @@ int rtty_start(struct rtty *rtty)
         log_err("the program 'login' is not found\n");
         return -1;
     }
+
+    rtty_run_state(RTTY_STATE_DISCONNECTED);
 
     ev_timer_init(&rtty->tmr, rtty_timer_cb, 1.0, 1.0);
     ev_timer_start(rtty->loop, &rtty->tmr);
