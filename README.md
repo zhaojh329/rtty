@@ -55,6 +55,12 @@ the world.
 * Fully-featured terminal based on [Xterm.js]
 * Simple to deployment and easy to use
 
+## Who's using rtty
+- [GL.iNet](https://www.gl-inet.com/)
+- [Yunlianxin Technology](http://www.iyunlink.com/)
+- [One IOT World](https://www.oneiotworld.com/)
+- [bitswrt Communication Technology](http://bitswrt.com/)
+
 ## Dependencies of the Client side
 * [libev] - A full-featured and high-performance event loop
 * [mbedtls(polarssl)] or [CyaSSl(wolfssl)] or [openssl] - If you want to support SSL
