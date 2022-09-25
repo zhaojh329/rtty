@@ -250,35 +250,35 @@ void http_request(struct rtty *rtty, int len)
     struct sockaddr_in addrin = {
         .sin_family = AF_INET
     };
-    int sock, req_len;
     uint8_t addr[18];
     void *data;
     bool https;
+    int sock;
 
     https = buffer_pull_u8(&rtty->rb);
+    len -= 1;
 
 #ifndef SSL_SUPPORT
     if (https) {
-        buffer_pull(&rtty->rb, NULL, len - 1);
+        buffer_pull(&rtty->rb, NULL, len);
         log_err("SSL not supported\n");
         return;
     }
 #endif
 
     buffer_pull(&rtty->rb, addr, 18);
+    len -= 18;
 
-    req_len = len - 18;
-
-    if (req_len == 0)
+    if (len == 0)
         return;
 
     conn = find_exist_connection(&rtty->http_conns, addr);
     if (conn) {
         buffer_pull(&rtty->rb, NULL, 6);
-        req_len -= 6;
+        len -= 6;
 
-        data = buffer_put(&conn->wb, req_len);
-        buffer_pull(&rtty->rb, data, req_len);
+        data = buffer_put(&conn->wb, len);
+        buffer_pull(&rtty->rb, data, len);
 
         if (conn->sock > 0)
             ev_io_start(rtty->loop, &conn->iow);
@@ -287,8 +287,7 @@ void http_request(struct rtty *rtty, int len)
 
     addrin.sin_addr.s_addr = buffer_pull_u32(&rtty->rb);
     addrin.sin_port = buffer_pull_u16(&rtty->rb);
-
-    req_len -= 6;
+    len -= 6;
 
     conn = (struct http_connection *)calloc(1, sizeof(struct http_connection));
     conn->rtty = rtty;
@@ -297,8 +296,8 @@ void http_request(struct rtty *rtty, int len)
 
     memcpy(conn->addr, addr, 18);
 
-    data = buffer_put(&conn->wb, req_len);
-    buffer_pull(&rtty->rb, data, req_len);
+    data = buffer_put(&conn->wb, len);
+    buffer_pull(&rtty->rb, data, len);
 
     list_add(&conn->head, &rtty->http_conns);
 
