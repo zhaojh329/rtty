@@ -37,7 +37,7 @@
 #include "ssl/ssl.h"
 #endif
 
-#define RTTY_PROTO_VER              3
+#define RTTY_PROTO_VER              4
 #define RTTY_MAX_TTY                10
 #define RTTY_HEARTBEAT_INTEVAL      5.0
 #define RTTY_TTY_TIMEOUT            600
