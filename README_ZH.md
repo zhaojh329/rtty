@@ -154,10 +154,4 @@ http://your-server-host:5913/connect/devid2
 ## 捐贈
 如果你觉得此项目对你有帮助，可以捐助开发者，以鼓励项目能持续发展，更加完善
 
-支付宝
-
-<img src="/doc/alipay_donate.jpg" width="200px" height="200px"/>
-
-微信
-
-<img src="/doc/wechat_donate.jpg" width="200px" height="200px"/>
+![](/doc/donate.png)

@@ -162,10 +162,4 @@ see the [CONTRIBUTING.md](https://github.com/zhaojh329/rtty/blob/master/CONTRIBU
 ## Donation
 If this project does help you, please consider donating to support the development of this project.
 
-Alipay
-
-<img src="doc/alipay_donate.jpg" width="200px" height="200px"/>
-
-WeChat
-
-<img src="doc/wechat_donate.jpg" width="200px" height="200px"/>
+![](/doc/donate.png)
