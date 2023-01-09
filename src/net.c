@@ -120,7 +120,7 @@ int tcp_connect_sockaddr(struct ev_loop *loop, const struct sockaddr *addr, sock
 {
     int sock;
 
-    sock = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK | SOCK_CLOEXEC, 0);
+    sock = socket(addr->sa_family, SOCK_STREAM | SOCK_NONBLOCK | SOCK_CLOEXEC, 0);
     if (sock < 0) {
         log_err("create socket failed: %s\n", strerror(errno));
         return -1;
@@ -149,7 +149,7 @@ int tcp_connect(struct ev_loop *loop, const char *host, int port,
     struct sockaddr *addr = NULL;
     struct addrinfo *result, *rp;
     struct addrinfo hints = {
-        .ai_family = AF_INET,
+        .ai_family = AF_UNSPEC,
         .ai_socktype = SOCK_STREAM,
         .ai_flags = AI_ADDRCONFIG
     };
@@ -169,7 +169,7 @@ int tcp_connect(struct ev_loop *loop, const char *host, int port,
     }
 
     for (rp = result; rp != NULL; rp = rp->ai_next) {
-        if (rp->ai_family == AF_INET) {
+        if (rp->ai_family == AF_INET||rp->ai_family == AF_INET6) {
             addr = rp->ai_addr;
             addrlen = rp->ai_addrlen;
             break;
