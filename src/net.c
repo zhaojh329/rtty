@@ -169,7 +169,7 @@ int tcp_connect(struct ev_loop *loop, const char *host, int port,
     }
 
     for (rp = result; rp != NULL; rp = rp->ai_next) {
-        if (rp->ai_family == AF_INET||rp->ai_family == AF_INET6) {
+        if (rp->ai_family == AF_INET || rp->ai_family == AF_INET6) {
             addr = rp->ai_addr;
             addrlen = rp->ai_addrlen;
             break;
