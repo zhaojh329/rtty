@@ -9,7 +9,6 @@
 [7]: https://img.shields.io/badge/发布版本-8.1.0-blue.svg?style=plastic
 [8]: https://github.com/zhaojh329/rtty/releases
 [9]: https://github.com/zhaojh329/rtty/workflows/build/badge.svg
-[10]: https://img.shields.io/badge/支持rtty-赞助作者-blueviolet.svg
 [11]: https://img.shields.io/badge/技术交流群-点击加入：153530783-brightgreen.svg
 [12]: https://jq.qq.com/?_wv=1027&k=5PKxbTV
 
@@ -19,7 +18,6 @@
 [![Release Version][7]][8]
 ![Build Status][9]
 ![visitors](https://visitor-badge.laobi.icu/badge?page_id=zhaojh329.rtty)
-[![Support rtty][10]](#捐贈)
 [![Chinese Chat][11]][12]
 
 [Xterm.js]: https://github.com/xtermjs/xterm.js
@@ -150,8 +148,3 @@ http://your-server-host:5913/connect/devid2
 
 ## 强烈推荐佐大的 OpenWrt 培训班
 想学习 OpenWrt 开发，但是摸不着门道？自学没毅力？基础太差？怕太难学不会？快来参加<跟着佐大学 OpenWrt 开发入门培训班> 佐大助你能学有所成，培训班报名地址：http://forgotfun.org/2018/04/openwrt-training-2018.html
-
-## 捐贈
-如果你觉得此项目对你有帮助，可以捐助开发者，以鼓励项目能持续发展，更加完善
-
-![](/doc/donate.png)
