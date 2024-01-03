@@ -35,7 +35,7 @@
 It is composed of a client and a [server]. The client is written in pure C. The [server] is written in go language
 and the front-end is written in [Vue].
 
-You can access your device's terminal from anywhere via the web. Differentiate your different device by device ID.
+You can access your device's terminal from anywhere via the web. Distinguish your different device by device ID.
 
 rtty is very suitable for remote maintenance your or your company's thousands of Linux devices deployed around
 the world.
