@@ -30,6 +30,7 @@
 #include <errno.h>
 #include <stdio.h>
 #include <fcntl.h>
+#include <libgen.h>
 
 #include "utils.h"
 #include "file.h"
@@ -75,6 +76,7 @@ static void handle_file_control_msg(int fd, int sfd, const char *path)
 {
     struct file_control_msg msg;
     struct buffer b = {};
+    char *dirc;
 
     while (true) {
         if (buffer_put_fd(&b, fd, -1, NULL) < 0)
@@ -90,7 +92,9 @@ static void handle_file_control_msg(int fd, int sfd, const char *path)
             if (sfd > -1) {
                 close(sfd);
                 gettimeofday(&start_time, NULL);
-                printf("Transferring '%s'...Press Ctrl+C to cancel\n", basename(path));
+                dirc = strdup(path);
+                printf("Transferring '%s'...Press Ctrl+C to cancel\n", basename(dirc));
+                free(dirc);
 
                 if (total_size == 0) {
                     printf("  100%%    0 B     0s\n");
