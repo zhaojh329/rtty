@@ -22,6 +22,6 @@ gen_mac() {
 
 while [ $i -ne $cnt ]
 do
-    rtty -I "$(gen_mac)" -d "$(date +%s%N | md5sum | head -c 20)" -h $host -p $port -s &
+    rtty -I "$(gen_mac)" -d "$(date +%s%N | md5sum | head -c 20)" -h $host -p $port &
     i=$((i+1))
 done
