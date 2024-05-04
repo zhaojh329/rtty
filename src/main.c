@@ -44,7 +44,7 @@ static void load_default_ca_cert(struct ssl_context *ctx)
 	glob("/etc/ssl/certs/*.crt", 0, NULL, &gl);
 
 	for (i = 0; i < gl.gl_pathc; i++)
-		ssl_load_ca_crt_file(ctx, gl.gl_pathv[i]);
+		ssl_load_ca_cert_file(ctx, gl.gl_pathv[i]);
 
 	globfree(&gl);
 }
@@ -163,7 +163,7 @@ int main(int argc, char **argv)
             rtty.ssl_on = true;
             break;
         case 'C':
-            if (ssl_load_ca_crt_file(rtty.ssl_ctx, optarg)) {
+            if (ssl_load_ca_cert_file(rtty.ssl_ctx, optarg)) {
                 log_err("load ca certificate file fail\n");
                 return -1;
             }
@@ -174,7 +174,7 @@ int main(int argc, char **argv)
             ssl_set_require_validation(rtty.ssl_ctx, false);
             break;
         case 'c':
-            if (ssl_load_crt_file(rtty.ssl_ctx, optarg)) {
+            if (ssl_load_cert_file(rtty.ssl_ctx, optarg)) {
                 log_err("load certificate file fail\n");
                 return -1;
             }

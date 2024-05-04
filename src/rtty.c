@@ -480,11 +480,16 @@ static int ssl_negotiated(struct rtty *rtty)
     int ret;
 
     ret = ssl_connect(rtty->ssl, on_ssl_verify_error, &valid_cert);
-    if (ret == SSL_PENDING)
+    if (ret == SSL_WANT_READ)
         return 0;
 
+    if (ret == SSL_WANT_WRITE) {
+        ev_io_start(rtty->loop, &rtty->iow);
+        return 0;
+    }
+
     if (ret == SSL_ERROR) {
-        log_err("ssl connect error: %s\n", ssl_last_error_string(err_buf, sizeof(err_buf)));
+        log_err("ssl connect error: %s\n", ssl_last_error_string(rtty->ssl, err_buf, sizeof(err_buf)));
         return -1;
     }
 
@@ -504,11 +509,11 @@ static int rtty_ssl_read(int fd, void *buf, size_t count, void *arg)
 
     ret = ssl_read(rtty->ssl, buf, count);
     if (ret == SSL_ERROR) {
-        log_err("ssl_read: %s\n", ssl_last_error_string(err_buf, sizeof(err_buf)));
+        log_err("ssl_read: %s\n", ssl_last_error_string(rtty->ssl, err_buf, sizeof(err_buf)));
         return P_FD_ERR;
     }
 
-    if (ret == SSL_PENDING)
+    if (ret == SSL_WANT_READ || ret == SSL_WANT_WRITE)
         return P_FD_PENDING;
 
     return ret;
@@ -580,11 +585,11 @@ static void on_net_write(struct ev_loop *loop, struct ev_io *w, int revents)
 
         ret = ssl_write(rtty->ssl, buffer_data(b), buffer_length(b));
         if (ret == SSL_ERROR) {
-            log_err("ssl_write: %s\n", ssl_last_error_string(err_buf, sizeof(err_buf)));
+            log_err("ssl_write: %s\n", ssl_last_error_string(rtty->ssl, err_buf, sizeof(err_buf)));
             goto err;
         }
 
-        if (ret == SSL_PENDING)
+        if (ret == SSL_WANT_READ || ret == SSL_WANT_WRITE)
             return;
 
         buffer_pull(b, NULL, ret);

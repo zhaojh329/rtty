@@ -87,11 +87,11 @@ static int ssl_negotiated(struct http_connection *conn)
     int ret;
 
     ret = ssl_connect(conn->ssl, NULL, NULL);
-    if (ret == SSL_PENDING)
+    if (ret == SSL_WANT_READ || ret == SSL_WANT_WRITE)
         return 0;
 
     if (ret == SSL_ERROR) {
-        log_err("ssl connect error: %s\n", ssl_last_error_string(err_buf, sizeof(err_buf)));
+        log_err("ssl connect error: %s\n", ssl_last_error_string(conn->ssl, err_buf, sizeof(err_buf)));
         return -1;
     }
 
@@ -121,10 +121,10 @@ static void on_net_read(struct ev_loop *loop, struct ev_io *w, int revents)
 
         ret = ssl_read(conn->ssl, buf, sizeof(buf));
         if (ret == SSL_ERROR) {
-            log_err("ssl_read: %s\n", ssl_last_error_string(err_buf, sizeof(err_buf)));
+            log_err("ssl_read: %s\n", ssl_last_error_string(conn->ssl, err_buf, sizeof(err_buf)));
             goto done;
         }
-        if (ret == SSL_PENDING)
+        if (ret == SSL_WANT_READ || ret == SSL_WANT_WRITE)
             return;
 
     } else {
@@ -164,11 +164,11 @@ static void on_net_write(struct ev_loop *loop, struct ev_io *w, int revents)
 
         ret = ssl_write(conn->ssl, buffer_data(b), buffer_length(b));
         if (ret == SSL_ERROR) {
-            log_err("ssl_write: %s\n", ssl_last_error_string(err_buf, sizeof(err_buf)));
+            log_err("ssl_write: %s\n", ssl_last_error_string(conn->ssl, err_buf, sizeof(err_buf)));
             goto err;
         }
 
-        if (ret == SSL_PENDING)
+        if (ret == SSL_WANT_READ || ret == SSL_WANT_WRITE)
             return;
 
         buffer_pull(b, NULL, ret);
