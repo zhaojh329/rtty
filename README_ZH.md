@@ -28,7 +28,17 @@
 [vue]: https://github.com/vuejs/vue
 [服务端]: https://github.com/zhaojh329/rttys
 
-![](/doc/diagram.png)
+```mermaid
+flowchart TB
+s[rttys with public IP address]
+u1["User(Web Browser)"] --> s
+u2["User(Web Browser)"] --> s
+u3["User(Web Browser)"] --> s
+s --> c1["rtty(Linux Device)"]
+s --> c2["rtty(Linux Device)"]
+s --> c3["rtty(Linux Device)"]
+```
+
 ![](/doc/terminal.gif)
 ![](/doc/file.gif)
 ![](/doc/web.gif)
