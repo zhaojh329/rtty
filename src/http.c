@@ -126,7 +126,8 @@ static void on_net_read(struct ev_loop *loop, struct ev_io *w, int revents)
         }
         if (ret == SSL_WANT_READ || ret == SSL_WANT_WRITE)
             return;
-
+        if (ret == 0)
+            goto done;
     } else {
 #endif
         ret = read(w->fd, buf, sizeof(buf));
