@@ -22,6 +22,7 @@
  * SOFTWARE.
  */
 
+#include <arpa/inet.h>
 #include <stdbool.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -37,6 +38,7 @@
 struct net_context {
     struct ev_timer tmr;
     struct ev_io iow;
+    char addr[128];
     int sock;
     void *arg;
 
@@ -55,6 +57,23 @@ static const char *port2str(int port)
     return buffer;
 }
 
+static void sockaddr_to_str(const struct sockaddr *addr, char *buf, size_t len)
+{
+    char ip[INET6_ADDRSTRLEN] = "";
+    int port;
+
+    if (addr->sa_family == AF_INET) {
+        struct sockaddr_in *in = (struct sockaddr_in *)addr;
+        inet_ntop(AF_INET, &in->sin_addr, ip, sizeof(ip));
+        port = ntohs(in->sin_port);
+    } else {
+        struct sockaddr_in6 *in6 = (struct sockaddr_in6 *)addr;
+        inet_ntop(AF_INET6, &in6->sin6_addr, ip, sizeof(ip));
+        port = ntohs(in6->sin6_port);
+    }
+
+    snprintf(buf, len, "%s:%d", ip, port);
+}
 
 static void sock_write_cb(struct ev_loop *loop, struct ev_io *w, int revents)
 {
@@ -73,7 +92,7 @@ static void sock_write_cb(struct ev_loop *loop, struct ev_io *w, int revents)
     }
 
     if (err > 0) {
-        log_err("network connect failed: %s\n", strerror(err));
+        log_err("connect '%s' failed: %s\n", ctx->addr, strerror(err));
         goto err;
     }
 
@@ -91,7 +110,7 @@ static void timer_cb(struct ev_loop *loop, struct ev_timer *w, int revents)
 {
     struct net_context *ctx = container_of(w, struct net_context, tmr);
 
-    log_err("network connect timeout\n");
+    log_err("connect '%s' timeout\n", ctx->addr);
 
     ev_io_stop(loop, &ctx->iow);
     close(ctx->sock);
@@ -100,13 +119,16 @@ static void timer_cb(struct ev_loop *loop, struct ev_timer *w, int revents)
 }
 
 static void wait_connect(struct ev_loop *loop, int sock, int timeout,
-                         void (*on_connected)(int sock, void *arg), void *arg)
+                        const struct sockaddr *addr,
+                        void (*on_connected)(int sock, void *arg), void *arg)
 {
     struct net_context *ctx = calloc(1, sizeof(struct net_context));
 
     ctx->sock = sock;
     ctx->arg = arg;
     ctx->on_connected = on_connected;
+
+    sockaddr_to_str(addr, ctx->addr, sizeof(ctx->addr));
 
     ev_timer_init(&ctx->tmr, timer_cb, timeout, 0);
     ev_timer_start(loop, &ctx->tmr);
@@ -128,10 +150,12 @@ int tcp_connect_sockaddr(struct ev_loop *loop, const struct sockaddr *addr, sock
 
     if (connect(sock, addr, addrlen) < 0) {
         if (errno != EINPROGRESS) {
-            log_err("connect failed: %s\n", strerror(errno));
+            char buf[128];
+            sockaddr_to_str(addr, buf, sizeof(buf));
+            log_err("connect '%s' failed: %s\n", buf, strerror(errno));
             goto err;
         }
-        wait_connect(loop, sock, 3, on_connected, arg);
+        wait_connect(loop, sock, 3, addr, on_connected, arg);
     } else {
         on_connected(sock, arg);
     }
