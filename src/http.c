@@ -182,6 +182,8 @@ static void on_net_write(struct ev_loop *loop, struct ev_io *w, int revents)
     }
 #endif
 
+    conn->active = ev_now(conn->rtty->loop);
+
     if (buffer_length(b) > 0)
         return;
 
