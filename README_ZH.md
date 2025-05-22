@@ -6,7 +6,7 @@
 [4]: https://github.com/zhaojh329/rtty/pulls
 [5]: https://img.shields.io/badge/提问-欢迎-brightgreen.svg?style=plastic
 [6]: https://github.com/zhaojh329/rtty/issues/new
-[7]: https://img.shields.io/badge/发布版本-8.1.4-blue.svg?style=plastic
+[7]: https://img.shields.io/badge/发布版本-8.1.5-blue.svg?style=plastic
 [8]: https://github.com/zhaojh329/rtty/releases
 [9]: https://github.com/zhaojh329/rtty/workflows/build/badge.svg
 [11]: https://img.shields.io/badge/技术交流群-点击加入：153530783-brightgreen.svg
