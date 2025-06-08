@@ -249,8 +249,8 @@ static void run_task(struct task *t)
 {
     int opipe[2];
     int epipe[2];
+    int err = 0;
     pid_t pid;
-    int err;
 
     if (pipe2(opipe, O_CLOEXEC | O_NONBLOCK) < 0 ||
             pipe2(epipe, O_CLOEXEC | O_NONBLOCK) < 0) {
