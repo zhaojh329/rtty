@@ -181,6 +181,8 @@ int tcp_connect(struct ev_loop *loop, const char *host, int port,
     int addrlen;
     int ret;
 
+    log_debug("connecting to %s:%d\n", host, port);
+
     ret = getaddrinfo(host, port2str(port), &hints, &result);
     if (ret) {
         if (ret == EAI_SYSTEM) {

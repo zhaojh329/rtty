@@ -353,6 +353,8 @@ static void rtty_register(struct rtty *rtty)
     buffer_put_u8(wb, '\0');
 
     ev_io_start(rtty->loop, &rtty->iow);
+
+    log_debug("send msg: register\n");
 }
 
 static void parse_tty_msg(struct rtty *rtty, int type, int len)
@@ -399,6 +401,34 @@ static void parse_tty_msg(struct rtty *rtty, int type, int len)
     }
 }
 
+static const char *msg_type_name(int type)
+{
+    switch (type) {
+    case MSG_TYPE_REGISTER:
+        return "register";
+    case MSG_TYPE_LOGIN:
+        return "login";
+    case MSG_TYPE_LOGOUT:
+        return "logout";
+    case MSG_TYPE_TERMDATA:
+        return "termdata";
+    case MSG_TYPE_WINSIZE:
+        return "winsize";
+    case MSG_TYPE_CMD:
+        return "cmd";
+    case MSG_TYPE_HEARTBEAT:
+        return "heartbeat";
+    case MSG_TYPE_FILE:
+        return "file";
+    case MSG_TYPE_HTTP:
+        return "http";
+    case MSG_TYPE_ACK:
+        return "ack";
+    default:
+        return "unknown";
+    }
+}
+
 static int parse_msg(struct rtty *rtty)
 {
     struct buffer *rb = &rtty->rb;
@@ -420,6 +450,8 @@ static int parse_msg(struct rtty *rtty)
         }
 
         buffer_pull_u16(rb);
+
+        log_debug("recv msg: %s\n", msg_type_name(msgtype));
 
         switch (msgtype) {
         case MSG_TYPE_REGISTER:
@@ -682,6 +714,8 @@ static void rtty_timer_cb(struct ev_loop *loop, struct ev_timer *w, int revents)
         buffer_put_u32be(&rtty->wb, info.uptime);
         buffer_put_zero(&rtty->wb, 12);  /* pad */
         ev_io_start(loop, &rtty->iow);
+
+        log_debug("send msg: heartbeat\n");
     }
 }
 
