@@ -9,16 +9,22 @@
 [7]: https://img.shields.io/badge/发布版本-8.1.5-blue.svg?style=plastic
 [8]: https://github.com/zhaojh329/rtty/releases
 [9]: https://github.com/zhaojh329/rtty/workflows/build/badge.svg
-[11]: https://img.shields.io/badge/技术交流群-点击加入：153530783-brightgreen.svg
-[12]: https://jq.qq.com/?_wv=1027&k=5PKxbTV
+[10]: https://raw.githubusercontent.com/CodePhiliaX/resource-trusteeship/main/readmex.svg
+[11]: https://readmex.com/zhaojh329/rtty
+[12]: https://deepwiki.com/badge.svg
+[13]: https://deepwiki.com/zhaojh329/rtty
+[14]: https://img.shields.io/badge/技术交流群-点击加入：153530783-brightgreen.svg
+[15]: https://jq.qq.com/?_wv=1027&k=5PKxbTV
 
 [![license][1]][2]
 [![PRs Welcome][3]][4]
 [![Issue Welcome][5]][6]
 [![Release Version][7]][8]
 ![Build Status][9]
+[![ReadmeX][10]][11]
+[![Ask DeepWiki][12]][13]
 ![visitors](https://visitor-badge.laobi.icu/badge?page_id=zhaojh329.rtty)
-[![Chinese Chat][11]][12]
+[![Chinese Chat][14]][15]
 
 [Xterm.js]: https://github.com/xtermjs/xterm.js
 [libev]: http://software.schmorp.de/pkg/libev.html
