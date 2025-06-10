@@ -37,9 +37,9 @@
 #include "ssl/ssl.h"
 #endif
 
-#define RTTY_PROTO_VER              4
+#define RTTY_PROTO_VER              5
 #define RTTY_MAX_TTY                10
-#define RTTY_HEARTBEAT_INTEVAL      5.0
+#define RTTY_HEARTBEAT_TIMEOUT      3.0
 #define RTTY_TTY_TIMEOUT            600
 #define RTTY_TTY_ACK_BLOCK          4096
 
@@ -95,9 +95,9 @@ struct rtty {
     struct ev_io ior;
     struct ev_timer tmr;
     struct ev_loop *loop;
-    int ninactive;
-    ev_tstamp active;
-    ev_tstamp last_heartbeat;
+    ev_tstamp heartbeat;
+    bool wait_heartbeat;
+    bool registered;
     bool reconnect;
 #ifdef SSL_SUPPORT
     struct ssl_context *ssl_ctx;

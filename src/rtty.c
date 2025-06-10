@@ -295,10 +295,11 @@ void rtty_exit(struct rtty *rtty)
     struct tty *tty, *ntty;
 
     if (rtty->sock < 0)
-        return;
+        goto done;
 
     ev_io_stop(rtty->loop, &rtty->ior);
     ev_io_stop(rtty->loop, &rtty->iow);
+    ev_timer_stop(rtty->loop, &rtty->tmr);
 
     buffer_free(&rtty->rb);
     buffer_free(&rtty->wb);
@@ -316,18 +317,24 @@ void rtty_exit(struct rtty *rtty)
 
     close(rtty->sock);
     rtty->sock = -1;
+    rtty->registered = false;
 
     http_conns_free(&rtty->http_conns);
 
     rtty_run_state(RTTY_STATE_DISCONNECTED);
 
-    if (!rtty->reconnect)
+done:
+    if (!rtty->reconnect) {
         ev_break(rtty->loop, EVBREAK_ALL);
+    } else {
+        ev_timer_set(&rtty->tmr, 5.0, 0);
+        ev_timer_start(rtty->loop, &rtty->tmr);
+    }
 }
 
 static void rtty_register(struct rtty *rtty)
 {
-    size_t len = 4 + strlen(rtty->devid);
+    size_t len = 6 + strlen(rtty->devid);
     struct buffer *wb = &rtty->wb;
 
     if (rtty->description)
@@ -340,6 +347,7 @@ static void rtty_register(struct rtty *rtty)
     buffer_put_u16be(wb, len);
 
     buffer_put_u8(wb, RTTY_PROTO_VER);
+    buffer_put_u16be(wb, rtty->heartbeat);
 
     buffer_put_string(wb, rtty->devid);
     buffer_put_u8(wb, '\0');
@@ -353,6 +361,9 @@ static void rtty_register(struct rtty *rtty)
     buffer_put_u8(wb, '\0');
 
     ev_io_start(rtty->loop, &rtty->iow);
+
+    ev_timer_set(&rtty->tmr, 5.0, 0);
+    ev_timer_start(rtty->loop, &rtty->tmr);
 
     log_debug("send msg: register\n");
 }
@@ -464,6 +475,9 @@ static int parse_msg(struct rtty *rtty)
             buffer_pull(rb, NULL, msglen - 1);
             log_info("register success\n");
             rtty_run_state(RTTY_STATE_CONNECTED);
+            rtty->registered = true;
+            ev_timer_set(&rtty->tmr, 0, rtty->heartbeat);
+            ev_timer_again(rtty->loop, &rtty->tmr);
             break;
 
         case MSG_TYPE_LOGIN:
@@ -481,6 +495,9 @@ static int parse_msg(struct rtty *rtty)
             break;
 
         case MSG_TYPE_HEARTBEAT:
+            rtty->wait_heartbeat = false;
+            ev_timer_set(&rtty->tmr, 0, rtty->heartbeat);
+            ev_timer_again(rtty->loop, &rtty->tmr);
             break;
 
         case MSG_TYPE_HTTP:
@@ -580,9 +597,6 @@ static void on_net_read(struct ev_loop *loop, struct ev_io *w, int revents)
         }
     }
 
-    rtty->ninactive = 0;
-    rtty->active = ev_now(loop);
-
     if (parse_msg(rtty))
         goto err;
 
@@ -648,15 +662,13 @@ static void on_net_connected(int sock, void *arg)
     struct rtty *rtty = arg;
 
     if (sock < 0) {
-        if (!rtty->reconnect)
-            ev_break(rtty->loop, EVBREAK_ALL);
+        rtty_exit(rtty);
         return;
     }
 
     log_info("connected to server\n");
 
     rtty->sock = sock;
-    rtty->ninactive = 0;
 
     ev_io_init(&rtty->ior, on_net_read, sock, EV_READ);
     ev_io_start(rtty->loop, &rtty->ior);
@@ -681,42 +693,40 @@ static void on_net_connected(int sock, void *arg)
 static void rtty_timer_cb(struct ev_loop *loop, struct ev_timer *w, int revents)
 {
     struct rtty *rtty = container_of(w, struct rtty, tmr);
-    ev_tstamp now = ev_now(loop);
+    struct sysinfo info = {};
 
     if (rtty->sock < 0) {
-        if (now - rtty->active < 5)
-            return;
-        rtty->active = now;
         log_err("rtty reconnecting...\n");
         tcp_connect(rtty->loop, rtty->host, rtty->port, on_net_connected, rtty);
         return;
     }
 
-    if (now - rtty->active > RTTY_HEARTBEAT_INTEVAL * 3 / 2) {
-        log_err("Inactive too long time\n");
-        if (rtty->ninactive++ > 1) {
-            log_err("Inactive 3 times, now exit\n");
-            rtty_exit(rtty);
-            return;
-        }
-        rtty->active = now;
+    if (!rtty->registered) {
+        log_err("rtty register timeout\n");
+        rtty_exit(rtty);
+        return;
     }
 
-    if (now - rtty->last_heartbeat > RTTY_HEARTBEAT_INTEVAL - 1) {
-        struct sysinfo info = {};
-
-        rtty->last_heartbeat = now;
-
-        sysinfo(&info);
-
-        buffer_put_u8(&rtty->wb, MSG_TYPE_HEARTBEAT);
-        buffer_put_u16be(&rtty->wb, 16);
-        buffer_put_u32be(&rtty->wb, info.uptime);
-        buffer_put_zero(&rtty->wb, 12);  /* pad */
-        ev_io_start(loop, &rtty->iow);
-
-        log_debug("send msg: heartbeat\n");
+    if (rtty->wait_heartbeat) {
+        log_err("heartbeat timeout\n");
+        rtty_exit(rtty);
+        return;
     }
+
+    sysinfo(&info);
+
+    buffer_put_u8(&rtty->wb, MSG_TYPE_HEARTBEAT);
+    buffer_put_u16be(&rtty->wb, 16);
+    buffer_put_u32be(&rtty->wb, info.uptime);
+    buffer_put_zero(&rtty->wb, 12);  /* pad */
+    ev_io_start(loop, &rtty->iow);
+
+    rtty->wait_heartbeat = true;
+
+    ev_timer_set(&rtty->tmr, 0, RTTY_HEARTBEAT_TIMEOUT);
+    ev_timer_again(loop, &rtty->tmr);
+
+    log_debug("send msg: heartbeat\n");
 }
 
 int rtty_start(struct rtty *rtty)
@@ -738,8 +748,7 @@ int rtty_start(struct rtty *rtty)
 
     rtty_run_state(RTTY_STATE_DISCONNECTED);
 
-    ev_timer_init(&rtty->tmr, rtty_timer_cb, 1.0, 1.0);
-    ev_timer_start(rtty->loop, &rtty->tmr);
+    ev_init(&rtty->tmr, rtty_timer_cb);
 
     if (tcp_connect(rtty->loop, rtty->host, rtty->port, on_net_connected, rtty) < 0
             && !rtty->reconnect)
@@ -747,8 +756,6 @@ int rtty_start(struct rtty *rtty)
 
     INIT_LIST_HEAD(&rtty->ttys);
     INIT_LIST_HEAD(&rtty->http_conns);
-
-    rtty->active = ev_now(rtty->loop);
 
     return 0;
 }

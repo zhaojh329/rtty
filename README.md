@@ -119,6 +119,7 @@ Select rtty in menuconfig and compile it
         -p, --port=number        Server port(Default is 5912)
         -d, --description=string Add a description to the device(Maximum 126 bytes)
         -a                       Auto reconnect to the server
+        -i number                Set heartbeat interval in seconds(Default is 5s)
         -s                       SSL on
         -C, --cacert             CA certificate to verify peer against
         -x, --insecure           Allow insecure server connections when using SSL

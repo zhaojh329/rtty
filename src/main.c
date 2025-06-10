@@ -85,6 +85,7 @@ static void usage(const char *prog)
             "      -p, --port=number        Server port(Default is 5912)\n"
             "      -d, --description=string Add a description to the device(Maximum 126 bytes)\n"
             "      -a                       Auto reconnect to the server\n"
+            "      -i number                Set heartbeat interval in seconds(Default is 5s)\n"
 #ifdef SSL_SUPPORT
             "      -s                       SSL on\n"
             "      -C, --cacert             CA certificate to verify peer against\n"
@@ -106,12 +107,13 @@ static void usage(const char *prog)
 
 int main(int argc, char **argv)
 {
-    char shortopts[32] = "I:h:p:d:aDt:f:RS:vV";
+    char shortopts[32] = "I:i:h:p:d:aDt:f:RS:vV";
     struct ev_loop *loop = EV_DEFAULT;
     struct ev_signal signal_watcher;
     bool background = false;
     bool verbose = false;
     struct rtty rtty = {
+        .heartbeat = 5.0,
         .host = "localhost",
         .port = 5912,
         .loop = loop,
@@ -139,6 +141,13 @@ int main(int argc, char **argv)
         switch (c) {
         case 'I':
             rtty.devid = optarg;
+            break;
+        case 'i':
+            rtty.heartbeat = atof(optarg);
+            if (rtty.heartbeat < 5) {
+                rtty.heartbeat = 5.0;
+                log_warn("Heartbeat interval too short, set to 5s\n");
+            }
             break;
         case 'h':
             rtty.host = optarg;
