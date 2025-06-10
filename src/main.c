@@ -123,8 +123,6 @@ int main(int argc, char **argv)
     int option_index;
     int c;
 
-    log_level(LOG_DEBUG);
-
 #ifdef SSL_SUPPORT
     rtty.ssl_ctx = ssl_context_new(false);
     if (!rtty.ssl_ctx)
@@ -223,8 +221,6 @@ int main(int argc, char **argv)
 
     if (verbose)
         log_level(LOG_DEBUG);
-    else
-        log_level(LOG_ERR);
 
     log_info("rtty version %s\n", RTTY_VERSION_STRING);
 
