@@ -144,11 +144,6 @@ rtty非常适合远程维护您的或者您的公司的部署在全球各地的�
 ## 如何使用
 使用您的 Web 浏览器访问您的服务器: `http://your-server-host:5913`，然后点击连接按钮。
 
-### 直接连接设备，无需 Web 登录(需要在服务端配置设备白名单)
-http://your-server-host:5913/connect/devid1
-
-http://your-server-host:5913/connect/devid2
-
 ### 传输文件
 从本地传输文件到远程设备
 
