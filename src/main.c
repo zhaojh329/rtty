@@ -85,7 +85,7 @@ static void usage(const char *prog)
             "      -p, --port=number        Server port(Default is 5912)\n"
             "      -d, --description=string Add a description to the device(Maximum 126 bytes)\n"
             "      -a                       Auto reconnect to the server\n"
-            "      -i number                Set heartbeat interval in seconds(Default is 5s)\n"
+            "      -i number                Set heartbeat interval in seconds(Default is 30s)\n"
 #ifdef SSL_SUPPORT
             "      -s                       SSL on\n"
             "      -C, --cacert             CA certificate to verify peer against\n"
@@ -113,7 +113,7 @@ int main(int argc, char **argv)
     bool background = false;
     bool verbose = false;
     struct rtty rtty = {
-        .heartbeat = 5.0,
+        .heartbeat = 30,
         .host = "localhost",
         .port = 5912,
         .loop = loop,
