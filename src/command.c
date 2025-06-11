@@ -44,24 +44,6 @@ static LIST_HEAD(task_pending);
 
 static void run_task(struct task *t);
 
-/* For execute command */
-static bool login_test(const char *username, const char *password)
-{
-    struct spwd *sp;
-
-    if (!username || *username == 0)
-        return false;
-
-    sp = getspnam(username);
-    if (!sp || !sp->sp_pwdp[1])
-        return false;
-
-    if (!password)
-        password = "";
-
-    return !strcmp(crypt(password, sp->sp_pwdp), sp->sp_pwdp);
-}
-
 static const char *cmd_lookup(const char *cmd)
 {
     struct stat s;
@@ -342,15 +324,14 @@ static void add_task(struct rtty *rtty, const char *token, uid_t uid, const char
 void run_command(struct rtty *rtty, const char *data)
 {
     const char *username = data;
-    const char *password = username + strlen(username) + 1;
-    const char *cmd = password + strlen(password) + 1;
+    const char *cmd = username + strlen(username) + 1;
     const char *token = cmd + strlen(cmd) + 1;
     struct passwd *pw;
     int err = 0;
 
     data = token + strlen(token) + 1;
 
-    if (!username[0] || !login_test(username, password)) {
+    if (!username[0]) {
         err = RTTY_CMD_ERR_PERMIT;
         goto ERR;
     }

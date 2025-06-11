@@ -6,7 +6,6 @@ port=5913
 
 # Your linux device's username and password
 username="test"
-password="test"
 
 # Default wait 30s.
 # If you don't care about the results, you can set it to 0, that is, don't wait
@@ -17,7 +16,7 @@ cmd="echo"
 params='["Hello, Rtty"]'
 
 
-resp=$(curl "http://$host:$port/cmd/$devid?wait=$wait" -d "{\"cmd\":\"$cmd\", \"params\": $params, \"username\": \"$username\", \"password\": \"$password\"}" 2>/dev/null)
+resp=$(curl "http://$host:$port/cmd/$devid?wait=$wait" -d "{\"cmd\":\"$cmd\", \"params\": $params, \"username\": \"$username\"}" 2>/dev/null)
 
 [ "$wait" = "0" ] && exit 0
 
