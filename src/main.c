@@ -107,7 +107,13 @@ static void usage(const char *prog)
 
 int main(int argc, char **argv)
 {
-    char shortopts[32] = "I:i:h:p:d:aDt:f:RS:vV";
+#ifdef SSL_SUPPORT
+#define SSL_SHORTOPTS "sC:xc:k:"
+#else
+#define SSL_SHORTOPTS ""
+#endif
+
+    const char *shortopts = "I:i:h:p:d:aDt:f:RS:vV"SSL_SHORTOPTS;
     struct ev_loop *loop = EV_DEFAULT;
     struct ev_signal signal_watcher;
     bool background = false;
@@ -129,8 +135,6 @@ int main(int argc, char **argv)
     rtty.ssl_ctx = ssl_context_new(false);
     if (!rtty.ssl_ctx)
         return -1;
-
-    strcat(shortopts, "sC:xc:k:");
 #endif
 
     while (true) {
