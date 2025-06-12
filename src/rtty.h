@@ -95,7 +95,7 @@ struct rtty {
     struct ev_io ior;
     struct ev_timer tmr;
     struct ev_loop *loop;
-    ev_tstamp heartbeat;
+    int heartbeat;
     bool wait_heartbeat;
     bool registered;
     bool reconnect;

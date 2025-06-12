@@ -147,10 +147,16 @@ int main(int argc, char **argv)
             rtty.devid = optarg;
             break;
         case 'i':
-            rtty.heartbeat = atof(optarg);
+            rtty.heartbeat = atoi(optarg);
+
             if (rtty.heartbeat < 5) {
-                rtty.heartbeat = 5.0;
+                rtty.heartbeat = 5;
                 log_warn("Heartbeat interval too short, set to 5s\n");
+            }
+
+            if (rtty.heartbeat > 255) {
+                rtty.heartbeat = 255;
+                log_warn("Heartbeat interval too long, set to 255s\n");
             }
             break;
         case 'h':
