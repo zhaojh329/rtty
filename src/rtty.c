@@ -332,33 +332,51 @@ done:
     }
 }
 
+static size_t rtty_put_attr(struct buffer *b, int type, const void *data, size_t len)
+{
+    buffer_put_u8(b, type);
+    buffer_put_u16be(b, len);
+    buffer_put_data(b, data, len);
+    return 3 + len;
+}
+
+static size_t rtty_put_attr_u8(struct buffer *b, int type, uint8_t val)
+{
+    return rtty_put_attr(b, type, &val, 1);
+}
+
+static size_t rtty_put_attr_u32be(struct buffer *b, int type, uint32_t val)
+{
+    val = htobe32(val);
+    return rtty_put_attr(b, type, &val, 4);
+}
+
+static size_t rtty_put_attr_str(struct buffer *b, int type, const char *s)
+{
+    return rtty_put_attr(b, type, s, strlen(s));
+}
+
 static void rtty_register(struct rtty *rtty)
 {
-    size_t len = 6 + strlen(rtty->devid);
     struct buffer *wb = &rtty->wb;
-
-    if (rtty->description)
-        len += strlen(rtty->description);
-
-    if (rtty->token)
-        len += strlen(rtty->token);
+    uint16_t *len_ptr;
+    size_t len = 0;
 
     buffer_put_u8(wb, MSG_TYPE_REGISTER);
-    buffer_put_u16be(wb, len);
+    len_ptr = buffer_put(wb, 2);
 
-    buffer_put_u8(wb, RTTY_PROTO_VER);
-    buffer_put_u16be(wb, rtty->heartbeat);
+    len += buffer_put_u8(wb, RTTY_PROTO_VER);
 
-    buffer_put_string(wb, rtty->devid);
-    buffer_put_u8(wb, '\0');
+    len += rtty_put_attr_u8(wb, MSG_REG_ATTR_HEARTBEAT, rtty->heartbeat);
+    len += rtty_put_attr_str(wb, MSG_REG_ATTR_DEVID, rtty->devid);
 
     if (rtty->description)
-        buffer_put_string(wb, rtty->description);
-    buffer_put_u8(wb, '\0');
+        len += rtty_put_attr_str(wb, MSG_REG_ATTR_DESCRIPTION, rtty->description);
 
     if (rtty->token)
-        buffer_put_string(wb, rtty->token);
-    buffer_put_u8(wb, '\0');
+        len += rtty_put_attr_str(wb, MSG_REG_ATTR_TOKEN, rtty->token);
+
+    *len_ptr = htobe16(len);
 
     ev_io_start(rtty->loop, &rtty->iow);
 
@@ -690,10 +708,36 @@ static void on_net_connected(int sock, void *arg)
     rtty_register(rtty);
 }
 
+static void rtty_send_heartbeat(struct rtty *rtty)
+{
+    struct buffer *wb = &rtty->wb;
+    struct sysinfo info = {};
+    uint16_t *len_ptr;
+    size_t len = 0;
+
+    sysinfo(&info);
+
+    buffer_put_u8(wb, MSG_TYPE_HEARTBEAT);
+
+    len_ptr = buffer_put(wb, 2);
+
+    len += rtty_put_attr_u32be(wb, MSG_HEARTBEAT_ATTR_UPTIME, info.uptime);
+
+    *len_ptr = htobe16(len);
+
+    ev_io_start(rtty->loop, &rtty->iow);
+
+    rtty->wait_heartbeat = true;
+
+    ev_timer_set(&rtty->tmr, 0, RTTY_HEARTBEAT_TIMEOUT);
+    ev_timer_again(rtty->loop, &rtty->tmr);
+
+    log_debug("send msg: heartbeat\n");
+}
+
 static void rtty_timer_cb(struct ev_loop *loop, struct ev_timer *w, int revents)
 {
     struct rtty *rtty = container_of(w, struct rtty, tmr);
-    struct sysinfo info = {};
 
     if (rtty->sock < 0) {
         log_err("rtty reconnecting...\n");
@@ -713,20 +757,7 @@ static void rtty_timer_cb(struct ev_loop *loop, struct ev_timer *w, int revents)
         return;
     }
 
-    sysinfo(&info);
-
-    buffer_put_u8(&rtty->wb, MSG_TYPE_HEARTBEAT);
-    buffer_put_u16be(&rtty->wb, 16);
-    buffer_put_u32be(&rtty->wb, info.uptime);
-    buffer_put_zero(&rtty->wb, 12);  /* pad */
-    ev_io_start(loop, &rtty->iow);
-
-    rtty->wait_heartbeat = true;
-
-    ev_timer_set(&rtty->tmr, 0, RTTY_HEARTBEAT_TIMEOUT);
-    ev_timer_again(loop, &rtty->tmr);
-
-    log_debug("send msg: heartbeat\n");
+    rtty_send_heartbeat(rtty);
 }
 
 int rtty_start(struct rtty *rtty)
