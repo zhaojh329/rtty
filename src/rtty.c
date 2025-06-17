@@ -34,11 +34,8 @@
 #include "file.h"
 #include "rtty.h"
 #include "list.h"
-#include "utils.h"
 #include "command.h"
 #include "log/log.h"
-
-static char login_path[128];       /* /bin/login */
 
 static void del_tty(struct tty *tty)
 {
@@ -194,9 +191,9 @@ static void tty_login(struct rtty *rtty, const char *sid)
 
     if (pid == 0) {
         if (rtty->username)
-            execl(login_path, "login", "-f", rtty->username, NULL);
+            execl(rtty->login_path, "login", "-f", rtty->username, NULL);
         else
-            execl(login_path, "login", NULL);
+            execl(rtty->login_path, "login", NULL);
 
         exit(1);
     }
@@ -762,21 +759,6 @@ static void rtty_timer_cb(struct ev_loop *loop, struct ev_timer *w, int revents)
 
 int rtty_start(struct rtty *rtty)
 {
-    if (!rtty->devid) {
-        log_err("you must specify an id for your device\n");
-        return -1;
-    }
-
-    if (!valid_id(rtty->devid)) {
-        log_err("invalid device id\n");
-        return -1;
-    }
-
-    if (find_login(login_path, sizeof(login_path) - 1) < 0) {
-        log_err("the program 'login' is not found\n");
-        return -1;
-    }
-
     rtty_run_state(RTTY_STATE_DISCONNECTED);
 
     ev_init(&rtty->tmr, rtty_timer_cb);

@@ -29,6 +29,7 @@
 #include <glob.h>
 
 #include "log/log.h"
+#include "utils.h"
 #include "rtty.h"
 
 enum {
@@ -235,6 +236,26 @@ int main(int argc, char **argv)
 
     signal(SIGPIPE, SIG_IGN);
 
+    if (!rtty.devid) {
+        log_err("you must specify an id for your device\n");
+        return -1;
+    }
+
+    if (!valid_id(rtty.devid)) {
+        log_err("invalid device id\n");
+        return -1;
+    }
+
+    if (find_login(rtty.login_path, sizeof(rtty.login_path) - 1) < 0) {
+        log_err("the program 'login' is not found\n");
+        return -1;
+    }
+
+    if (getuid() > 0) {
+        log_err("Operation not permitted, must be run as root\n");
+        return -1;
+    }
+
     if (background && daemon(0, 0))
         log_err("Can't run in the background: %s\n", strerror(errno));
 
@@ -242,11 +263,6 @@ int main(int argc, char **argv)
         log_level(LOG_DEBUG);
 
     log_info("rtty version %s\n", RTTY_VERSION_STRING);
-
-    if (getuid() > 0) {
-        log_err("Operation not permitted, must be run as root\n");
-        return -1;
-    }
 
     ev_signal_init(&signal_watcher, signal_cb, SIGINT);
     ev_signal_start(loop, &signal_watcher);

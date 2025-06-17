@@ -92,6 +92,7 @@ struct tty {
 };
 
 struct rtty {
+    char login_path[128]; /* /bin/login */
     const char *host;
     int port;
     int sock;
