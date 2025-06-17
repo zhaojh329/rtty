@@ -324,8 +324,10 @@ done:
     if (!rtty->reconnect) {
         ev_break(rtty->loop, EVBREAK_ALL);
     } else {
-        ev_timer_set(&rtty->tmr, 5.0, 0);
+        int delay = rand() % 10 + 5;
+        ev_timer_set(&rtty->tmr, delay, 0);
         ev_timer_start(rtty->loop, &rtty->tmr);
+        log_err("reconnect in %d seconds\n", delay);
     }
 }
 
@@ -737,7 +739,6 @@ static void rtty_timer_cb(struct ev_loop *loop, struct ev_timer *w, int revents)
     struct rtty *rtty = container_of(w, struct rtty, tmr);
 
     if (rtty->sock < 0) {
-        log_err("rtty reconnecting...\n");
         tcp_connect(rtty->loop, rtty->host, rtty->port, on_net_connected, rtty);
         return;
     }

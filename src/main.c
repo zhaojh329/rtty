@@ -26,6 +26,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <getopt.h>
+#include <time.h>
 #include <glob.h>
 
 #include "log/log.h"
@@ -53,7 +54,10 @@ static void load_default_ca_cert(struct ssl_context *ctx)
 
 static void signal_cb(struct ev_loop *loop, ev_signal *w, int revents)
 {
+    struct rtty *rtty = ev_userdata(loop);
+
     if (w->signum == SIGINT) {
+        rtty->reconnect = false;
         ev_break(loop, EVBREAK_ALL);
         log_info("Normal quit\n");
     }
@@ -137,6 +141,8 @@ int main(int argc, char **argv)
     if (!rtty.ssl_ctx)
         return -1;
 #endif
+
+    ev_set_userdata(loop, &rtty);
 
     while (true) {
         c = getopt_long(argc, argv, shortopts, long_options, &option_index);
@@ -271,6 +277,8 @@ int main(int argc, char **argv)
     if (rtty.ssl_ctx && !has_cacert)
         load_default_ca_cert(rtty.ssl_ctx);
 #endif
+
+    srand(time(NULL));
 
     if (rtty_start(&rtty) < 0)
         return -1;
