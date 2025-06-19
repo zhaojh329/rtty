@@ -165,6 +165,9 @@ Transfer file from remote device to the local
 
 ### [Execute command remotely](/COMMAND.md)
 
+## Star History
+[![Star History Chart](https://api.star-history.com/svg?repos=zhaojh329/rtty&type=Date)](https://www.star-history.com/#zhaojh329/rtty&Date)
+
 ## Contributing
 If you would like to help making [rtty](https://github.com/zhaojh329/rtty) better,
 see the [CONTRIBUTING.md](https://github.com/zhaojh329/rtty/blob/master/CONTRIBUTING.md) file.
