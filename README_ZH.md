@@ -45,9 +45,9 @@ s --> c2["rtty(Linux Device)"]
 s --> c3["rtty(Linux Device)"]
 ```
 
-![](/doc/terminal.gif)
-![](/doc/file.gif)
-![](/doc/web.gif)
+![](/img/terminal.gif)
+![](/img/file.gif)
+![](/img/web.gif)
 
 它由客户端和[服务端]组成。客户端采用纯C实现。[服务端]采用GO语言实现，前端界面采用[vue]实现。
 

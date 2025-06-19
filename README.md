@@ -44,9 +44,9 @@ s --> c2["rtty(Linux Device)"]
 s --> c3["rtty(Linux Device)"]
 ```
 
-![](/doc/terminal.gif)
-![](/doc/file.gif)
-![](/doc/web.gif)
+![](/img/terminal.gif)
+![](/img/file.gif)
+![](/img/web.gif)
 
 It is composed of a client and a [server]. The client is written in pure C. The [server] is written in go language
 and the front-end is written in [Vue].
