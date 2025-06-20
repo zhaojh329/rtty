@@ -1,0 +1,128 @@
+{
+  "app": {
+    "title": "RTTY - Remote Terminal Access"
+  },
+  "navbar": {
+    "home": "Home",
+    "demo": "Demo",
+    "docs": "Documentation",
+    "features": "Features",
+    "language": "Language",
+    "sponsor": "Sponsor"
+  },
+  "sponsor": {
+    "title": "Support RTTY project",
+    "wxpay": "WeChat Pay",
+    "alipay": "Alipay",
+    "wallet": "Wallet",
+    "walletnote": "Make sure to copy the wallet addresses exactly when making your donation, as we cannot recover funds sent to the wrong wallet.",
+    "acknowledgments": "Thank you for considering sponsoring the RTTY project! Your support will help me continue to develop and maintain the RTTY project!",
+    "contact": "If you have any questions, please contact: "
+  },
+  "hero": {
+    "title": "Remote Terminal Access, Simplified",
+    "subtitle": "Access your devices anywhere, anytime through a web browser",
+    "description": ["RTTY is a remote terminal access tool with a C client ", ", a GO client ", ", and Go server "],
+    "demo": "Live Demo"
+  },
+  "features": {
+    "categories": [
+      {
+        "title": "Core functions",
+        "features": [
+          {
+            "title": "Web remote terminal access",
+            "description": "Access your devices's terminal anywhere, anytime through a web browser"
+          },
+          {
+            "title": "Device ID identification",
+            "description": "Identify devices by custom ID for large-scale management"
+          },
+          {
+            "title": "Device grouping",
+            "description": "Set group via -g in client. Unique IDs per group, duplicates allowed across groups. Removes global uniqueness constraint"
+          },
+          {
+            "title": "File transfer",
+            "description": "Bidirectional file transfer: Send files from local to remote devices and receive files from remote devices to local"
+          },
+          {
+            "title": "Batch command execution",
+            "description": "Remotely execute commands in bulk on a massive number of devices"
+          },
+          {
+            "title": "HTTP proxy",
+            "description": "Not only accesses the device's own web interface but also traverses the internal network to access any HTTP service on any host within the device's local area network (LAN)"
+          }
+        ]
+      },
+      {
+        "title": "Security and Deployment",
+        "features": [
+          {
+            "title": "Flexible SSL support",
+            "description": "Client supports multiple SSL backends: OpenSSL/mbedTLS/wolfSSL"
+          },
+          {
+            "title": "C client",
+            "description": "Implemented in pure C. The core executable is remarkably compact (approx. 32K). With its lightweight dependencies, the total footprint remains ultra-low (approx. 88K without SSL / approx. 465K with SSL support), delivering exceptional performance specifically optimized for resource-constrained embedded Linux devices"
+          },
+          {
+            "title": "Go client",
+            "description": "Native cross - platform support, single - file deployment, minimalist deployment experience, high - efficiency concurrency, seamless compatibility with the existing RTTY ecosystem"
+          },
+          {
+            "title": "Cross-platform deployment",
+            "description": "The server, implemented in Go, compiles the web management UI directly into a single executable. It supports cross-compilation for multiple chip architectures and operating systems, enabling true out-of-the-box deployment."
+          },
+          {
+            "title": "Token authentication",
+            "description": "Server-side uses Token authorization, improving security."
+          },
+          {
+            "title": "Automatic reconnection",
+            "description": "The client automatically reconnects to the server upon network interruptions, ensuring resilient and reliable long-term remote operation and maintenance."
+          }
+        ]
+      },
+      {
+        "title": "Architectural advantages",
+        "features": [
+          {
+            "title": "High-performance server",
+            "description": "High-performance server in Go, handling massive concurrent connections."
+          },
+          {
+            "title": "Modern front-end",
+            "description": "Vue + Xterm.js-based terminal interface, providing full-featured command line experience."
+          },
+          {
+            "title": "Device dashboard",
+            "description": "Visual online device list, one-click connection management."
+          }
+        ]
+      },
+      {
+        "title": "Application scenarios",
+        "features": [
+          {
+            "title": "Global distributed device operation",
+            "description": "Remote maintenance for global Linux devices (e.g., IoT, Routers)."
+          },
+          {
+            "title": "Embedded device remote debugging",
+            "description": "Remote debugging for embedded devices (e.g., OpenWRT routers, industrial gateways)."
+          },
+          {
+            "title": "Batch automated operation and maintenance",
+            "description": "Automated batch commands and log collection."
+          }
+        ]
+      }
+    ]
+  },
+  "docs": {
+    "copied": "Copied to clipboard"
+  },
+  "sponsors": "Sponsors"
+}

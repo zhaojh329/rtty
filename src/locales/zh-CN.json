@@ -1,0 +1,128 @@
+{
+  "app": {
+    "title": "RTTY - 远程终端访问工具"
+  },
+  "navbar": {
+    "home": "首页",
+    "demo": "演示",
+    "docs": "文档",
+    "features": "特性",
+    "language": "语言",
+    "sponsor": "赞助"
+  },
+  "sponsor": {
+    "title": "支持 RTTY 项目",
+    "wxpay": "微信支付",
+    "alipay": "支付宝",
+    "wallet": "钱包",
+    "walletnote": "捐赠时请务必准确复制钱包地址，因为我们无法追回发送到错误钱包的资金。",
+    "acknowledgments": "感谢您考虑赞助 RTTY 项目！您的支持将帮助我持续开发和维护 RTTY 项目！",
+    "contact": "如有问题，请联系："
+  },
+  "hero": {
+    "title": "远程终端访问，从未如此简单",
+    "subtitle": "随时随地通过浏览器访问您的设备",
+    "description": ["RTTY 是一个远程终端访问工具，包含 C 语言客户端 ",", Go 语言客户端 ", ", 和 Go 语言服务端 "],
+    "demo": "在线体验"
+  },
+  "features": {
+    "categories": [
+      {
+        "title": "核心功能",
+        "features": [
+          {
+            "title": "Web 远程终端访问",
+            "description": "随时随地通过浏览器访问您的设备的终端"
+          },
+          {
+            "title": "设备 ID 标识",
+            "description": "自定义设备 ID，精准区分海量设备"
+          },
+          {
+            "title": "设备分组",
+            "description": "客户端通过 -g 参数设定组名，组内 ID 唯一，跨组 ID 可重复，解除全局限制"
+          },
+          {
+            "title": "文件传输",
+            "description": "支持双向文件传输：从本地发送文件到远程设备，从远程设备接收文件到本地"
+          },
+          {
+            "title": "批量命令执行",
+            "description": "对海量设备远程批量执行命令"
+          },
+          {
+            "title": "HTTP 代理",
+            "description": "不仅能访问设备自身的 Web 界面，更能穿透内网，访问设备所在局域网内任意主机上的任意 HTTP 服务"
+          }
+        ]
+      },
+      {
+        "title": "安全与部署",
+        "features": [
+          {
+            "title": "灵活 SSL 支持",
+            "description": "客户端支持多种 SSL 后端：OpenSSL/mbedTLS/wolfSSL"
+          },
+          {
+            "title": "C 客户端",
+            "description": "采用纯 C 语言实现，核心程序极小(仅约 32K)。配合轻量级依赖库，整体资源占用极低（无 SSL 约 88K，含 SSL 约 465K），性能极致，专为资源受限的嵌入式 Linux 设备优化"
+          },
+          {
+            "title": "Go 客户端",
+            "description": "原生跨平台支持，单文件部署，极简部署体验，高效并发，无缝兼容现有 RTTY 生态"
+          },
+          {
+            "title": "跨平台部署",
+            "description": "服务端采用 Go 语言实现，将 Web 管理界面直接集成进单一可执行文件，支持编译多种芯片架构和操作系统版本，真正做到开箱即用"
+          },
+          {
+            "title": "Token 认证",
+            "description": "服务端通过 Token 授权设备连接，提升安全性"
+          },
+          {
+            "title": "自动重连",
+            "description": "客户端支持在网络中断时自动重连服务器，确保长期、稳定、可靠的远程运维能力"
+          }
+        ]
+      },
+      {
+        "title": "架构优势",
+        "features": [
+          {
+            "title": "高性能服务端",
+            "description": "服务端使用Go语言开发，支持高并发连接"
+          },
+          {
+            "title": "现代化前端",
+            "description": "基于Vue + Xterm.js的终端界面，提供全功能命令行体验"
+          },
+          {
+            "title": "设备看板",
+            "description": "可视化在线设备列表，一键连接管理"
+          }
+        ]
+      },
+      {
+        "title": "应用场景",
+        "features": [
+          {
+            "title": "全球分布式设备运维",
+            "description": "全球分布式Linux设备运维（如IoT设备、OpenWRT 路由器）"
+          },
+          {
+            "title": "嵌入式设备远程调试",
+            "description": "嵌入式设备远程调试（OpenWRT 路由器、工业网关）"
+          },
+          {
+            "title": "批量自动化运维",
+            "description": "批量自动化命令执行与日志收集"
+          }
+        ]
+      }
+    ]
+  },
+  "docs": {
+    "copied": "已复制到剪贴板"
+  },
+  "sponsors": "赞助商"
+}
