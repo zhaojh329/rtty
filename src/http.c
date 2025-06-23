@@ -104,7 +104,7 @@ static int ssl_negotiated(struct http_connection *conn)
 static void on_net_read(struct ev_loop *loop, struct ev_io *w, int revents)
 {
     struct http_connection *conn = container_of(w, struct http_connection, ior);
-    static uint8_t buf[1024 * 20];
+    static uint8_t buf[1024 * 63];
     int ret;
 
 #ifdef SSL_SUPPORT
