@@ -74,6 +74,8 @@ the world.
 - [Yunlianxin Technology](http://www.iyunlink.com/)
 - [One IOT World](https://www.oneiotworld.com/)
 - [bitswrt Communication Technology](http://bitswrt.com/)
+- [Guangzhou Lingpai Technology](https://linkpi.cn/)
+- ...
 
 ## Dependencies of the Client side
 * [libev] - A full-featured and high-performance event loop
