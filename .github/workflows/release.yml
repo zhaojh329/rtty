@@ -26,3 +26,4 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: ${{ steps.release-asset.outputs.filename }}
+          draft: true
