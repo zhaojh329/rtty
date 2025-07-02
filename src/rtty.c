@@ -481,6 +481,8 @@ static int parse_msg(struct rtty *rtty)
 
         log_debug("recv msg: %s\n", msg_type_name(msgtype));
 
+        rtty->wait_heartbeat = false;
+
         switch (msgtype) {
         case MSG_TYPE_REGISTER:
             if (buffer_pull_u8(rb)) {
@@ -512,7 +514,6 @@ static int parse_msg(struct rtty *rtty)
             break;
 
         case MSG_TYPE_HEARTBEAT:
-            rtty->wait_heartbeat = false;
             ev_timer_set(&rtty->tmr, 0, rtty->heartbeat);
             ev_timer_again(rtty->loop, &rtty->tmr);
             break;
