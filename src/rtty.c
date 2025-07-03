@@ -495,8 +495,10 @@ static int parse_msg(struct rtty *rtty)
             log_info("register success\n");
             rtty_run_state(RTTY_STATE_CONNECTED);
             rtty->registered = true;
-            ev_timer_set(&rtty->tmr, 0, rtty->heartbeat);
-            ev_timer_again(rtty->loop, &rtty->tmr);
+            rtty->last_heartbeat = 0;
+            ev_timer_stop(rtty->loop, &rtty->tmr);
+            ev_timer_set(&rtty->tmr, rtty->heartbeat, 0);
+            ev_timer_start(rtty->loop, &rtty->tmr);
             break;
 
         case MSG_TYPE_LOGIN:
@@ -514,8 +516,6 @@ static int parse_msg(struct rtty *rtty)
             break;
 
         case MSG_TYPE_HEARTBEAT:
-            ev_timer_set(&rtty->tmr, 0, rtty->heartbeat);
-            ev_timer_again(rtty->loop, &rtty->tmr);
             break;
 
         case MSG_TYPE_HTTP:
@@ -728,9 +728,7 @@ static void rtty_send_heartbeat(struct rtty *rtty)
     ev_io_start(rtty->loop, &rtty->iow);
 
     rtty->wait_heartbeat = true;
-
-    ev_timer_set(&rtty->tmr, 0, RTTY_HEARTBEAT_TIMEOUT);
-    ev_timer_again(rtty->loop, &rtty->tmr);
+    rtty->last_heartbeat = ev_now(rtty->loop);
 
     log_debug("send msg: heartbeat\n");
 }
@@ -756,7 +754,16 @@ static void rtty_timer_cb(struct ev_loop *loop, struct ev_timer *w, int revents)
         return;
     }
 
-    rtty_send_heartbeat(rtty);
+    double elapsed = ev_now(rtty->loop) - rtty->last_heartbeat;
+
+    if (elapsed < rtty->heartbeat) {
+        ev_timer_set(&rtty->tmr, rtty->heartbeat - elapsed, 0);
+    } else {
+        rtty_send_heartbeat(rtty);
+        ev_timer_set(&rtty->tmr, RTTY_HEARTBEAT_TIMEOUT, 0);
+    }
+
+    ev_timer_start(rtty->loop, &rtty->tmr);
 }
 
 int rtty_start(struct rtty *rtty)
