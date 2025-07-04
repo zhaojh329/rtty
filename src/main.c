@@ -64,6 +64,7 @@ static void signal_cb(struct ev_loop *loop, ev_signal *w, int revents)
 }
 
 static struct option long_options[] = {
+    {"group",       required_argument, NULL, 'g'},
     {"id",          required_argument, NULL, 'I'},
     {"host",        required_argument, NULL, 'h'},
     {"port",        required_argument, NULL, 'p'},
@@ -84,6 +85,8 @@ static struct option long_options[] = {
 static void usage(const char *prog)
 {
     fprintf(stderr, "Usage: %s [option]\n"
+            "      -g, --group=string       Set a group for the device(Any printable character except\n"
+            "                               space is allowed, with a maximum of 16 characters)\n"
             "      -I, --id=string          Set an ID for the device(Any printable character except\n"
             "                               space is allowed, with a maximum of 32 characters)\n"
             "      -h, --host=string        Server's host or ipaddr(Default is localhost)\n"
@@ -118,7 +121,7 @@ int main(int argc, char **argv)
 #define SSL_SHORTOPTS ""
 #endif
 
-    const char *shortopts = "I:i:h:p:d:aDt:f:RS:vV"SSL_SHORTOPTS;
+    const char *shortopts = "g:I:i:h:p:d:aDt:f:RS:vV"SSL_SHORTOPTS;
     struct ev_loop *loop = EV_DEFAULT;
     struct ev_signal signal_watcher;
     bool background = false;
@@ -150,8 +153,15 @@ int main(int argc, char **argv)
             break;
 
         switch (c) {
+        case 'g':
+            if (!valid_id(optarg, 16)) {
+                log_err("invalid group\n");
+                return -1;
+            }
+            rtty.group = optarg;
+            break;
         case 'I':
-            if (!valid_id(optarg)) {
+            if (!valid_id(optarg, 32)) {
                 log_err("invalid device id\n");
                 return -1;
             }

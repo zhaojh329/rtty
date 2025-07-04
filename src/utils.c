@@ -48,9 +48,9 @@ int find_login(char *buf, int len)
     return -1;
 }
 
-bool valid_id(const char *id)
+bool valid_id(const char *id, size_t limit)
 {
-    if (strlen(id) > 32)
+    if (strlen(id) > limit)
         return false;
 
     while (*id) {

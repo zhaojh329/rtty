@@ -30,7 +30,7 @@
 
 int find_login(char *buf, int len);
 
-bool valid_id(const char *id);
+bool valid_id(const char *id, size_t limit);
 
 int b64_encode(const void *src, size_t srclen, void *dest, size_t destsize);
 

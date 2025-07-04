@@ -369,6 +369,9 @@ static void rtty_register(struct rtty *rtty)
     len += rtty_put_attr_u8(wb, MSG_REG_ATTR_HEARTBEAT, rtty->heartbeat);
     len += rtty_put_attr_str(wb, MSG_REG_ATTR_DEVID, rtty->devid);
 
+    if (rtty->group)
+        len += rtty_put_attr_str(wb, MSG_REG_ATTR_GROUP, rtty->group);
+
     if (rtty->description)
         len += rtty_put_attr_str(wb, MSG_REG_ATTR_DESCRIPTION, rtty->description);
 

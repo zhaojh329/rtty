@@ -61,7 +61,8 @@ enum {
     MSG_REG_ATTR_HEARTBEAT,
     MSG_REG_ATTR_DEVID,
     MSG_REG_ATTR_DESCRIPTION,
-    MSG_REG_ATTR_TOKEN
+    MSG_REG_ATTR_TOKEN,
+    MSG_REG_ATTR_GROUP,
 };
 
 enum {
@@ -96,6 +97,7 @@ struct rtty {
     const char *host;
     int port;
     int sock;
+    const char *group;
     const char *devid;
     const char *token;        /* authorization token */
     const char *description;
