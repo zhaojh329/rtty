@@ -50,8 +50,11 @@ int find_login(char *buf, int len)
 
 bool valid_id(const char *id)
 {
+    if (strlen(id) > 32)
+        return false;
+
     while (*id) {
-        if (!isalnum(*id) && *id != '-' && *id != '_')
+        if (!isprint(*id) || *id == ' ')
             return false;
         id++;
     }

@@ -84,8 +84,8 @@ static struct option long_options[] = {
 static void usage(const char *prog)
 {
     fprintf(stderr, "Usage: %s [option]\n"
-            "      -I, --id=string          Set an ID for the device(Maximum 63 bytes, valid\n"
-            "                               character:letter, number, underline and short line)\n"
+            "      -I, --id=string          Set an ID for the device(Any printable character except\n"
+            "                               space is allowed, with a maximum of 32 characters)\n"
             "      -h, --host=string        Server's host or ipaddr(Default is localhost)\n"
             "      -p, --port=number        Server port(Default is 5912)\n"
             "      -d, --description=string Add a description to the device(Maximum 126 bytes)\n"
