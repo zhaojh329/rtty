@@ -52,14 +52,7 @@ bool valid_id(const char *id, size_t limit)
 {
     if (strlen(id) > limit)
         return false;
-
-    while (*id) {
-        if (!isprint(*id) || *id == ' ')
-            return false;
-        id++;
-    }
-
-    return true;
+    return !strchr(id, ' ');
 }
 
 /* reference from https://tools.ietf.org/html/rfc4648#section-4 */
