@@ -151,6 +151,10 @@ int main(int argc, char **argv)
 
         switch (c) {
         case 'I':
+            if (!valid_id(optarg)) {
+                log_err("invalid device id\n");
+                return -1;
+            }
             rtty.devid = optarg;
             break;
         case 'i':
@@ -244,11 +248,6 @@ int main(int argc, char **argv)
 
     if (!rtty.devid) {
         log_err("you must specify an id for your device\n");
-        return -1;
-    }
-
-    if (!valid_id(rtty.devid)) {
-        log_err("invalid device id\n");
         return -1;
     }
 
