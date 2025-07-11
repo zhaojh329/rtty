@@ -1,6 +1,8 @@
-# rtty([中文](/README_ZH.md))
+# rtty ([中文](/README_ZH.md)) - Access your device's terminal from anywhere via the web
 
-**This project is officially supported by [GL.iNet](https://github.com/gl-inet).**
+**Official Website:** https://rttys.net/
+
+**This project is officially supported by [GL.iNet](https://www.gl-inet.com).**
 
 [1]: https://img.shields.io/badge/license-MIT-brightgreen.svg?style=plastic
 [2]: /LICENSE
@@ -33,57 +35,88 @@
 [vue]: https://github.com/vuejs/vue
 [server]: https://github.com/zhaojh329/rttys
 
+## Architecture
+
 ```mermaid
 flowchart TB
 s[rttys with public IP address]
-u1["User(Web Browser)"] --> s
-u2["User(Web Browser)"] --> s
-u3["User(Web Browser)"] --> s
-s --> c1["rtty(Linux Device)"]
-s --> c2["rtty(Linux Device)"]
-s --> c3["rtty(Linux Device)"]
+u1["User (Web Browser)"] --> s
+u2["User (Web Browser)"] --> s
+u3["User (Web Browser)"] --> s
+s --> c1["rtty (Linux Device)"]
+s --> c2["rtty (Linux Device)"]
+s --> c3["rtty (Linux Device)"]
 ```
 
 ![](/img/terminal.gif)
 ![](/img/file.gif)
 ![](/img/web.gif)
 
-It is composed of a client and a [server]. The client is written in pure C. The [server] is written in go language
-and the front-end is written in [Vue].
+## Overview
 
-You can access your device's terminal from anywhere via the web. Distinguish your different device by device ID.
+rtty is a powerful remote terminal solution composed of a client and a [server]. The client is written in pure C for optimal performance and minimal footprint. The [server] is implemented in Go with a modern frontend built using [Vue].
 
-rtty is very suitable for remote maintenance your or your company's thousands of Linux devices deployed around
-the world.
+Access your device's terminal from anywhere via a web browser. Distinguish between different devices using unique device IDs.
 
-## Features
-* The client is writen in C language, very small, suitable for embedded Linux
-  - No SSL: rtty(32K) + libev(56K)
-  - Support SSL: + libmbedtls(88K) + libmbedcrypto(241K) + libmbedx509(48k)
-* Execute command remotely in a batch of devices 
-* SSL support: openssl, mbedtls, CyaSSl(wolfssl)
-* mTLS
-* Very convenient to upload and download files
-* Access different devices based on device ID
-* Support HTTP Proxy - Access your device's Web
-* Fully-featured terminal based on [Xterm.js]
-* Simple to deployment and easy to use
+rtty is exceptionally well-suited for remote maintenance of thousands of Linux devices deployed worldwide, making it an ideal choice for organizations managing distributed infrastructure.
 
-## Who's using rtty
-- [GL.iNet](https://www.gl-inet.com/)
-- [Yunlianxin Technology](http://www.iyunlink.com/)
-- [One IOT World](https://www.oneiotworld.com/)
-- [bitswrt Communication Technology](http://bitswrt.com/)
-- [Guangzhou Lingpai Technology](https://linkpi.cn/)
-- ...
+## Key Features
 
-## Dependencies of the Client side
-* [libev] - A full-featured and high-performance event loop
-* [mbedtls(polarssl)] or [CyaSSl(wolfssl)] or [openssl] - If you want to support SSL
+### 🚀 **Lightweight & Efficient**
+- **Minimal footprint**: Client written in pure C, perfect for embedded Linux
+  - **Without SSL**: rtty (32KB) + libev (56KB)
+  - **With SSL**: + libmbedtls (88KB) + libmbedcrypto (241KB) + libmbedx509 (48KB)
 
-## Star History
+### 🔐 **Security**
+- **Multiple SSL backends**: [OpenSSL], [mbedtls(polarssl)], [CyaSSl(wolfssl)]
+- **mTLS support** for mutual authentication
+
+### 🌐 **Advanced Remote Management**
+- **Batch command execution** across multiple devices remotely
+- **Device identification** based on unique device IDs
+- **HTTP Proxy support** for accessing device web interfaces
+
+### 📁 **File Management**
+- **Seamless file transfer**: Convenient upload and download capabilities
+- **Web-based interface** for intuitive file operations
+
+### 💻 **Modern Terminal Experience**
+- **Full-featured terminal** powered by [Xterm.js]
+- **Browser-based access** from anywhere
+
+### ⚡ **Deployment & Usability**
+- **Simple deployment** process
+- **Easy to use** interface
+- **Cross-platform compatibility**
+
+## Production Users
+
+Trusted by leading technology companies:
+
+- **[GL.iNet](https://www.gl-inet.com/)**
+- **[Yunlianxin Technology](http://www.iyunlink.com/)**
+- **[One IOT World](https://www.oneiotworld.com/)**
+- **[bitswrt Communication Technology](http://bitswrt.com/)**
+- **[Guangzhou Lingpai Technology](https://linkpi.cn/)**
+- *...and many more*
+
+## Client Dependencies
+
+### Required
+- **[libev]** - High-performance event loop library
+
+### Optional (for SSL support)
+Choose one of the following SSL libraries:
+- **[mbedtls(polarssl)]** - Lightweight SSL/TLS library
+- **[CyaSSl(wolfssl)]** - Embedded SSL/TLS library
+- **[openssl]** - Full-featured SSL/TLS toolkit
+
+## ⭐ Star History
+
 [![Star History Chart](https://api.star-history.com/svg?repos=zhaojh329/rtty&type=Date)](https://www.star-history.com/#zhaojh329/rtty&Date)
 
-## Contributing
-If you would like to help making [rtty](https://github.com/zhaojh329/rtty) better,
-see the [CONTRIBUTING.md](https://github.com/zhaojh329/rtty/blob/master/CONTRIBUTING.md) file.
+## 🤝 Contributing
+
+Help us make [rtty](https://github.com/zhaojh329/rtty) even better!
+
+See the [CONTRIBUTING.md](https://github.com/zhaojh329/rtty/blob/master/CONTRIBUTING.md) file for detailed guidelines on how to contribute to this project.
