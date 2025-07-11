@@ -85,7 +85,6 @@ struct tty {
     struct ev_child cw;
     struct buffer wb;
     struct rtty *rtty;
-    ev_tstamp active;
     uint32_t wait_ack;
     struct ev_timer tmr;
     struct list_head node;
