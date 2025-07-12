@@ -168,7 +168,7 @@ void request_transfer_file(char type, const char *path)
         if (sfd < 0) {
             printf("open '%s' failed: ", path);
             if (errno == ENOENT)
-                printf("No such filen\n");
+                printf("No such file\n");
             else
                 printf("%s\n", strerror(errno));
             exit(EXIT_FAILURE);
