@@ -44,7 +44,7 @@ enum {
     RTTY_FILE_MSG_ERR
 };
 
-#define UPLOAD_FILE_BUF_SIZE (1024 * 16)
+#define UPLOAD_FILE_BUF_SIZE (1024 * 63)
 
 struct file_control_msg {
     int type;
