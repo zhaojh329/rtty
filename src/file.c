@@ -96,7 +96,7 @@ static void notify_user_canceled(struct tty *tty)
 
 static int notify_progress(struct file_context *ctx)
 {
-    if (send_file_control_msg(ctx->ctlfd, RTTY_FILE_MSG_PROGRESS, &ctx->remain_size, 4) < 0)
+    if (send_file_control_msg(ctx->ctlfd, RTTY_FILE_CTL_PROGRESS, &ctx->remain_size, 4) < 0)
         return -1;
 
     return 0;
@@ -112,7 +112,7 @@ static void send_file_data(struct file_context *ctx)
         ctx->buf = malloc(UPLOAD_FILE_BUF_SIZE);
         if (!ctx->buf) {
             log_err("malloc: %s\n", strerror(errno));
-            send_file_control_msg(ctx->ctlfd, RTTY_FILE_MSG_ERR, NULL, 0);
+            send_file_control_msg(ctx->ctlfd, RTTY_FILE_CTL_ERR, NULL, 0);
             goto err;
         }
     }
@@ -122,7 +122,7 @@ static void send_file_data(struct file_context *ctx)
 
     ret = read(ctx->fd, ctx->buf, UPLOAD_FILE_BUF_SIZE);
     if (ret < 0) {
-        send_file_control_msg(ctx->ctlfd, RTTY_FILE_MSG_ERR, NULL, 0);
+        send_file_control_msg(ctx->ctlfd, RTTY_FILE_CTL_ERR, NULL, 0);
         goto err;
     }
 
@@ -225,7 +225,7 @@ bool detect_file_operation(uint8_t *buf, int len, const char *sid, struct file_c
     }
 
     if (ctx->busy) {
-        send_file_control_msg(ctlfd, RTTY_FILE_MSG_BUSY, NULL, 0);
+        send_file_control_msg(ctlfd, RTTY_FILE_CTL_BUSY, NULL, 0);
         close(ctlfd);
 
         return true;
@@ -241,7 +241,7 @@ bool detect_file_operation(uint8_t *buf, int len, const char *sid, struct file_c
         buffer_put_u8(&rtty->wb, RTTY_FILE_MSG_RECV);
         ev_io_start(rtty->loop, &rtty->iow);
 
-        send_file_control_msg(ctlfd, RTTY_FILE_MSG_REQUEST_ACCEPT, NULL, 0);
+        send_file_control_msg(ctlfd, RTTY_FILE_CTL_REQUEST_ACCEPT, NULL, 0);
 
         memset(savepath, 0, sizeof(savepath));
         getcwd_by_pid(pid, savepath, sizeof(savepath) - 1);
@@ -261,16 +261,16 @@ bool detect_file_operation(uint8_t *buf, int len, const char *sid, struct file_c
         if (readlink(link, path, sizeof(path) - 1) < 0) {
             log_err("readlink: %s\n", strerror(errno));
 
-            send_file_control_msg(ctlfd, RTTY_FILE_MSG_ERR, NULL, 0);
+            send_file_control_msg(ctlfd, RTTY_FILE_CTL_ERR, NULL, 0);
             close(ctlfd);
 
             return true;
         }
 
-        send_file_control_msg(ctlfd, RTTY_FILE_MSG_REQUEST_ACCEPT, NULL, 0);
+        send_file_control_msg(ctlfd, RTTY_FILE_CTL_REQUEST_ACCEPT, NULL, 0);
 
         if (start_upload_file(ctx, path) < 0) {
-            send_file_control_msg(ctlfd, RTTY_FILE_MSG_ERR, NULL, 0);
+            send_file_control_msg(ctlfd, RTTY_FILE_CTL_ERR, NULL, 0);
             close(ctlfd);
 
             return true;
@@ -324,14 +324,14 @@ static void start_download_file(struct file_context *ctx, struct buffer *info, i
     buffer_pull(info, name, len - 4);
 
     if (!access(savepath, F_OK)) {
-        send_file_control_msg(ctx->ctlfd, RTTY_FILE_MSG_ERR_EXIST, NULL, 0);
+        send_file_control_msg(ctx->ctlfd, RTTY_FILE_CTL_ERR_EXIST, NULL, 0);
         log_err("the file '%s' already exists\n", name);
         goto open_fail;
     }
 
     fd = open(savepath, O_WRONLY | O_TRUNC | O_CREAT, 0644);
     if (fd < 0) {
-        send_file_control_msg(ctx->ctlfd, RTTY_FILE_MSG_ERR, NULL, 0);
+        send_file_control_msg(ctx->ctlfd, RTTY_FILE_CTL_ERR, NULL, 0);
         log_err("create file '%s' fail: %s\n", name, strerror(errno));
         goto open_fail;
     }
@@ -349,12 +349,12 @@ static void start_download_file(struct file_context *ctx, struct buffer *info, i
     memcpy(buf, &ctx->total_size, 4);
     strcpy(buf + 4, name);
 
-    send_file_control_msg(ctx->ctlfd, RTTY_FILE_MSG_INFO, buf, 4 + strlen(name));
+    send_file_control_msg(ctx->ctlfd, RTTY_FILE_CTL_INFO, buf, 4 + strlen(name));
 
     return;
 
 check_space_fail:
-    send_file_control_msg(ctx->ctlfd, RTTY_FILE_MSG_NO_SPACE, NULL, 0);
+    send_file_control_msg(ctx->ctlfd, RTTY_FILE_CTL_NO_SPACE, NULL, 0);
     buffer_pull(info, name, len - 4);
 open_fail:
     file_context_reset(ctx);
@@ -410,7 +410,7 @@ void parse_file_msg(struct file_context *ctx, struct buffer *data, int len)
         break;
 
     case RTTY_FILE_MSG_ABORT:
-        send_file_control_msg(ctx->ctlfd, RTTY_FILE_MSG_ABORT, NULL, 0);
+        send_file_control_msg(ctx->ctlfd, RTTY_FILE_CTL_ABORT, NULL, 0);
         file_context_reset(ctx);
         break;
 

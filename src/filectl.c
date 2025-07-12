@@ -88,7 +88,7 @@ static void handle_file_control_msg(int fd, int sfd, const char *path)
         buffer_pull(&b, &msg, sizeof(msg));
 
         switch (msg.type) {
-        case RTTY_FILE_MSG_REQUEST_ACCEPT:
+        case RTTY_FILE_CTL_REQUEST_ACCEPT:
             if (sfd > -1) {
                 close(sfd);
                 gettimeofday(&start_time, NULL);
@@ -105,7 +105,7 @@ static void handle_file_control_msg(int fd, int sfd, const char *path)
             }
             break;
         
-        case RTTY_FILE_MSG_INFO:
+        case RTTY_FILE_CTL_INFO:
             memcpy(&total_size, msg.buf, 4);
             
             printf("Transferring '%s'...\n", (char *)(msg.buf + 4));
@@ -119,26 +119,26 @@ static void handle_file_control_msg(int fd, int sfd, const char *path)
 
             break;
         
-        case RTTY_FILE_MSG_PROGRESS:
+        case RTTY_FILE_CTL_PROGRESS:
             if (update_progress(msg.buf) == 0) {
                 puts("");
                 goto done;
             }
             break;
         
-        case RTTY_FILE_MSG_ABORT:
+        case RTTY_FILE_CTL_ABORT:
             puts("");
             goto done;
 
-        case RTTY_FILE_MSG_BUSY:
+        case RTTY_FILE_CTL_BUSY:
             printf("\033[31mRtty is busy to transfer file\033[0m\n");
             goto done;
 
-        case RTTY_FILE_MSG_NO_SPACE:
+        case RTTY_FILE_CTL_NO_SPACE:
             printf("\033[31mNo enough space\033[0m\n");
             goto done;
 
-        case RTTY_FILE_MSG_ERR_EXIST:
+        case RTTY_FILE_CTL_ERR_EXIST:
             printf("\033[31mThe file already exists\033[0m\n");
             goto done;
 
