@@ -19,12 +19,14 @@
 [13]: https://deepwiki.com/zhaojh329/rtty
 [14]: https://img.shields.io/badge/技术交流群-点击加入：153530783-brightgreen.svg
 [15]: https://jq.qq.com/?_wv=1027&k=5PKxbTV
+[16]: https://img.shields.io/github/downloads/zhaojh329/rtty/total
 
 [![license][1]][2]
 [![PRs Welcome][3]][4]
 [![Issue Welcome][5]][6]
 [![Release Version][7]][8]
 ![Build Status][9]
+![Downloads][16]
 [![ReadmeX][10]][11]
 [![Ask DeepWiki][12]][13]
 ![visitors](https://visitor-badge.laobi.icu/badge?page_id=zhaojh329.rtty)

@@ -17,12 +17,14 @@
 [11]: https://readmex.com/zhaojh329/rtty
 [12]: https://deepwiki.com/badge.svg
 [13]: https://deepwiki.com/zhaojh329/rtty
+[14]: https://img.shields.io/github/downloads/zhaojh329/rtty/total
 
 [![license][1]][2]
 [![PRs Welcome][3]][4]
 [![Issue Welcome][5]][6]
 [![Release Version][7]][8]
 ![Build Status][9]
+![Downloads][14]
 [![ReadmeX][10]][11]
 [![Ask DeepWiki][12]][13]
 ![visitors](https://visitor-badge.laobi.icu/badge?page_id=zhaojh329.rtty)
