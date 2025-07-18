@@ -231,7 +231,6 @@ bool detect_file_operation(uint8_t *buf, int len, const char *sid, struct file_c
         return true;
     }
 
-    ctx->ctlfd = ctlfd;
     strcpy(ctx->sid, sid);
 
     if (buf[3] == 'R') {
@@ -278,6 +277,7 @@ bool detect_file_operation(uint8_t *buf, int len, const char *sid, struct file_c
     }
 
     ctx->busy = true;
+    ctx->ctlfd = ctlfd;
 
     return true;
 }
@@ -289,6 +289,11 @@ static void start_download_file(struct file_context *ctx, struct buffer *info, i
     struct statvfs sfs;
     char buf[512];
     int fd;
+
+    if (ctx->ctlfd < 0) {
+        buffer_pull(info, NULL, len);
+        return;
+    }
 
     ctx->total_size = ctx->remain_size = buffer_pull_u32be(info);
 

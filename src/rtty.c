@@ -198,6 +198,7 @@ static void tty_login(struct rtty *rtty, const char *sid)
     tty->pty = pty;
     tty->rtty = rtty;
     tty->file.fd = -1;
+    tty->file.ctlfd = -1;
 
     strcpy(tty->sid, sid);
 
