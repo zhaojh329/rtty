@@ -59,11 +59,9 @@ struct file_control_msg {
 
 struct file_context {
     int fd;
-    bool busy;
     int ctlfd;
     uid_t uid;
     gid_t gid;
-    char sid[33];
     uint8_t *buf;
     uint32_t total_size;
     uint32_t remain_size;

@@ -65,17 +65,15 @@ static int send_file_control_msg(int fd, int type, void *buf, int len)
 
 void file_context_reset(struct file_context *ctx)
 {
-    if (ctx->fd > 0) {
+    if (ctx->fd > -1) {
         close(ctx->fd);
         ctx->fd = -1;
     }
 
-    if (ctx->ctlfd > 0) {
+    if (ctx->ctlfd > -1) {
         close(ctx->ctlfd);
         ctx->ctlfd = -1;
     }
-
-    ctx->busy = false;
 
     if (ctx->buf) {
         free(ctx->buf);
@@ -89,7 +87,7 @@ static void notify_user_canceled(struct tty *tty)
 
     buffer_put_u8(&rtty->wb, MSG_TYPE_FILE);
     buffer_put_u16be(&rtty->wb, 33);
-    buffer_put_data(&rtty->wb, tty->file.sid, 32);
+    buffer_put_data(&rtty->wb, tty->sid, 32);
     buffer_put_u8(&rtty->wb, RTTY_FILE_MSG_ABORT);
     ev_io_start(rtty->loop, &rtty->iow);
 }
@@ -130,7 +128,7 @@ static void send_file_data(struct file_context *ctx)
 
     buffer_put_u8(&rtty->wb, MSG_TYPE_FILE);
     buffer_put_u16be(&rtty->wb, 33 + ret);
-    buffer_put_data(&rtty->wb, ctx->sid, 32);
+    buffer_put_data(&rtty->wb, tty->sid, 32);
     buffer_put_u8(&rtty->wb, RTTY_FILE_MSG_DATA);
     buffer_put_data(&rtty->wb, ctx->buf, ret);
     ev_io_start(rtty->loop, &rtty->iow);
@@ -172,7 +170,7 @@ static int start_upload_file(struct file_context *ctx, const char *path)
 
     buffer_put_u8(&rtty->wb, MSG_TYPE_FILE);
     buffer_put_u16be(&rtty->wb, 33 + strlen(name));
-    buffer_put_data(&rtty->wb, ctx->sid, 32);
+    buffer_put_data(&rtty->wb, tty->sid, 32);
     buffer_put_u8(&rtty->wb, RTTY_FILE_MSG_SEND);
     buffer_put_string(&rtty->wb, name);
     ev_io_start(rtty->loop, &rtty->iow);
@@ -224,19 +222,17 @@ bool detect_file_operation(uint8_t *buf, int len, const char *sid, struct file_c
         return true;
     }
 
-    if (ctx->busy) {
+    if (ctx->ctlfd > -1) {
         send_file_control_msg(ctlfd, RTTY_FILE_CTL_BUSY, NULL, 0);
         close(ctlfd);
 
         return true;
     }
 
-    strcpy(ctx->sid, sid);
-
     if (buf[3] == 'R') {
         buffer_put_u8(&rtty->wb, MSG_TYPE_FILE);
         buffer_put_u16be(&rtty->wb, 33);
-        buffer_put_data(&rtty->wb, ctx->sid, 32);
+        buffer_put_data(&rtty->wb, tty->sid, 32);
         buffer_put_u8(&rtty->wb, RTTY_FILE_MSG_RECV);
         ev_io_start(rtty->loop, &rtty->iow);
 
@@ -276,7 +272,6 @@ bool detect_file_operation(uint8_t *buf, int len, const char *sid, struct file_c
         }
     }
 
-    ctx->busy = true;
     ctx->ctlfd = ctlfd;
 
     return true;
@@ -371,7 +366,7 @@ static void send_file_data_ack(struct tty *tty)
 
     buffer_put_u8(&rtty->wb, MSG_TYPE_FILE);
     buffer_put_u16be(&rtty->wb, 33);
-    buffer_put_data(&rtty->wb, tty->file.sid, 32);
+    buffer_put_data(&rtty->wb, tty->sid, 32);
     buffer_put_u8(&rtty->wb, RTTY_FILE_MSG_ACK);
     ev_io_start(rtty->loop, &rtty->iow);
 }
