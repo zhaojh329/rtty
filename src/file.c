@@ -355,7 +355,7 @@ static void start_download_file(struct file_context *ctx, struct buffer *info, i
 
 check_space_fail:
     send_file_control_msg(ctx->ctlfd, RTTY_FILE_CTL_NO_SPACE, NULL, 0);
-    buffer_pull(info, name, len - 4);
+    buffer_pull(info, NULL, len - 4);
 open_fail:
     file_context_reset(ctx);
 }
