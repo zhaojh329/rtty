@@ -53,6 +53,7 @@ s --> c3["rtty (Linux Device)"]
 ![](/img/terminal.gif)
 ![](/img/file.gif)
 ![](/img/web.gif)
+![](/img/virtual-keyboard.jpg)
 
 ## Overview
 
@@ -85,6 +86,7 @@ rtty is exceptionally well-suited for remote maintenance of thousands of Linux d
 ### 💻 **Modern Terminal Experience**
 - **Full-featured terminal** powered by [Xterm.js]
 - **Browser-based access** from anywhere
+- **Virtual keyboard support** for touch devices
 
 ### ⚡ **Deployment & Usability**
 - **Simple deployment** process
