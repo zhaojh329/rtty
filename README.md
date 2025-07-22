@@ -10,7 +10,7 @@
 [4]: https://github.com/zhaojh329/rtty/pulls
 [5]: https://img.shields.io/badge/Issues-welcome-brightgreen.svg?style=plastic
 [6]: https://github.com/zhaojh329/rtty/issues/new
-[7]: https://img.shields.io/badge/release-9.0.0-blue.svg?style=plastic
+[7]: https://img.shields.io/badge/release-9.0.1-blue.svg?style=plastic
 [8]: https://github.com/zhaojh329/rtty/releases
 [9]: https://github.com/zhaojh329/rtty/workflows/build/badge.svg
 [10]: https://raw.githubusercontent.com/CodePhiliaX/resource-trusteeship/main/readmex.svg
