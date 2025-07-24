@@ -57,36 +57,56 @@ s --> c3["rtty (Linux Device)"]
 
 ## Overview
 
-rtty is a powerful remote terminal solution composed of a client and a [server]. The client is written in pure C for optimal performance and minimal footprint. The [server] is implemented in Go with a modern frontend built using [Vue].
+rtty is a powerful remote terminal solution composed of clients and a [server].
 
-Access your device's terminal from anywhere via a web browser. Distinguish between different devices using unique device IDs.
+**Client Implementations:**
+- **C Client:** Ultra-lightweight, designed for embedded Linux and resource-constrained devices.
+- **Go Client:** Easy cross-platform compilation, suitable for rapid integration and cloud-native/container environments.
 
-rtty is exceptionally well-suited for remote maintenance of thousands of Linux devices deployed worldwide, making it an ideal choice for organizations managing distributed infrastructure.
+The server is implemented in Go, with a modern frontend built using [Vue].
+
+You can access your device's terminal from anywhere via a web browser, and manage devices using unique device IDs.
+
+rtty is ideal for remote maintenance and management of large-scale distributed Linux devices, making it a great choice for enterprise operations.
+
+**Go client repository:** [https://github.com/zhaojh329/rtty-go](https://github.com/zhaojh329/rtty-go)
 
 ## Key Features
 
-### 🚀 **Lightweight & Efficient**
-- **Minimal footprint**: Client written in pure C, perfect for embedded Linux
-  - **Without SSL**: rtty (32KB) + libev (56KB)
-  - **With SSL**: + libmbedtls (88KB) + libmbedcrypto (241KB) + libmbedx509 (48KB)
+### 🚀 **Multi-language Client Options**
+- **C Client:**
+  - Ultra-lightweight, designed for embedded Linux and resource-constrained devices
+  - Minimal footprint (without SSL: rtty 32KB + libev 56KB; with SSL: + libmbedtls 88KB + libmbedcrypto 241KB + libmbedx509 48KB)
+  - Multiple SSL backends (OpenSSL, mbedtls, CyaSSl/wolfssl)
+  - mTLS support for mutual authentication
+
+- **Go Client:**
+  - Easy cross-platform compilation, suitable for rapid integration and cloud/container environments
+  - Minimal dependencies, simple deployment
+  - It has the same functions as the C client and is fully compatible.
 
 ### 🔐 **Security**
-- **Multiple SSL backends**: [OpenSSL], [mbedtls(polarssl)], [CyaSSl(wolfssl)]
-- **mTLS support** for mutual authentication
+- Multiple SSL backends and mutual authentication for secure data transfer
 
 ### 🌐 **Advanced Remote Management**
-- **Batch command execution** across multiple devices remotely
-- **Device identification** based on unique device IDs
-- **HTTP Proxy support** for accessing device web interfaces
+- Batch command execution across multiple devices
+- Device identification using unique device IDs
+- HTTP Proxy support for accessing device web interfaces
 
 ### 📁 **File Management**
-- **Seamless file transfer**: Convenient upload and download capabilities
-- **Web-based interface** for intuitive file operations
+- Seamless file transfer: convenient upload and download
+- Web-based interface for intuitive file operations
 
 ### 💻 **Modern Terminal Experience**
-- **Full-featured terminal** powered by [Xterm.js]
-- **Browser-based access** from anywhere
-- **Virtual keyboard support** for touch devices
+- Full-featured terminal powered by [Xterm.js]
+- Browser-based access from anywhere
+- Virtual keyboard support for touch devices
+- Window splitting for multi-session and multitasking
+
+### ⚡ **Deployment & Compatibility**
+- Simple deployment and quick setup
+- Easy-to-use interface
+- Cross-platform compatibility
 
 ### ⚡ **Deployment & Usability**
 - **Simple deployment** process
@@ -104,16 +124,19 @@ Trusted by leading technology companies:
 - **[Guangzhou Lingpai Technology](https://linkpi.cn/)**
 - *...and many more*
 
+
 ## Client Dependencies
 
-### Required
-- **[libev]** - High-performance event loop library
+### C Client Dependencies
+- **Required:**
+  - [libev] - High-performance event loop library
+- **Optional (for SSL support):**
+  - [mbedtls(polarssl)] - Lightweight SSL/TLS library
+  - [CyaSSl(wolfssl)] - Embedded SSL/TLS library
+  - [openssl] - Full-featured SSL/TLS toolkit
 
-### Optional (for SSL support)
-Choose one of the following SSL libraries:
-- **[mbedtls(polarssl)]** - Lightweight SSL/TLS library
-- **[CyaSSl(wolfssl)]** - Embedded SSL/TLS library
-- **[openssl]** - Full-featured SSL/TLS toolkit
+### Go Client Dependencies
+- No extra dependencies. Pure Go build and runtime.
 
 ## ⭐ Star History
 
