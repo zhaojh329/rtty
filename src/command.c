@@ -148,6 +148,9 @@ static void cmd_reply(struct task *t, int code)
 
     len = ceil(len * 4.0 / 3) + 200;
 
+    if (len > 0xffff)
+        return cmd_err_reply(rtty, t->token, RTTY_CMD_ERR_RESP_TOOBIG);
+
     str = calloc(1, len);
     if (!str) {
         cmd_err_reply(t->rtty, t->token, RTTY_CMD_ERR_NOMEM);
