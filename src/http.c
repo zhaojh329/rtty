@@ -280,6 +280,11 @@ void http_request(struct rtty *rtty, int len)
         buffer_pull(&rtty->rb, NULL, 6);
         len -= 6;
 
+        if (len == 0) {
+            http_conn_free(conn);
+            return;
+        }
+
         data = buffer_put(&conn->wb, len);
         buffer_pull(&rtty->rb, data, len);
 
