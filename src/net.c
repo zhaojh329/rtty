@@ -167,21 +167,16 @@ err:
     return -1;
 }
 
-int tcp_connect(struct ev_loop *loop, const char *host, int port,
-                void (*on_connected)(int sock, void *arg), void *arg)
+static int getaddr_by_name(int socktype, const char *host, int port,
+        struct sockaddr *dest, int *addrlen)
 {
-    struct sockaddr *addr = NULL;
     struct addrinfo *result, *rp;
     struct addrinfo hints = {
         .ai_family = AF_UNSPEC,
-        .ai_socktype = SOCK_STREAM,
+        .ai_socktype = socktype,
         .ai_flags = AI_ADDRCONFIG
     };
-    int sock = -1;
-    int addrlen;
     int ret;
-
-    log_debug("connecting to %s:%d\n", host, port);
 
     ret = getaddrinfo(host, port2str(port), &hints, &result);
     if (ret) {
@@ -194,22 +189,67 @@ int tcp_connect(struct ev_loop *loop, const char *host, int port,
         return -1;
     }
 
+    ret = -1;
+
     for (rp = result; rp != NULL; rp = rp->ai_next) {
         if (rp->ai_family == AF_INET || rp->ai_family == AF_INET6) {
-            addr = rp->ai_addr;
-            addrlen = rp->ai_addrlen;
+            memcpy(dest, rp->ai_addr, rp->ai_addrlen);
+            *addrlen = rp->ai_addrlen;
+            ret = 0;
             break;
         }
     }
 
-    if (!addr) {
+    freeaddrinfo(result);
+
+    return ret;
+}
+
+int tcp_connect(struct ev_loop *loop, const char *host, int port,
+                void (*on_connected)(int sock, void *arg), void *arg)
+{
+    struct sockaddr addr;
+    int addrlen;
+
+    log_debug("connecting to %s:%d\n", host, port);
+
+    if (getaddr_by_name(SOCK_STREAM, host, port, &addr, &addrlen)) {
         log_err("getaddrinfo failed: Not found addr\n");
-        goto free_addrinfo;
+        return -1;
     }
 
-    sock = tcp_connect_sockaddr(loop, addr, addrlen, on_connected, arg);
+    return tcp_connect_sockaddr(loop, &addr, addrlen, on_connected, arg);
+}
 
-free_addrinfo:
-    freeaddrinfo(result);
+int udp_connect(struct ev_loop *loop, const char *host, int port,
+                void (*on_connected)(int sock, void *arg), void *arg)
+{
+    struct sockaddr addr;
+    int addrlen;
+    int sock;
+    int ret;
+
+    log_debug("connecting to %s:%d\n", host, port);
+
+    if (getaddr_by_name(SOCK_DGRAM, host, port, &addr, &addrlen)) {
+        log_err("getaddrinfo failed: Not found addr\n");
+        return -1;
+    }
+
+    sock = socket(addr.sa_family, SOCK_DGRAM | SOCK_NONBLOCK | SOCK_CLOEXEC, 0);
+    if (sock < 0) {
+        log_err("create socket failed: %s\n", strerror(errno));
+        return -1;
+    }
+
+    ret = connect(sock, &addr, addrlen);
+    if (ret < 0) {
+        close(sock);
+        log_err("connect '%s:%d' failed: %s\n", host, port, strerror(errno));
+        return -1;
+    }
+
+    on_connected(sock, arg);
+
     return sock;
 }

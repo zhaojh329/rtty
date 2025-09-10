@@ -22,19 +22,12 @@
  * SOFTWARE.
  */
 
-#ifndef RTTY_NET_H
-#define RTTY_NET_H
+#ifndef RTTY_CRC32_H
+#define RTTY_CRC32_H
 
-#include <sys/socket.h>
-#include <ev.h>
+#include <sys/types.h>
+#include <stdint.h>
 
-int tcp_connect(struct ev_loop *loop, const char *host, int port,
-                void (*on_connected)(int sock, void *arg), void *arg);
-
-int tcp_connect_sockaddr(struct ev_loop *loop, const struct sockaddr *addr, socklen_t addrlen,
-                void (*on_connected)(int sock, void *arg), void *arg);
-
-int udp_connect(struct ev_loop *loop, const char *host, int port,
-                void (*on_connected)(int sock, void *arg), void *arg);
+uint32_t crc32_checksum_ieee(const uint8_t *p, size_t len);
 
 #endif

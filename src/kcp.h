@@ -22,19 +22,40 @@
  * SOFTWARE.
  */
 
-#ifndef RTTY_NET_H
-#define RTTY_NET_H
+#ifndef RTTY_KCP_H
+#define RTTY_KCP_H
 
-#include <sys/socket.h>
+#include <stdbool.h>
 #include <ev.h>
 
-int tcp_connect(struct ev_loop *loop, const char *host, int port,
-                void (*on_connected)(int sock, void *arg), void *arg);
+#include "kcp/ikcp.h"
 
-int tcp_connect_sockaddr(struct ev_loop *loop, const struct sockaddr *addr, socklen_t addrlen,
-                void (*on_connected)(int sock, void *arg), void *arg);
+struct rtty;
 
-int udp_connect(struct ev_loop *loop, const char *host, int port,
-                void (*on_connected)(int sock, void *arg), void *arg);
+struct rtty_kcp {
+    bool on;
+
+    ikcpcb *kcp;
+
+    struct ev_timer tmr;
+
+    const char *password;
+    void *cipher;
+
+    bool nodelay;
+    int interval;
+    int resend;
+    bool nc;
+    int sndwnd;
+    int rcvwnd;
+    int mtu;
+};
+
+void rtty_kcp_init_cipher(struct rtty_kcp *kcp);
+void rtty_kcp_check(struct rtty *rtty);
+int rtty_kcp_init(struct rtty *rtty);
+void rtty_kcp_release(struct rtty *rtty);
+int rtty_kcp_read(struct rtty *rtty, int fd);
+int rtty_kcp_write(struct rtty *rtty, int fd);
 
 #endif

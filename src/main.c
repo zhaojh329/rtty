@@ -34,7 +34,18 @@
 #include "rtty.h"
 
 enum {
-    LONG_OPT_HELP = 1
+    LONG_OPT_HELP = 1,
+#ifdef KCP_SUPPORT
+    LONG_OPT_KCP,
+    LONG_OPT_KCP_NODELAY,
+    LONG_OPT_KCP_INTERVAL,
+    LONG_OPT_KCP_RESEND,
+    LONG_OPT_KCP_NC,
+    LONG_OPT_KCP_SNDWND,
+    LONG_OPT_KCP_RCVWND,
+    LONG_OPT_KCP_MTU,
+    LONG_OPT_KCP_KEY,
+#endif
 };
 
 #ifdef SSL_SUPPORT
@@ -70,6 +81,17 @@ static struct option long_options[] = {
     {"port",        required_argument, NULL, 'p'},
     {"description", required_argument, NULL, 'd'},
     {"token",       required_argument, NULL, 't'},
+#ifdef KCP_SUPPORT
+    {"kcp",         no_argument, NULL, LONG_OPT_KCP},
+    {"kcp-nodelay", no_argument, NULL, LONG_OPT_KCP_NODELAY},
+    {"kcp-interval", required_argument, NULL, LONG_OPT_KCP_INTERVAL},
+    {"kcp-resend",  required_argument, NULL, LONG_OPT_KCP_RESEND},
+    {"kcp-nc",      no_argument, NULL, LONG_OPT_KCP_NC},
+    {"kcp-sndwnd",  required_argument, NULL, LONG_OPT_KCP_SNDWND},
+    {"kcp-rcvwnd",  required_argument, NULL, LONG_OPT_KCP_RCVWND},
+    {"kcp-mtu",     required_argument, NULL, LONG_OPT_KCP_MTU},
+    {"kcp-key",     required_argument, NULL, LONG_OPT_KCP_KEY},
+#endif
 #ifdef SSL_SUPPORT
     {"cacert",      required_argument, NULL, 'C'},
     {"insecure",    no_argument, NULL, 'x'},
@@ -92,6 +114,17 @@ static void usage(const char *prog)
             "      -d, --description=string Add a description to the device(Maximum 126 bytes)\n"
             "      -a                       Auto reconnect to the server\n"
             "      -i number                Set heartbeat interval in seconds(Default is 30s)\n"
+#ifdef KCP_SUPPORT
+            "      --kcp                    Using KCP protocol\n"
+            "      --kcp-nodelay            Whether enable nodelay mode for KCP\n"
+            "      --kcp-interval number    KCP protocol internal work interval(Default is 100ms)\n"
+            "      --kcp-resend number      Fast retransmission mode for KCP\n"
+            "      --kcp-nc                 Whether to turn off flow control for KCP\n"
+            "      --kcp-sndwnd number      Maximum send window for KCP\n"
+            "      --kcp-rcvwnd number      Maximum receive window for KCP\n"
+            "      --kcp-mtu number         Maximum transmission unit for KCP\n"
+            "      --kcp-key                Key used to encrypt data\n"
+#endif
 #ifdef SSL_SUPPORT
             "      -s                       SSL on\n"
             "      -C, --cacert             CA certificate to verify peer against\n"
@@ -129,7 +162,10 @@ int main(int argc, char **argv)
         .host = "localhost",
         .port = 5912,
         .loop = loop,
-        .sock = -1
+        .sock = -1,
+#ifdef KCP_SUPPORT
+        .kcp.interval = -1
+#endif
     };
 #ifdef SSL_SUPPORT
     bool has_cacert = false;
@@ -194,6 +230,35 @@ int main(int argc, char **argv)
         case 'a':
             rtty.reconnect = true;
             break;
+#ifdef KCP_SUPPORT
+        case LONG_OPT_KCP:
+            rtty.kcp.on = true;
+            break;
+        case LONG_OPT_KCP_NODELAY:
+            rtty.kcp.nodelay = true;
+            break;
+        case LONG_OPT_KCP_INTERVAL:
+            rtty.kcp.interval = atoi(optarg);
+            break;
+        case LONG_OPT_KCP_RESEND:
+            rtty.kcp.resend = atoi(optarg);
+            break;
+        case LONG_OPT_KCP_NC:
+            rtty.kcp.nc = true;
+            break;
+        case LONG_OPT_KCP_SNDWND:
+            rtty.kcp.sndwnd = atoi(optarg);
+            break;
+        case LONG_OPT_KCP_RCVWND:
+            rtty.kcp.rcvwnd = atoi(optarg);
+            break;
+        case LONG_OPT_KCP_MTU:
+            rtty.kcp.mtu = atoi(optarg);
+            break;
+        case LONG_OPT_KCP_KEY:
+            rtty.kcp.password = optarg;
+            break;
+#endif
 #ifdef SSL_SUPPORT
         case 's':
             rtty.ssl_on = true;

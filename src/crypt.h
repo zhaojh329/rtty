@@ -22,19 +22,16 @@
  * SOFTWARE.
  */
 
-#ifndef RTTY_NET_H
-#define RTTY_NET_H
+#ifndef RTTY_CRYPT_H
+#define RTTY_CRYPT_H
 
-#include <sys/socket.h>
-#include <ev.h>
+#include <stdint.h>
 
-int tcp_connect(struct ev_loop *loop, const char *host, int port,
-                void (*on_connected)(int sock, void *arg), void *arg);
+void *cipher_init_ctx(const char *password);
 
-int tcp_connect_sockaddr(struct ev_loop *loop, const struct sockaddr *addr, socklen_t addrlen,
-                void (*on_connected)(int sock, void *arg), void *arg);
+int get_random_bytes(uint8_t *out, size_t len);
 
-int udp_connect(struct ev_loop *loop, const char *host, int port,
-                void (*on_connected)(int sock, void *arg), void *arg);
+void encrypt16(void *ctx, uint8_t *dst, const uint8_t *src, size_t src_len);
+void decrypt16(void *ctx, uint8_t *dst, const uint8_t *src, size_t src_len);
 
 #endif

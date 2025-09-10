@@ -37,6 +37,10 @@
 #include "ssl/ssl.h"
 #endif
 
+#ifdef KCP_SUPPORT
+#include "kcp.h"
+#endif
+
 #define RTTY_PROTO_VER              5
 #define RTTY_MAX_TTY                10
 #define RTTY_HEARTBEAT_TIMEOUT      3.0
@@ -122,6 +126,9 @@ struct rtty {
     int ntty;   /* tty number */
     struct list_head ttys;
     struct list_head http_conns;
+#ifdef KCP_SUPPORT
+    struct rtty_kcp kcp;
+#endif
 };
 
 int rtty_start(struct rtty *rtty);

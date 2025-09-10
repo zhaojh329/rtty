@@ -302,6 +302,10 @@ void rtty_exit(struct rtty *rtty)
         del_tty(tty);
     }
 
+#ifdef KCP_SUPPORT
+    rtty_kcp_release(rtty);
+#endif
+
 #ifdef SSL_SUPPORT
     if (rtty->ssl) {
         ssl_session_free(rtty->ssl);
@@ -608,10 +612,18 @@ static void on_net_read(struct ev_loop *loop, struct ev_io *w, int revents)
             goto err;
 #endif
     } else {
-        ret = buffer_put_fd(&rtty->rb, w->fd, 4096, &eof);
-        if (ret < 0) {
-            log_err("socket read error: %s\n", strerror(errno));
-            goto err;
+#ifdef KCP_SUPPORT
+        if (rtty->kcp.on) {
+            if (rtty_kcp_read(rtty, w->fd))
+                goto err;
+        } else
+#endif
+        {
+            ret = buffer_put_fd(&rtty->rb, w->fd, 4096, &eof);
+            if (ret < 0) {
+                log_err("socket read error: %s\n", strerror(errno));
+                goto err;
+            }
         }
     }
 
@@ -659,10 +671,18 @@ static void on_net_write(struct ev_loop *loop, struct ev_io *w, int revents)
         buffer_pull(b, NULL, ret);
 #endif
     } else {
-        ret = buffer_pull_to_fd(&rtty->wb, w->fd, -1);
-        if (ret < 0) {
-            log_err("socket write error: %s\n", strerror(errno));
-            goto err;
+#ifdef KCP_SUPPORT
+        if (rtty->kcp.on) {
+            if (rtty_kcp_write(rtty, w->fd))
+                goto err;
+        } else 
+#endif
+        {
+            ret = buffer_pull_to_fd(&rtty->wb, w->fd, -1);
+            if (ret < 0) {
+                log_err("socket write error: %s\n", strerror(errno));
+                goto err;
+            }
         }
     }
 
@@ -688,12 +708,22 @@ static void on_net_connected(int sock, void *arg)
 
     rtty->sock = sock;
 
+#ifdef KCP_SUPPORT
+    if (rtty_kcp_init(rtty)) {
+        ev_break(rtty->loop, EVBREAK_ALL);
+        return;
+    }
+#endif
+
     ev_io_init(&rtty->ior, on_net_read, sock, EV_READ);
     ev_io_start(rtty->loop, &rtty->ior);
 
     ev_io_init(&rtty->iow, on_net_write, sock, EV_WRITE);
 
     if (rtty->ssl_on) {
+#ifdef KCP_SUPPORT
+        assert(!rtty->kcp.on);
+#endif
 #ifdef SSL_SUPPORT
         rtty->ssl = ssl_session_new(rtty->ssl_ctx, sock);
         if (!rtty->ssl) {
@@ -768,12 +798,23 @@ static void rtty_timer_cb(struct ev_loop *loop, struct ev_timer *w, int revents)
 
 int rtty_start(struct rtty *rtty)
 {
+    int ret;
+
     rtty_run_state(RTTY_STATE_DISCONNECTED);
 
     ev_init(&rtty->tmr, rtty_timer_cb);
 
-    if (tcp_connect(rtty->loop, rtty->host, rtty->port, on_net_connected, rtty) < 0
-            && !rtty->reconnect)
+#ifdef KCP_SUPPORT
+    if (rtty->kcp.on) {
+        rtty_kcp_init_cipher(&rtty->kcp);
+        ret = udp_connect(rtty->loop, rtty->host, rtty->port, on_net_connected, rtty);
+    } else
+#endif
+    {
+        ret = tcp_connect(rtty->loop, rtty->host, rtty->port, on_net_connected, rtty);
+    }
+
+    if (ret < 0 && !rtty->reconnect)
         return -1;
 
     INIT_LIST_HEAD(&rtty->ttys);
