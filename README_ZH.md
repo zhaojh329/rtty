@@ -1,7 +1,5 @@
 # rtty - 在任何地方通过Web访问您的设备
 
-**官方网站：** https://rttys.net/
-
 **本项目由 [GL.iNet](https://www.gl-inet.com) 官方支持。**
 
 [1]: https://img.shields.io/badge/开源协议-MIT-brightgreen.svg?style=plastic
@@ -145,6 +143,8 @@ rtty 非常适合远程维护和管理大规模分布式Linux设备，是企业�
 欢迎帮助[rtty](https://github.com/zhaojh329/rtty)变得更加完善！
 
 如果您想为rtty贡献代码，请参考[CONTRIBUTING_ZH.md](/CONTRIBUTING_ZH.md)文件，了解详细的贡献指南。
+
+## ❤️ [捐赠](https://zhaojh329.github.io/zhaojh329/)
 
 ## 推荐学习
 

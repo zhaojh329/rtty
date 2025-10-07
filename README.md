@@ -1,7 +1,5 @@
 # rtty ([中文](/README_ZH.md)) - Access your device from anywhere via the web
 
-**Official Website:** https://rttys.net/
-
 **This project is officially supported by [GL.iNet](https://www.gl-inet.com).**
 
 [1]: https://img.shields.io/badge/license-MIT-brightgreen.svg?style=plastic
@@ -147,3 +145,5 @@ Trusted by leading technology companies:
 Help us make [rtty](https://github.com/zhaojh329/rtty) even better!
 
 See the [CONTRIBUTING.md](https://github.com/zhaojh329/rtty/blob/master/CONTRIBUTING.md) file for detailed guidelines on how to contribute to this project.
+
+## ❤️ [Donation](https://zhaojh329.github.io/zhaojh329/)
