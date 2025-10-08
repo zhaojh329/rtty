@@ -10,15 +10,6 @@
     "language": "语言",
     "sponsor": "赞助"
   },
-  "sponsor": {
-    "title": "支持 RTTY 项目",
-    "wxpay": "微信支付",
-    "alipay": "支付宝",
-    "wallet": "钱包",
-    "walletnote": "捐赠时请务必准确复制钱包地址，因为我们无法追回发送到错误钱包的资金。",
-    "acknowledgments": "感谢您考虑赞助 RTTY 项目！您的支持将帮助我持续开发和维护 RTTY 项目！",
-    "contact": "如有问题，请联系："
-  },
   "hero": {
     "title": "远程终端访问，从未如此简单",
     "subtitle": "随时随地通过浏览器访问您的设备",

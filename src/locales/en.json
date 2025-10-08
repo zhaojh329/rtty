@@ -10,15 +10,6 @@
     "language": "Language",
     "sponsor": "Sponsor"
   },
-  "sponsor": {
-    "title": "Support RTTY project",
-    "wxpay": "WeChat Pay",
-    "alipay": "Alipay",
-    "wallet": "Wallet",
-    "walletnote": "Make sure to copy the wallet addresses exactly when making your donation, as we cannot recover funds sent to the wrong wallet.",
-    "acknowledgments": "Thank you for considering sponsoring the RTTY project! Your support will help me continue to develop and maintain the RTTY project!",
-    "contact": "If you have any questions, please contact: "
-  },
   "hero": {
     "title": "Remote Terminal Access, Simplified",
     "subtitle": "Access your devices anywhere, anytime through a web browser",

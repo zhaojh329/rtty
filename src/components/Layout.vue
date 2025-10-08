@@ -14,7 +14,7 @@
       </el-menu>
 
       <el-space>
-        <el-button plain type="primary" @click="sponsor = true">
+        <el-button plain type="primary" @click="openSponsor">
           <el-icon :size="20" color="red"><HeartIcon/></el-icon>
           <span>{{ $t('navbar.sponsor') }}</span>
         </el-button>
@@ -67,13 +67,11 @@
       </el-space>
     </el-footer>
   </el-container>
-  <Sponsor v-model="sponsor"/>
 </template>
 
 <script setup>
 import { Terminal as TerminalIcon, Github as GithubIcon, Heart as HeartIcon } from '@vicons/fa'
 import { useRttyVersionStore } from '@/stores/rtty-version'
-import Sponsor from './Sponsor.vue'
 import particlesOptions from './particles'
 import { watch, ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
@@ -91,9 +89,11 @@ watch(route, newRoute => selectedMenu.value = newRoute.path)
 
 const version = useRttyVersionStore()
 
-const sponsor = ref(false)
-
 const stars = ref('0')
+
+function openSponsor() {
+  window.open('https://zhaojh329.github.io/zhaojh329/')
+}
 
 function openRttyRelease() {
   window.open('https://github.com/zhaojh329/rtty/releases')
