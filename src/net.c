@@ -187,11 +187,11 @@ int tcp_connect(struct ev_loop *loop, const char *host, int port,
     if (ret) {
         if (ret == EAI_SYSTEM) {
             log_err("getaddrinfo failed: %s\n", strerror(errno));
-            return -1;
+            goto fail;
         }
 
         log_err("getaddrinfo failed: %s\n", gai_strerror(ret));
-        return -1;
+        goto fail;
     }
 
     for (rp = result; rp != NULL; rp = rp->ai_next) {
@@ -211,5 +211,8 @@ int tcp_connect(struct ev_loop *loop, const char *host, int port,
 
 free_addrinfo:
     freeaddrinfo(result);
+fail:
+    if (sock < 0)
+        on_connected(-1, arg);
     return sock;
 }

@@ -772,12 +772,12 @@ int rtty_start(struct rtty *rtty)
 
     ev_init(&rtty->tmr, rtty_timer_cb);
 
+    INIT_LIST_HEAD(&rtty->ttys);
+    INIT_LIST_HEAD(&rtty->http_conns);
+
     if (tcp_connect(rtty->loop, rtty->host, rtty->port, on_net_connected, rtty) < 0
             && !rtty->reconnect)
         return -1;
-
-    INIT_LIST_HEAD(&rtty->ttys);
-    INIT_LIST_HEAD(&rtty->http_conns);
 
     return 0;
 }
