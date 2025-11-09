@@ -9,6 +9,7 @@ community_bridge: # Replace with a single Community Bridge project-name e.g., cl
 liberapay: # Replace with a single Liberapay username
 issuehunt:
 otechie: # Replace with a single Otechie username
+buy_me_a_coffee: zhaojh329
 custom: [
     "https://zhaojh329.github.io/zhaojh329/"
 ]
