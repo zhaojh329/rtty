@@ -28,7 +28,8 @@
 #include "rtty.h"
 
 enum {
-    HTTP_CON_FLAG_HTTPS = 1 << 0
+    HTTP_CON_FLAG_HTTPS = 1 << 0,
+    HTTP_CON_FLAG_CONNECTING = 1 << 1,
 };
 
 struct http_connection {

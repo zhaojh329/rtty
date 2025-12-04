@@ -213,6 +213,11 @@ static void on_connected(int sock, void *arg)
         return;
     }
 
+    if (!(conn->flags & HTTP_CON_FLAG_CONNECTING)) {
+        http_conn_free(conn);
+        return;
+    }
+
     ev_io_init(&conn->ior, on_net_read, sock, EV_READ);
     ev_io_start(loop, &conn->ior);
 
@@ -281,6 +286,11 @@ void http_request(struct rtty *rtty, int len)
         len -= 6;
 
         if (len == 0) {
+            if (conn->flags & HTTP_CON_FLAG_CONNECTING) {
+                conn->flags &= ~HTTP_CON_FLAG_CONNECTING;
+                return;
+            }
+
             http_conn_free(conn);
             return;
         }
@@ -303,6 +313,8 @@ void http_request(struct rtty *rtty, int len)
 
     if (https)
         conn->flags |= HTTP_CON_FLAG_HTTPS;
+
+    conn->flags |= HTTP_CON_FLAG_CONNECTING;
 
     memcpy(conn->addr, addr, 18);
 
