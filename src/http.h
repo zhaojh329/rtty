@@ -27,6 +27,10 @@
 
 #include "rtty.h"
 
+enum {
+    HTTP_CON_FLAG_HTTPS = 1 << 0
+};
+
 struct http_connection {
     struct list_head head;
     struct rtty *rtty;
@@ -38,7 +42,7 @@ struct http_connection {
     ev_tstamp active;
     int sock;
     uint8_t addr[18];   /* upstream connection address: [port ip] */
-    bool https;
+    uint8_t flags;
 #ifdef SSL_SUPPORT
     bool ssl_negotiated;
     void *ssl;

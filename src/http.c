@@ -224,7 +224,7 @@ static void on_connected(int sock, void *arg)
 
     conn->sock = sock;
 
-    if (conn->https) {
+    if (conn->flags & HTTP_CON_FLAG_HTTPS) {
 #ifdef SSL_SUPPORT
         conn->ssl = ssl_session_new(rtty->ssl_ctx, sock);
         if (!conn->ssl) {
@@ -299,8 +299,10 @@ void http_request(struct rtty *rtty, int len)
 
     conn = (struct http_connection *)calloc(1, sizeof(struct http_connection));
     conn->rtty = rtty;
-    conn->https = https;
     conn->active = ev_now(rtty->loop);
+
+    if (https)
+        conn->flags |= HTTP_CON_FLAG_HTTPS;
 
     memcpy(conn->addr, addr, 18);
 
