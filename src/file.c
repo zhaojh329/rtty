@@ -317,8 +317,19 @@ static void start_download_file(struct file_context *ctx, struct buffer *info, i
             goto check_space_fail;
         }
     } else {
-        log_err("download file fail: not found mount point of '%s'\n", savepath);
-        goto check_space_fail;
+        uint64_t avail;
+        
+        if (!statvfs(savepath, &sfs)) {
+            avail = sfs.f_bavail * sfs.f_frsize;
+
+            if (ctx->total_size > avail) {
+                log_err("download file fail: no enough space\n");
+                goto check_space_fail;
+            }
+        } else {
+            log_err("download file fail: not found mount point of '%s'\n", savepath);
+            goto check_space_fail;
+        }
     }
 
     buffer_pull(info, name, len - 4);
