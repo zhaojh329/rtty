@@ -109,6 +109,7 @@ struct rtty {
     struct ev_timer tmr;
     struct ev_loop *loop;
     int heartbeat;
+    int http_timeout;
     double last_heartbeat;
     bool wait_heartbeat;
     bool registered;

@@ -196,7 +196,7 @@ static void on_timer_cb(struct ev_loop *loop, struct ev_timer *w, int revents)
     struct http_connection *conn = container_of(w, struct http_connection, tmr);
     ev_tstamp now = ev_now(loop);
 
-    if (now - conn->active < 30)
+    if (now - conn->active < conn->rtty->http_timeout)
         return;
 
     http_conn_free(conn);

@@ -34,7 +34,8 @@
 #include "rtty.h"
 
 enum {
-    LONG_OPT_HELP = 1
+    LONG_OPT_HELP = 1,
+    LONG_OPT_HTTP_TIMEOUT
 };
 
 #ifdef SSL_SUPPORT
@@ -70,6 +71,7 @@ static struct option long_options[] = {
     {"port",        required_argument, NULL, 'p'},
     {"description", required_argument, NULL, 'd'},
     {"token",       required_argument, NULL, 't'},
+    {"http-timeout", required_argument, NULL, LONG_OPT_HTTP_TIMEOUT},
 #ifdef SSL_SUPPORT
     {"cacert",      required_argument, NULL, 'C'},
     {"insecure",    no_argument, NULL, 'x'},
@@ -92,6 +94,7 @@ static void usage(const char *prog)
             "      -d, --description=string Add a description to the device(Maximum 126 bytes)\n"
             "      -a                       Auto reconnect to the server\n"
             "      -i number                Set heartbeat interval in seconds(Default is 30s)\n"
+            "      --http-timeout=number    Set HTTP idle timeout in seconds(Default is 30s)\n"
 #ifdef SSL_SUPPORT
             "      -s                       SSL on\n"
             "      -C, --cacert             CA certificate to verify peer against\n"
@@ -126,6 +129,7 @@ int main(int argc, char **argv)
     bool verbose = false;
     struct rtty rtty = {
         .heartbeat = 30,
+        .http_timeout = 30,
         .host = "localhost",
         .port = 5912,
         .loop = loop,
@@ -176,6 +180,19 @@ int main(int argc, char **argv)
             if (rtty.heartbeat > 255) {
                 rtty.heartbeat = 255;
                 log_warn("Heartbeat interval too long, set to 255s\n");
+            }
+            break;
+        case LONG_OPT_HTTP_TIMEOUT:
+            rtty.http_timeout = atoi(optarg);
+
+            if (rtty.http_timeout < 5) {
+                rtty.http_timeout = 5;
+                log_warn("HTTP timeout too short, set to 5s\n");
+            }
+
+            if (rtty.http_timeout > 255) {
+                rtty.http_timeout = 255;
+                log_warn("HTTP timeout too long, set to 255s\n");
             }
             break;
         case 'h':
