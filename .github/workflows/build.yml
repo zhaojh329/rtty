@@ -31,7 +31,7 @@ jobs:
           name: ${{ matrix.name }}
           pkg: ${{ matrix.pkg }}
         run: |
-          sudo apt install -y libev-dev
+          sudo apt install -y libev-dev libinih-dev
           [ -n "$pkg" ] && sudo apt install -y $pkg
           [ "$name" = "none" ] && cmake . -DSSL_SUPPORT=OFF || cmake . -DUSE_$name=ON
           make

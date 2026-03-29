@@ -3,8 +3,15 @@ set(RTTY_VERSION_MAJOR 9)
 set(RTTY_VERSION_MINOR 0)
 set(RTTY_VERSION_PATCH 4)
 
+include(FindPkgConfig)
+
 # Check the third party Libraries
 find_package(Libev REQUIRED)
+
+pkg_search_module(LIBINIH inih)
+if (NOT LIBINIH_FOUND)
+    message(FATAL_ERROR "libinih is required.")
+endif()
 
 aux_source_directory(. SRCS)
 aux_source_directory(log SRCS)
@@ -13,8 +20,13 @@ aux_source_directory(buffer SRCS)
 add_executable(rtty ${SRCS})
 target_compile_definitions(rtty PRIVATE _GNU_SOURCE)
 target_compile_options(rtty PRIVATE -O -Wall -Werror --std=gnu99)
-target_include_directories(rtty PRIVATE ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/buffer ${LIBEV_INCLUDE_DIR})
-target_link_libraries(rtty PRIVATE ${LIBEV_LIBRARY} util crypt m)
+target_include_directories(rtty PRIVATE
+    ${CMAKE_CURRENT_BINARY_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/buffer
+    ${LIBEV_INCLUDE_DIR}
+    ${LIBINIH_INCLUDE_DIRS}
+)
+target_link_libraries(rtty PRIVATE ${LIBEV_LIBRARY} ${LIBINIH_LIBRARIES} util crypt m)
 
 add_subdirectory(ssl)
 

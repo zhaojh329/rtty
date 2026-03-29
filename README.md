@@ -128,6 +128,7 @@ Trusted by leading technology companies:
 ### C Client Dependencies
 - **Required:**
   - [libev] - High-performance event loop library
+  - [inih](https://github.com/benhoyt/inih) - Lightweight INI parser for loading rtty config file
 - **Optional (for SSL support):**
   - [mbedtls(polarssl)] - Lightweight SSL/TLS library
   - [CyaSSl(wolfssl)] - Embedded SSL/TLS library
