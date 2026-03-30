@@ -9,17 +9,17 @@
 
 **Ubuntu/Debian**
 ```bash
-sudo apt install -y libev-dev libssl-dev
+sudo apt install -y libev-dev libssl-dev libinih-dev
 ```
 
 **ArchLinux**
 ```bash
-sudo pacman -S --noconfirm libev openssl
+sudo pacman -S --noconfirm libev openssl libinih
 ```
 
 **CentOS/RHEL**
 ```bash
-sudo yum install -y libev-devel openssl-devel
+sudo yum install -y libev-devel openssl-devel inih-devel
 ```
 
 ### 2. 下载源代码
