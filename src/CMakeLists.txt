@@ -1,7 +1,7 @@
 # The version number.
 set(RTTY_VERSION_MAJOR 9)
-set(RTTY_VERSION_MINOR 0)
-set(RTTY_VERSION_PATCH 4)
+set(RTTY_VERSION_MINOR 1)
+set(RTTY_VERSION_PATCH 0)
 
 include(FindPkgConfig)
 
