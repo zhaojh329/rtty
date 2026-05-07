@@ -10,20 +10,24 @@ jobs:
     runs-on: ubuntu-24.04
 
     steps:
+      - id: get-version
+        uses: battila7/get-version-action@v2
+
       - uses: actions/checkout@v4
         with:
           submodules: true
 
       - id: release-asset
         run: |
-          version=${GITHUB_REF_NAME#v}
-          mkdir rtty-$version
-          rsync -a . rtty-$version --exclude .git --exclude rtty-$version
+          version=${{ steps.get-version.outputs.version-without-v }}
+          cd ..
+          cp -r rtty rtty-$version
+          rm -rf rtty-$version/.git* rtty-$version/src/{ssl,log,buffer}/.git*
           tar zcfv rtty-$version.tar.gz rtty-$version
-          echo "filename=rtty-$version.tar.gz" >> $GITHUB_OUTPUT
 
-      - name: Upload Release Asset
-        uses: softprops/action-gh-release@v1
+      - uses: marvinpinto/action-automatic-releases@latest
         with:
-          files: ${{ steps.release-asset.outputs.filename }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
           draft: true
+          prerelease: false
+          files: ../rtty-*.tar.gz
