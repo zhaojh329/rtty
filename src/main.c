@@ -379,10 +379,8 @@ static int apply_config_file(struct rtty *rtty, struct config *cfg)
         }
     }
 
-    if (cfg->has_insecure) {
+    if (cfg->has_insecure)
         rtty->insecure = cfg->insecure;
-        ssl_set_require_validation(rtty->ssl_ctx, !cfg->insecure);
-    }
 
     if (cfg->cert) {
         if (ssl_load_cert_file(rtty->ssl_ctx, cfg->cert)) {
@@ -600,7 +598,6 @@ int main(int argc, char **argv)
             break;
         case 'x':
             rtty.insecure = true;
-            ssl_set_require_validation(rtty.ssl_ctx, false);
             break;
         case 'c':
             if (ssl_load_cert_file(rtty.ssl_ctx, optarg)) {
@@ -682,6 +679,8 @@ int main(int argc, char **argv)
     ev_signal_start(loop, &signal_watcher);
 
 #ifdef SSL_SUPPORT
+    ssl_set_require_validation(rtty.ssl_ctx, !rtty.insecure);
+
     if (rtty.ssl_ctx && !has_cacert)
         load_default_ca_cert(rtty.ssl_ctx);
 #endif
