@@ -112,6 +112,9 @@ static void rtty_run_state(int state)
     const char *str_state;
     FILE *fp;
 
+    if (geteuid() != 0)
+        return;
+
     if (st == state)
         return;
 
