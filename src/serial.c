@@ -283,9 +283,6 @@ static void serial_on_read(struct ev_loop *loop, struct ev_io *w, int revents)
     uint8_t data[4096];
     ssize_t len = read(s->fd, data, sizeof(data));
 
-    if (len < 0 && (errno == EINTR))
-        return;
-
     if (len <= 0) {
         struct rtty *rtty = s->tty.rtty;
 

@@ -50,26 +50,19 @@ static void pty_on_read(struct ev_loop *loop, struct ev_io *w, int revents)
     struct rtty *rtty = tty->rtty;
     struct buffer *wb = &rtty->wb;
     static uint8_t buf[4096];
-    int len = 0;
+    int len;
 
     ev_timer_again(loop, &term->tmr);
 
-    while (1) {
-        len = read(w->fd, buf, sizeof(buf));
-        if (likely(len > 0))
-            break;
-
-        if (len < 0) {
-            if (errno == EINTR)
-                continue;
-            if (errno != EIO)
-                log_err("read from pty failed: %s\n", strerror(errno));
-            return;
-        }
-
-        if (len == 0)
-            return;
+    len = read(w->fd, buf, sizeof(buf));
+    if (len < 0) {
+        if (errno != EIO)
+            log_err("read from pty failed: %s\n", strerror(errno));
+        return;
     }
+
+    if (len == 0)
+        return;
 
     if (detect_file_operation(buf, len, tty->sid, &term->file))
         return;

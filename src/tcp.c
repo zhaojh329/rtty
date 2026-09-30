@@ -143,9 +143,6 @@ static void tcp_on_read(struct ev_loop *loop, struct ev_io *w, int revents)
 
     n = recv(w->fd, data, len, 0);
     if (n < 0) {
-        if (errno == EINTR)
-            return;
-
         if (tcp_close(conn, true) < 0)
             rtty_exit(rtty);
         return;
@@ -207,11 +204,9 @@ static void tcp_on_write(struct ev_loop *loop, struct ev_io *w, int revents)
 
     if (len) {
         n = send(w->fd, buffer_data(&conn->wb), len, MSG_NOSIGNAL);
-        if (n < 0) {
-            if (errno == EINTR)
-                return;
+        if (n < 0)
             goto error;
-        }
+
         if (!n)
             goto error;
 
