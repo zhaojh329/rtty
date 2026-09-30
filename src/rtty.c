@@ -33,6 +33,7 @@
 #include "http.h"
 #include "file.h"
 #include "rtty.h"
+#include "utils.h"
 #include "list.h"
 #include "command.h"
 #include "log/log.h"
@@ -175,6 +176,11 @@ static void tty_login(struct rtty *rtty, const char *sid)
 
     if (getuid() != 0) {
         log_err("shell login requires root privileges\n");
+        goto done;
+    }
+
+    if (find_login(rtty->login_path, sizeof(rtty->login_path) - 1) < 0) {
+        log_err("the program 'login' is not found\n");
         goto done;
     }
 

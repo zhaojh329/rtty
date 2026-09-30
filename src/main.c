@@ -655,12 +655,6 @@ int main(int argc, char **argv)
         goto clean;
     }
 
-    if (find_login(rtty.login_path, sizeof(rtty.login_path) - 1) < 0) {
-        log_err("the program 'login' is not found\n");
-        ret = -1;
-        goto clean;
-    }
-
     if (background && daemon(0, 0))
         log_err("Can't run in the background: %s\n", strerror(errno));
 
