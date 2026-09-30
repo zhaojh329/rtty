@@ -100,6 +100,7 @@ rtty is ideal for remote maintenance and management of large-scale distributed L
 - Browser-based access from anywhere
 - Virtual keyboard support for touch devices
 - Window splitting for multi-session and multitasking
+- Serial terminal forwarding support
 
 ### ⚡ **Deployment & Compatibility**
 - Simple deployment and quick setup

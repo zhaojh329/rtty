@@ -30,22 +30,20 @@
 
 #include "config.h"
 #include "buffer.h"
-#include "file.h"
 #include "list.h"
 
 #ifdef SSL_SUPPORT
 #include "ssl/ssl.h"
 #endif
 
-#define RTTY_PROTO_VER              5
+#define RTTY_PROTO_VER              6
 #define RTTY_MAX_TTY                10
 #define RTTY_HEARTBEAT_TIMEOUT      3.0
-#define RTTY_TTY_TIMEOUT            600
 #define RTTY_TTY_ACK_BLOCK          4096
 
 enum {
     MSG_TYPE_REGISTER,
-    MSG_TYPE_LOGIN,
+    MSG_TYPE_TERM_OPEN,
     MSG_TYPE_LOGOUT,
     MSG_TYPE_TERMDATA,
     MSG_TYPE_WINSIZE,
@@ -54,7 +52,10 @@ enum {
     MSG_TYPE_FILE,
     MSG_TYPE_HTTP,
     MSG_TYPE_ACK,
-    MSG_TYPE_MAX = MSG_TYPE_ACK
+    MSG_TYPE_SERIAL_PORTS,
+    MSG_TYPE_SERIAL_OPEN,
+    MSG_TYPE_TCP,
+    MSG_TYPE_MAX = MSG_TYPE_TCP
 };
 
 enum {
@@ -76,19 +77,20 @@ enum {
 
 struct rtty;
 
+enum {
+    TTY_TERM,
+    TTY_SERIAL
+};
+
 struct tty {
-    pid_t pid;
-    int pty;
     char sid[33];
+    struct list_head node;
+    struct rtty *rtty;
     struct ev_io ior;
     struct ev_io iow;
-    struct ev_child cw;
     struct buffer wb;
-    struct rtty *rtty;
     uint32_t wait_ack;
-    struct ev_timer tmr;
-    struct list_head node;
-    struct file_context file;
+    int type;
 };
 
 struct rtty {
@@ -125,6 +127,11 @@ struct rtty {
     struct list_head http_conns;
 };
 
+struct tty *find_tty(struct rtty *rtty, const char *sid);
+void del_tty(struct tty *tty);
+void tty_on_write(struct ev_loop *loop, struct ev_io *w, int revents);
+void tty_wait_ack(struct tty *tty, uint32_t len);
+void tty_ack(struct tty *tty, uint16_t ack);
 int rtty_start(struct rtty *rtty);
 void rtty_exit(struct rtty *rtty);
 void rtty_send_msg(struct rtty *rtty, int type, void *data, int len);

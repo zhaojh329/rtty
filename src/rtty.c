@@ -22,48 +22,42 @@
  * SOFTWARE.
  */
 
-#include <pty.h>
 #include <stdio.h>
 #include <errno.h>
-#include <fcntl.h>
 #include <stdlib.h>
 #include <sys/sysinfo.h>
 
 #include "net.h"
 #include "http.h"
-#include "file.h"
 #include "rtty.h"
-#include "utils.h"
+#include "serial.h"
+#include "term.h"
 #include "list.h"
 #include "command.h"
 #include "log/log.h"
 
-static void del_tty(struct tty *tty)
+void del_tty(struct tty *tty)
 {
     struct rtty *rtty = tty->rtty;
-    struct ev_loop *loop = rtty->loop;
 
-    ev_io_stop(loop, &tty->ior);
-    ev_io_stop(loop, &tty->iow);
-    ev_timer_stop(loop, &tty->tmr);
-    ev_child_stop(loop, &tty->cw);
-
+    ev_io_stop(rtty->loop, &tty->ior);
+    ev_io_stop(rtty->loop, &tty->iow);
+    buffer_free(&tty->wb);
     rtty->ntty--;
     list_del(&tty->node);
 
-    buffer_free(&tty->wb);
-
-    close(tty->pty);
-    kill(tty->pid, SIGTERM);
-
-    file_context_reset(&tty->file);
+    if (tty->type == TTY_SERIAL) {
+        serial_close(tty);
+    } else {
+        term_close(tty);
+    }
 
     log_info("delete tty: %s\n", tty->sid);
 
     free(tty);
 }
 
-static inline struct tty *find_tty(struct rtty *rtty, const char *sid)
+struct tty *find_tty(struct rtty *rtty, const char *sid)
 {
     struct tty *tty;
 
@@ -75,193 +69,40 @@ static inline struct tty *find_tty(struct rtty *rtty, const char *sid)
     return NULL;
 }
 
-static void pty_on_read(struct ev_loop *loop, struct ev_io *w, int revents)
-{
-    struct tty *tty = container_of(w, struct tty, ior);
-    struct rtty *rtty = tty->rtty;
-    struct buffer *wb = &rtty->wb;
-    static uint8_t buf[4096];
-    int len = 0;
-
-    ev_timer_again(loop, &tty->tmr);
-
-    while (1) {
-        len = read(w->fd, buf, sizeof(buf));
-        if (likely(len > 0))
-            break;
-
-        if (len < 0) {
-            if (errno == EINTR)
-                continue;
-            if (errno != EIO)
-                log_err("read from pty failed: %s\n", strerror(errno));
-            return;
-        }
-
-        if (len == 0)
-            return;
-    }
-
-    if (detect_file_operation(buf, len, tty->sid, &tty->file))
-        return;
-
-    tty->wait_ack += len;
-
-    /* stop until received ack */
-    if (tty->wait_ack > RTTY_TTY_ACK_BLOCK)
-        ev_io_stop(loop, w);
-
-    buffer_put_u8(wb, MSG_TYPE_TERMDATA);
-    buffer_put_u16be(wb, 32 + len);
-    buffer_put_data(wb, tty->sid, 32);
-    buffer_put_data(wb, buf, len);
-    ev_io_start(loop, &rtty->iow);
-}
-
-static void pty_on_write(struct ev_loop *loop, struct ev_io *w, int revents)
+void tty_on_write(struct ev_loop *loop, struct ev_io *w, int revents)
 {
     struct tty *tty = container_of(w, struct tty, iow);
-    struct buffer *wb = &tty->wb;
     int ret;
 
-    ret = buffer_pull_to_fd(wb, w->fd, buffer_length(wb));
+    ret = buffer_pull_to_fd(&tty->wb, w->fd, buffer_length(&tty->wb));
     if (ret < 0) {
-        log_err("write to pty failed: %s\n", strerror(errno));
+        if (tty->type == TTY_SERIAL) {
+            struct rtty *rtty = tty->rtty;
+
+            if (serial_logout(tty) < 0)
+                rtty_exit(rtty);
+        } else {
+            log_err("write to pty failed: %s\n", strerror(errno));
+        }
         return;
     }
 
-    if (buffer_length(wb) < 1)
+    if (!buffer_length(&tty->wb))
         ev_io_stop(loop, w);
 }
 
-static void pty_on_exit(struct ev_loop *loop, struct ev_child *w, int revents)
+void tty_wait_ack(struct tty *tty, uint32_t len)
 {
-    struct tty *tty = container_of(w, struct tty, cw);
-    struct rtty *rtty = tty->rtty;
-    struct buffer *wb = &rtty->wb;
-
-    buffer_put_u8(wb, MSG_TYPE_LOGOUT);
-    buffer_put_u16be(wb, 32);
-    buffer_put_data(wb, tty->sid, 32);
-    ev_io_start(loop, &rtty->iow);
-
-    del_tty(tty);
+    tty->wait_ack += len;
+    if (tty->wait_ack > RTTY_TTY_ACK_BLOCK)
+        ev_io_stop(tty->rtty->loop, &tty->ior);
 }
 
-static void tty_timer_cb(struct ev_loop *loop, struct ev_timer *w, int revents)
+void tty_ack(struct tty *tty, uint16_t ack)
 {
-    struct tty *tty = container_of(w, struct tty, tmr);
-
-    ev_timer_stop(loop, w);
-    kill(tty->pid, SIGTERM);
-
-    log_err("tty(%s) inactive over %ds, now kill it\n", tty->sid, RTTY_TTY_TIMEOUT);
-}
-
-static void tty_login(struct rtty *rtty, const char *sid)
-{
-    struct tty *tty = NULL;
-    int code = 1;
-    pid_t pid;
-    int pty;
-
-    buffer_put_u8(&rtty->wb, MSG_TYPE_LOGIN);
-    buffer_put_u16be(&rtty->wb, 33);
-    buffer_put_data(&rtty->wb, sid, 32);
-
-    if (rtty->ntty == RTTY_MAX_TTY) {
-        log_info("tty login fail, device busy\n");
-        goto done;
-    }
-
-    if (getuid() != 0) {
-        log_err("shell login requires root privileges\n");
-        goto done;
-    }
-
-    if (find_login(rtty->login_path, sizeof(rtty->login_path) - 1) < 0) {
-        log_err("the program 'login' is not found\n");
-        goto done;
-    }
-
-    tty = calloc(1, sizeof(struct tty));
-    if (!tty) {
-        log_err("calloc: %s\n", strerror(errno));
-        goto done;
-    }
-
-    pid = forkpty(&pty, NULL, NULL, NULL);
-    if (pid < 0) {
-        log_err("forkpty: %s\n", strerror(errno));
-        goto done;
-    }
-
-    if (pid == 0) {
-        if (rtty->username)
-            execl(rtty->login_path, "login", "-f", rtty->username, NULL);
-        else
-            execl(rtty->login_path, "login", NULL);
-
-        exit(1);
-    }
-
-    tty->pid = pid;
-    tty->pty = pty;
-    tty->rtty = rtty;
-    tty->file.fd = -1;
-    tty->file.ctlfd = -1;
-
-    strcpy(tty->sid, sid);
-
-    rtty->ntty++;
-    list_add(&tty->node, &rtty->ttys);
-
-    fcntl(pty, F_SETFL, fcntl(pty, F_GETFL, 0) | O_NONBLOCK);
-
-    ev_io_init(&tty->ior, pty_on_read, pty, EV_READ);
-    ev_io_start(rtty->loop, &tty->ior);
-
-    ev_io_init(&tty->iow, pty_on_write, pty, EV_WRITE);
-
-    ev_child_init(&tty->cw, pty_on_exit, pid, 0);
-    ev_child_start(rtty->loop, &tty->cw);
-
-    ev_timer_init(&tty->tmr, tty_timer_cb, RTTY_TTY_TIMEOUT, RTTY_TTY_TIMEOUT);
-    ev_timer_start(rtty->loop, &tty->tmr);
-
-    code = 0;
-
-    log_info("new tty: %d/%d %s\n", rtty->ntty, RTTY_MAX_TTY, sid);
-
-done:
-    if (code)
-        free(tty);
-
-    buffer_put_u8(&rtty->wb, code);
-    ev_io_start(rtty->loop, &rtty->iow);
-}
-
-static void write_data_to_tty(struct tty *tty, int len)
-{
-    struct rtty *rtty = tty->rtty;
-
-    ev_timer_again(rtty->loop, &tty->tmr);
-
-    buffer_put_data(&tty->wb, buffer_data(&rtty->rb), len);
-    buffer_pull(&rtty->rb, NULL, len);
-    ev_io_start(rtty->loop, &tty->iow);
-}
-
-static void set_tty_winsize(struct tty *tty)
-{
-    struct rtty *rtty = tty->rtty;
-    struct winsize size = {};
-
-    size.ws_col = buffer_pull_u16be(&rtty->rb);
-    size.ws_row = buffer_pull_u16be(&rtty->rb);
-
-    if (ioctl(tty->pty, TIOCSWINSZ, &size) < 0)
-        log_err("ioctl TIOCSWINSZ failed: %s\n", strerror(errno));
+    tty->wait_ack = ack >= tty->wait_ack ? 0 : tty->wait_ack - ack;
+    if (tty->wait_ack <= RTTY_TTY_ACK_BLOCK)
+        ev_io_start(tty->rtty->loop, &tty->ior);
 }
 
 static void rtty_run_state(int state)
@@ -396,47 +237,40 @@ static void rtty_register(struct rtty *rtty)
     log_debug("send msg: register\n");
 }
 
-static void parse_tty_msg(struct rtty *rtty, int type, int len)
+static int parse_tty_msg(struct rtty *rtty, int type, int len)
 {
     struct buffer *b = &rtty->rb;
-    struct tty *tty = NULL;
+    struct tty *tty;
     char sid[33] = "";
 
     buffer_pull(b, sid, 32);
     len -= 32;
 
-    if (type != MSG_TYPE_LOGIN) {
-        tty = find_tty(rtty, sid);
-        if (!tty) {
-            log_err("non-existent sid: %s\n", sid);
-            buffer_pull(&rtty->rb, NULL, len);
-            return;
-        }
+    tty = find_tty(rtty, sid);
+    if (!tty) {
+        log_err("non-existent sid: %s\n", sid);
+        buffer_pull(b, NULL, len);
+        return 0;
     }
 
     switch (type) {
-    case MSG_TYPE_LOGIN:
-        tty_login(rtty, sid);
-        break;
     case MSG_TYPE_LOGOUT:
         del_tty(tty);
-        break;
-    case MSG_TYPE_TERMDATA:
-        write_data_to_tty(tty, len);
-        break;
-    case MSG_TYPE_WINSIZE:
-        set_tty_winsize(tty);
-        break;
-    case MSG_TYPE_FILE:
-        parse_file_msg(&tty->file, b, len);
-        break;
+        return 0;
     case MSG_TYPE_ACK:
-        tty->wait_ack -= buffer_pull_u16be(b);
-        ev_io_start(rtty->loop, &tty->ior);
-        break;
+        if (len != 2)
+            return -1;
+
+        tty_ack(tty, buffer_pull_u16be(b));
+        return 0;
     default:
-        /* never to here */
         break;
+    }
+
+    if (tty->type == TTY_SERIAL) {
+        return serial_handle_session(tty, type, len);
+    } else {
+        return term_handle_session(tty, type, len);
     }
 }
 
@@ -445,8 +279,8 @@ static const char *msg_type_name(int type)
     switch (type) {
     case MSG_TYPE_REGISTER:
         return "register";
-    case MSG_TYPE_LOGIN:
-        return "login";
+    case MSG_TYPE_TERM_OPEN:
+        return "termopen";
     case MSG_TYPE_LOGOUT:
         return "logout";
     case MSG_TYPE_TERMDATA:
@@ -463,6 +297,12 @@ static const char *msg_type_name(int type)
         return "http";
     case MSG_TYPE_ACK:
         return "ack";
+    case MSG_TYPE_SERIAL_PORTS:
+        return "serialports";
+    case MSG_TYPE_SERIAL_OPEN:
+        return "serialopen";
+    case MSG_TYPE_TCP:
+        return "tcp";
     default:
         return "unknown";
     }
@@ -512,14 +352,35 @@ static int parse_msg(struct rtty *rtty)
             ev_timer_start(rtty->loop, &rtty->tmr);
             break;
 
-        case MSG_TYPE_LOGIN:
         case MSG_TYPE_LOGOUT:
         case MSG_TYPE_TERMDATA:
         case MSG_TYPE_WINSIZE:
         case MSG_TYPE_FILE:
         case MSG_TYPE_ACK:
-            parse_tty_msg(rtty, msgtype, msglen);
+            if (parse_tty_msg(rtty, msgtype, msglen) < 0)
+                return -1;
             break;
+
+        case MSG_TYPE_SERIAL_PORTS:
+            if (serial_list_ports(rtty, buffer_data(rb), msglen) < 0)
+                return -1;
+            buffer_pull(rb, NULL, msglen);
+            break;
+
+        case MSG_TYPE_TERM_OPEN:
+            if (term_open(rtty, buffer_data(rb), msglen) < 0)
+                return -1;
+            buffer_pull(rb, NULL, msglen);
+            break;
+
+        case MSG_TYPE_SERIAL_OPEN:
+            if (serial_open(rtty, buffer_data(rb), msglen) < 0)
+                return -1;
+            buffer_pull(rb, NULL, msglen);
+            break;
+
+        case MSG_TYPE_TCP:
+            return -1;
 
         case MSG_TYPE_CMD:
             run_command(rtty, buffer_data(rb));

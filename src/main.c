@@ -33,6 +33,7 @@
 #include "log/log.h"
 #include "utils.h"
 #include "rtty.h"
+#include "file.h"
 
 enum {
     LONG_OPT_CONFIG = 1,

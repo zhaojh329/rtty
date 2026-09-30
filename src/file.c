@@ -37,7 +37,7 @@
 #include "log/log.h"
 #include "file.h"
 #include "list.h"
-#include "rtty.h"
+#include "term.h"
 #include "utils.h"
 
 static uint8_t RTTY_FILE_MAGIC[] = {0xb6, 0xbc, 0xbd};
@@ -81,13 +81,13 @@ void file_context_reset(struct file_context *ctx)
     }
 }
 
-static void notify_user_canceled(struct tty *tty)
+static void notify_user_canceled(struct tty_term *tty)
 {
-    struct rtty *rtty = tty->rtty;
+    struct rtty *rtty = tty->tty.rtty;
 
     buffer_put_u8(&rtty->wb, MSG_TYPE_FILE);
     buffer_put_u16be(&rtty->wb, 33);
-    buffer_put_data(&rtty->wb, tty->sid, 32);
+    buffer_put_data(&rtty->wb, tty->tty.sid, 32);
     buffer_put_u8(&rtty->wb, RTTY_FILE_MSG_ABORT);
     ev_io_start(rtty->loop, &rtty->iow);
 }
@@ -102,8 +102,8 @@ static int notify_progress(struct file_context *ctx)
 
 static void send_file_data(struct file_context *ctx)
 {
-    struct tty *tty = container_of(ctx, struct tty, file);
-    struct rtty *rtty = tty->rtty;
+    struct tty_term *tty = container_of(ctx, struct tty_term, file);
+    struct rtty *rtty = tty->tty.rtty;
     int ret;
 
     if (!ctx->buf) {
@@ -128,7 +128,7 @@ static void send_file_data(struct file_context *ctx)
 
     buffer_put_u8(&rtty->wb, MSG_TYPE_FILE);
     buffer_put_u16be(&rtty->wb, 33 + ret);
-    buffer_put_data(&rtty->wb, tty->sid, 32);
+    buffer_put_data(&rtty->wb, tty->tty.sid, 32);
     buffer_put_u8(&rtty->wb, RTTY_FILE_MSG_DATA);
     buffer_put_data(&rtty->wb, ctx->buf, ret);
     ev_io_start(rtty->loop, &rtty->iow);
@@ -150,8 +150,8 @@ err:
 
 static int start_upload_file(struct file_context *ctx, const char *path)
 {
-    struct tty *tty = container_of(ctx, struct tty, file);
-    struct rtty *rtty = tty->rtty;
+    struct tty_term *tty = container_of(ctx, struct tty_term, file);
+    struct rtty *rtty = tty->tty.rtty;
     const char *name;
     struct stat st;
     int fd;
@@ -170,7 +170,7 @@ static int start_upload_file(struct file_context *ctx, const char *path)
 
     buffer_put_u8(&rtty->wb, MSG_TYPE_FILE);
     buffer_put_u16be(&rtty->wb, 33 + strlen(name));
-    buffer_put_data(&rtty->wb, tty->sid, 32);
+    buffer_put_data(&rtty->wb, tty->tty.sid, 32);
     buffer_put_u8(&rtty->wb, RTTY_FILE_MSG_SEND);
     buffer_put_string(&rtty->wb, name);
     ev_io_start(rtty->loop, &rtty->iow);
@@ -187,8 +187,8 @@ static int start_upload_file(struct file_context *ctx, const char *path)
 
 bool detect_file_operation(uint8_t *buf, int len, const char *sid, struct file_context *ctx)
 {
-    struct tty *tty = container_of(ctx, struct tty, file);
-    struct rtty *rtty = tty->rtty;
+    struct tty_term *tty = container_of(ctx, struct tty_term, file);
+    struct rtty *rtty = tty->tty.rtty;
     char fifo_name[128];
     pid_t pid;
     int ctlfd;
@@ -232,7 +232,7 @@ bool detect_file_operation(uint8_t *buf, int len, const char *sid, struct file_c
     if (buf[3] == 'R') {
         buffer_put_u8(&rtty->wb, MSG_TYPE_FILE);
         buffer_put_u16be(&rtty->wb, 33);
-        buffer_put_data(&rtty->wb, tty->sid, 32);
+        buffer_put_data(&rtty->wb, tty->tty.sid, 32);
         buffer_put_u8(&rtty->wb, RTTY_FILE_MSG_RECV);
         ev_io_start(rtty->loop, &rtty->iow);
 
@@ -371,20 +371,20 @@ open_fail:
     file_context_reset(ctx);
 }
 
-static void send_file_data_ack(struct tty *tty)
+static void send_file_data_ack(struct tty_term *tty)
 {
-    struct rtty *rtty = tty->rtty;
+    struct rtty *rtty = tty->tty.rtty;
 
     buffer_put_u8(&rtty->wb, MSG_TYPE_FILE);
     buffer_put_u16be(&rtty->wb, 33);
-    buffer_put_data(&rtty->wb, tty->sid, 32);
+    buffer_put_data(&rtty->wb, tty->tty.sid, 32);
     buffer_put_u8(&rtty->wb, RTTY_FILE_MSG_ACK);
     ev_io_start(rtty->loop, &rtty->iow);
 }
 
 void parse_file_msg(struct file_context *ctx, struct buffer *data, int len)
 {
-    struct tty *tty = container_of(ctx, struct tty, file);
+    struct tty_term *tty = container_of(ctx, struct tty_term, file);
     int type = buffer_pull_u8(data);
 
     len--;
