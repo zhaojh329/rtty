@@ -661,12 +661,6 @@ int main(int argc, char **argv)
         goto clean;
     }
 
-    if (getuid() > 0) {
-        log_err("Operation not permitted, must be run as root\n");
-        ret = -1;
-        goto clean;
-    }
-
     if (background && daemon(0, 0))
         log_err("Can't run in the background: %s\n", strerror(errno));
 

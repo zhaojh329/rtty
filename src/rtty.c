@@ -173,6 +173,11 @@ static void tty_login(struct rtty *rtty, const char *sid)
         goto done;
     }
 
+    if (getuid() != 0) {
+        log_err("shell login requires root privileges\n");
+        goto done;
+    }
+
     tty = calloc(1, sizeof(struct tty));
     if (!tty) {
         log_err("calloc: %s\n", strerror(errno));
