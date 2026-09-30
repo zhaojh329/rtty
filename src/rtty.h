@@ -125,6 +125,8 @@ struct rtty {
     int ntty;   /* tty number */
     struct list_head ttys;
     struct list_head http_conns;
+    struct list_head tcp_conns;
+    bool tcp_read_paused;
 };
 
 struct tty *find_tty(struct rtty *rtty, const char *sid);

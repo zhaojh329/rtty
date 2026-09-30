@@ -29,6 +29,7 @@
 
 #include "net.h"
 #include "http.h"
+#include "tcp.h"
 #include "rtty.h"
 #include "serial.h"
 #include "term.h"
@@ -169,6 +170,7 @@ void rtty_exit(struct rtty *rtty)
     rtty->registered = false;
 
     http_conns_free(&rtty->http_conns);
+    tcp_conns_free(rtty);
 
     rtty_run_state(RTTY_STATE_DISCONNECTED);
 
@@ -383,7 +385,10 @@ static int parse_msg(struct rtty *rtty)
             break;
 
         case MSG_TYPE_TCP:
-            return -1;
+            if (tcp_handle_msg(rtty, buffer_data(rb), msglen) < 0)
+                return -1;
+            buffer_pull(rb, NULL, msglen);
+            break;
 
         case MSG_TYPE_CMD:
             run_command(rtty, buffer_data(rb));
@@ -544,6 +549,8 @@ static void on_net_write(struct ev_loop *loop, struct ev_io *w, int revents)
     if (buffer_length(&rtty->wb) < 1)
         ev_io_stop(loop, w);
 
+    tcp_update_readers(rtty);
+
     return;
 
 err:
@@ -649,6 +656,7 @@ int rtty_start(struct rtty *rtty)
 
     INIT_LIST_HEAD(&rtty->ttys);
     INIT_LIST_HEAD(&rtty->http_conns);
+    INIT_LIST_HEAD(&rtty->tcp_conns);
 
     if (tcp_connect(rtty->loop, rtty->host, rtty->port, on_net_connected, rtty) < 0
             && !rtty->reconnect)
