@@ -248,6 +248,9 @@ static int parse_tty_msg(struct rtty *rtty, int type, int len)
     struct tty *tty;
     char sid[33] = "";
 
+    if (len < 32)
+        return -1;
+
     buffer_pull(b, sid, 32);
     len -= 32;
 
