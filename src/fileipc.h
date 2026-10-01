@@ -22,18 +22,40 @@
  * SOFTWARE.
  */
 
-#ifndef _UTILS_H
-#define _UTILS_H
+#ifndef RTTY_FILEIPC_H
+#define RTTY_FILEIPC_H
 
 #include <stdbool.h>
-#include <sys/types.h>
+#include <limits.h>
+#include <stdint.h>
+#include <sys/socket.h>
+#include <sys/un.h>
 
-int find_login(char *buf, int len);
+#define FILE_PACKET_MAX (4 + NAME_MAX)
 
-bool valid_id(const char *id, size_t limit);
+/* Private local protocol v2: version(1), type(1), big-endian length(2).
+ * SEND/RECV carry one source/directory descriptor via SCM_RIGHTS. */
+enum {
+    FILE_IPC_SEND = 1,
+    FILE_IPC_RECV,
+    FILE_IPC_ACCEPT,
+    FILE_IPC_INFO,       /* size and basename */
+    FILE_IPC_PROGRESS,   /* remaining bytes; empty reply acknowledges progress */
+    FILE_IPC_DONE,
+    FILE_IPC_ERROR       /* errno */
+};
 
-int b64_encode(const void *src, size_t srclen, void *dest, size_t destsize);
+struct file_packet {
+    int fd;
+    uint8_t type;
+    uint16_t len;
+    uint8_t data[FILE_PACKET_MAX];
+};
 
-const char *format_size(size_t size);
+int file_socket_address(struct sockaddr_un *addr, int ttyfd);
+bool file_valid_name(const void *name, size_t len);
+int file_ipc_send(int fd, uint8_t type, const void *data, size_t len, int passed_fd);
+/* 1: complete packet, 0: disconnected, -1: error (including malformed packets). */
+int file_ipc_recv(int fd, struct file_packet *packet);
 
 #endif

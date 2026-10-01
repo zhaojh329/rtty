@@ -22,213 +22,273 @@
  * SOFTWARE.
  */
 
-#include <sys/time.h>
-#include <sys/stat.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <signal.h>
+#include <arpa/inet.h>
 #include <errno.h>
-#include <stdio.h>
 #include <fcntl.h>
-#include <libgen.h>
+#include <limits.h>
+#include <signal.h>
+#include <stdio.h>
+#include <string.h>
+#include <termios.h>
+#include <time.h>
+#include <unistd.h>
 
 #include "utils.h"
 #include "file.h"
 
-static uint8_t RTTY_FILE_MAGIC[12] = {0xb6, 0xbc, 0xbd};
+struct filectl_context {
+    struct timespec start;
+    uint32_t remaining;
+    uint32_t total;
+    int socket;
+    int fd;
+};
 
-static struct timeval start_time;
+static volatile sig_atomic_t terminal_attrs_saved;
+static struct termios terminal_attrs;
+static int ttyfd = -1;
 
-static uint32_t total_size;
-
-static char fifo_name[128];
-
-static void clear_fifo()
+static void restore_terminal(void)
 {
-    unlink(fifo_name);
+    if (ttyfd < 0)
+        return;
+
+    if (terminal_attrs_saved)
+        tcsetattr(ttyfd, TCSANOW, &terminal_attrs);
+
+    close(ttyfd);
 }
 
-static void signal_handler(int sig)
+static void on_signal(int sig)
 {
-    puts("");
-    exit(0);
+    ssize_t written;
+
+    restore_terminal();
+    written = write(STDOUT_FILENO, "\n", 1);
+    (void)written;
+    _exit(128 + sig);
 }
 
-static u_int32_t update_progress(uint8_t *buf)
+static double monotonic_time(void)
 {
-    uint32_t transferred;
-    double elapsed;
-    unsigned percent;
-    double speed;
-    struct timeval now;
-    uint32_t remain;
+    struct timespec now;
 
-    gettimeofday(&now, NULL);
-    memcpy(&remain, buf, 4);
+    clock_gettime(CLOCK_MONOTONIC, &now);
+    return now.tv_sec + now.tv_nsec / 1000000000.0;
+}
 
-    elapsed = (now.tv_sec + now.tv_usec / 1000.0 / 1000) - (start_time.tv_sec + start_time.tv_usec / 1000.0 / 1000);
-    transferred = total_size - remain;
-    percent = total_size ? transferred * 100ULL / total_size : 100;
-    speed = elapsed > 0 ? transferred / elapsed / 1024.0 / 1024.0 : 0;
+static int receive_local(int fd, struct file_packet *packet)
+{
+    int ret;
+
+    ret = file_ipc_recv(fd, packet);
+    if (!ret) {
+        errno = ECONNRESET;
+        return -1;
+    }
+
+    if (ret < 0)
+        return -1;
+
+    if (packet->fd >= 0) {
+        close(packet->fd);
+        errno = EPROTO;
+        return -1;
+    }
+
+    if (packet->type == FILE_IPC_ERROR) {
+        uint32_t error;
+
+        if (packet->len != sizeof(error)) {
+            errno = EPROTO;
+            return -1;
+        }
+
+        memcpy(&error, packet->data, sizeof(error));
+        error = ntohl(error);
+        errno = error && error <= INT_MAX ? error : EPROTO;
+        return -1;
+    }
+
+    return 0;
+}
+
+static void show_progress(struct filectl_context *ctx, bool complete)
+{
+    double elapsed = monotonic_time() - ctx->start.tv_sec - ctx->start.tv_nsec / 1000000000.0;
+    uint32_t transferred = ctx->total - ctx->remaining;
+    unsigned percent = ctx->total ? transferred * 100ULL / ctx->total : 100;
+    double speed = elapsed > 0 ? transferred / elapsed / 1024.0 / 1024.0 : 0;
 
     printf("%100c\r", ' ');
     printf("  %u%%    %s    %.2f MB/s", percent, format_size(transferred), speed);
-    if (percent == 100)
+    if (complete)
         printf("    %.3fs", elapsed);
-    printf("\r");
-    fflush(stdout);
 
-    return remain;
+    putchar('\r');
+    fflush(stdout);
 }
 
-static void handle_file_control_msg(int fd, int sfd, const char *path)
+static int transfer_file(struct filectl_context *ctx, char type)
 {
-    struct file_control_msg msg;
-    struct buffer b = {};
-    char *dirc;
+    struct file_packet packet;
+    bool have_info = false;
+    uint32_t remaining;
+
+    if (receive_local(ctx->socket, &packet) < 0)
+        return -1;
+
+    if (packet.type != FILE_IPC_ACCEPT || packet.len) {
+        errno = EPROTO;
+        return -1;
+    }
+
+    if (file_ipc_send(ctx->socket, type == 'S' ? FILE_IPC_SEND : FILE_IPC_RECV, NULL, 0, ctx->fd) < 0)
+        return -1;
+
+    close(ctx->fd);
+    ctx->fd = -1;
+
+    if (type == 'R') {
+        printf("Waiting to receive. Press Ctrl+C to cancel\n");
+        fflush(stdout);
+    }
 
     while (true) {
-        if (buffer_put_fd(&b, fd, -1, NULL) < 0)
-            break;
-        
-        if (buffer_length(&b) < sizeof(msg))
+        if (receive_local(ctx->socket, &packet) < 0)
+            return -1;
+
+        switch (packet.type) {
+        case FILE_IPC_INFO:
+            if (have_info || packet.len < 5 || !file_valid_name(packet.data + 4, packet.len - 4))
+                break;
+
+            memcpy(&remaining, packet.data, sizeof(remaining));
+            ctx->total = ctx->remaining = ntohl(remaining);
+            clock_gettime(CLOCK_MONOTONIC, &ctx->start);
+            printf("Transferring '%.*s'...Press Ctrl+C to cancel\n", packet.len - 4, packet.data + 4);
+            fflush(stdout);
+            have_info = true;
             continue;
 
-        buffer_pull(&b, &msg, sizeof(msg));
+        case FILE_IPC_PROGRESS:
+            if (!have_info || packet.len != sizeof(remaining))
+                break;
 
-        switch (msg.type) {
-        case RTTY_FILE_CTL_REQUEST_ACCEPT:
-            if (sfd > -1) {
-                close(sfd);
-                gettimeofday(&start_time, NULL);
-                dirc = strdup(path);
-                printf("Transferring '%s'...Press Ctrl+C to cancel\n", basename(dirc));
-                free(dirc);
+            memcpy(&remaining, packet.data, sizeof(remaining));
+            remaining = ntohl(remaining);
+            if (remaining > ctx->remaining)
+                break;
 
-                if (total_size == 0) {
-                    printf("  100%%    0 B     0s\n");
-                    goto done;
-                }
-            } else {
-                printf("Waiting to receive. Press Ctrl+C to cancel\n");
-            }
-            break;
-        
-        case RTTY_FILE_CTL_INFO:
-            memcpy(&total_size, msg.buf, 4);
-            
-            printf("Transferring '%s'...\n", (char *)(msg.buf + 4));
+            ctx->remaining = remaining;
+            show_progress(ctx, false);
+            /* Completion may already be queued and the daemon socket closed.
+             * This acknowledgment only enables the next progress update. */
+            file_ipc_send(ctx->socket, FILE_IPC_PROGRESS, NULL, 0, -1);
+            continue;
 
-            if (total_size == 0) {
-                printf("  100%%    0 B     0s\n");
-                goto done;
-            }
-            
-            gettimeofday(&start_time, NULL);
+        case FILE_IPC_DONE:
+            if (!have_info || packet.len)
+                break;
 
-            break;
-        
-        case RTTY_FILE_CTL_PROGRESS:
-            if (update_progress(msg.buf) == 0) {
-                puts("");
-                goto done;
-            }
-            break;
-        
-        case RTTY_FILE_CTL_ABORT:
+            ctx->remaining = 0;
+            show_progress(ctx, true);
             puts("");
-            goto done;
-
-        case RTTY_FILE_CTL_BUSY:
-            printf("\033[31mRtty is busy to transfer file\033[0m\n");
-            goto done;
-
-        case RTTY_FILE_CTL_NO_SPACE:
-            printf("\033[31mNo enough space\033[0m\n");
-            goto done;
-
-        case RTTY_FILE_CTL_ERR_EXIST:
-            printf("\033[31mThe file already exists\033[0m\n");
-            goto done;
+            return 0;
 
         default:
-            goto done;
+            break;
         }
+
+        errno = EPROTO;
+        return -1;
+    }
+}
+
+int request_transfer_file(char type, const char *path)
+{
+    struct filectl_context ctx = { .socket = -1, .fd = -1 };
+    struct sockaddr_un addr;
+    struct ucred cred;
+    struct termios attrs;
+    struct sigaction action = { .sa_handler = on_signal };
+    socklen_t len;
+    int address_len;
+    int ret = 1;
+
+    if (type == 'S') {
+        ctx.fd = open(path, O_RDONLY | O_NONBLOCK | O_CLOEXEC);
+        if (ctx.fd < 0)
+            goto done;
+    } else {
+        if (access(".", W_OK | X_OK) < 0)
+            goto done;
+
+        ctx.fd = open(".", O_PATH | O_DIRECTORY | O_CLOEXEC);
+        if (ctx.fd < 0)
+            goto done;
+    }
+
+    ctx.socket = socket(AF_UNIX, SOCK_SEQPACKET | SOCK_CLOEXEC, 0);
+    if (ctx.socket < 0)
+        goto done;
+
+    ttyfd = open("/dev/tty", O_RDONLY | O_CLOEXEC);
+    if (ttyfd < 0) {
+        fprintf(stderr, "File transfer is unavailable without a controlling terminal\n");
+        goto done;
+    }
+
+    address_len = file_socket_address(&addr, ttyfd);
+    if (address_len < 0)
+        goto cleanup;
+
+    if (connect(ctx.socket, (struct sockaddr *)&addr, address_len) < 0) {
+        fprintf(stderr, "File transfer is unavailable in this terminal\n");
+        goto done;
+    }
+
+    len = sizeof(cred);
+    if (getsockopt(ctx.socket, SOL_SOCKET, SO_PEERCRED, &cred, &len) < 0)
+        goto done;
+
+    if (cred.uid != 0) {
+        errno = EACCES;
+        goto done;
+    }
+
+    if (tcgetpgrp(ttyfd) == getpgrp()) {
+        if (tcgetattr(ttyfd, &terminal_attrs) < 0)
+            goto done;
+
+        terminal_attrs_saved = 1;
+
+        sigemptyset(&action.sa_mask);
+        if (sigaction(SIGINT, &action, NULL) < 0)
+            goto done;
+
+        attrs = terminal_attrs;
+        attrs.c_lflag &= ~ECHOCTL;
+        if (tcsetattr(ttyfd, TCSANOW, &attrs) < 0)
+            goto done;
+    }
+
+    if (!transfer_file(&ctx, type)) {
+        ret = 0;
+        goto cleanup;
     }
 
 done:
-    buffer_free(&b);
-}
+    fprintf(stderr, "File transfer failed: %s\n", strerror(errno));
 
-void request_transfer_file(char type, const char *path)
-{
-    pid_t pid = getpid();
-    struct stat st;
-    int sfd = -1;
-    int ctlfd;
+cleanup:
+    restore_terminal();
 
-    if (type == 'R') {
-        if (access(".", W_OK | X_OK)) {
-            printf("Permission denied\n");
-            exit(EXIT_FAILURE);
-        }
-    } else {
-        sfd = open(path, O_RDONLY);
-        if (sfd < 0) {
-            printf("open '%s' failed: ", path);
-            if (errno == ENOENT)
-                printf("No such file\n");
-            else
-                printf("%s\n", strerror(errno));
-            exit(EXIT_FAILURE);
-        }
+    if (ctx.fd >= 0)
+        close(ctx.fd);
 
-        fstat(sfd, &st);
-        if (!(st.st_mode & S_IFREG)) {
-            printf("'%s' is not a regular file\n", path);
-            close(sfd);
-            exit(EXIT_FAILURE);
-        }
+    if (ctx.socket >= 0)
+        close(ctx.socket);
 
-        if (st.st_size > UINT32_MAX) {
-            printf("'%s' is too large(> %u Byte)\n", path, UINT32_MAX);
-            close(sfd);
-            exit(EXIT_FAILURE);
-        }
-
-        total_size = st.st_size;
-    }
-
-    sprintf(fifo_name, "/tmp/rtty-file-%d.fifo", pid);
-
-    if (mkfifo(fifo_name, 0644) < 0) {
-        fprintf(stderr, "Could not create fifo %s\n", fifo_name);
-        exit(EXIT_FAILURE);
-    }
-
-    signal(SIGINT, signal_handler);
-
-    atexit(clear_fifo);
-
-    usleep(10000);
-
-    RTTY_FILE_MAGIC[3] = type;
-
-    memcpy(RTTY_FILE_MAGIC + 4, &pid, 4);
-
-    if (type == 'S')
-        memcpy(RTTY_FILE_MAGIC + 8, &sfd, 4);
-
-    fwrite(RTTY_FILE_MAGIC, sizeof(RTTY_FILE_MAGIC), 1, stdout);
-    fflush(stdout);
-
-    ctlfd = open(fifo_name, O_RDONLY | O_NONBLOCK);
-    if (ctlfd < 0) {
-        fprintf(stderr, "Could not open fifo %s\n", fifo_name);
-        exit(EXIT_FAILURE);
-    }
-
-    handle_file_control_msg(ctlfd, sfd, path);
-
-    close(ctlfd);
+    return ret;
 }

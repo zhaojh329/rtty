@@ -22,410 +22,604 @@
  * SOFTWARE.
  */
 
-#include <stdio.h>
-#include <fcntl.h>
+#include <arpa/inet.h>
 #include <errno.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <mntent.h>
-#include <inttypes.h>
-#include <libgen.h>
+#include <fcntl.h>
+#include <linux/magic.h>
+#include <poll.h>
+#include <stdio.h>
+#include <sys/stat.h>
 #include <sys/statvfs.h>
-#include <linux/limits.h>
+#include <sys/syscall.h>
 #include <sys/sysinfo.h>
+#include <sys/vfs.h>
+#include <termios.h>
+#include <time.h>
 
-#include "log/log.h"
 #include "file.h"
-#include "list.h"
 #include "term.h"
-#include "utils.h"
+#include "log/log.h"
 
-static uint8_t RTTY_FILE_MAGIC[] = {0xb6, 0xbc, 0xbd};
-static char savepath[PATH_MAX];
+#define FILE_BLOCK_SIZE (63 * 1024)
+#define FILE_HANDSHAKE_TIMEOUT 5
 
-static int send_file_control_msg(int fd, int type, void *buf, int len)
+static void reset_transfer(struct file_context *ctx)
 {
-    struct file_control_msg msg = {
-        .type = type
-    };
+    struct tty_term *term = container_of(ctx, struct tty_term, file);
+    struct ev_loop *loop = term->tty.rtty->loop;
 
-    if (len > sizeof(msg.buf)) {
-        len = sizeof(msg.buf);
-        log_err("file control msg too long\n");
+    ev_timer_stop(loop, &ctx->timer);
+
+    if (ctx->fd >= 0)
+        close(ctx->fd);
+
+    if (ctx->temporary[0] && unlinkat(ctx->dirfd, ctx->temporary, 0) < 0)
+        log_err("unlinkat: %s\n", strerror(errno));
+
+    if (ctx->dirfd >= 0)
+        close(ctx->dirfd);
+
+    if (ctx->ctlfd >= 0) {
+        ev_io_stop(loop, &ctx->ior);
+        close(ctx->ctlfd);
     }
 
-    if (buf)
-        memcpy(msg.buf, buf, len);
+    ctx->fd = ctx->dirfd = ctx->ctlfd = -1;
+    ctx->temporary[0] = 0;
+    ctx->state = FILE_IDLE;
+    ctx->progress_pending = false;
+}
 
-    if (write(fd, &msg, sizeof(msg)) < 0)
+static int send_file_msg(struct file_context *ctx, uint8_t type, const void *data, size_t len)
+{
+    struct tty_term *term = container_of(ctx, struct tty_term, file);
+    struct tty *tty = &term->tty;
+    struct rtty *rtty = tty->rtty;
+    uint8_t *msg;
+
+    msg = buffer_put(&rtty->wb, 36 + len);
+    if (!msg)
         return -1;
 
+    msg[0] = MSG_TYPE_FILE;
+    msg[1] = (33 + len) >> 8;
+    msg[2] = 33 + len;
+    memcpy(msg + 3, tty->sid, 32);
+    msg[35] = type;
+    if (len)
+        memcpy(msg + 36, data, len);
+
+    ev_io_start(rtty->loop, &rtty->iow);
     return 0;
 }
 
-void file_context_reset(struct file_context *ctx)
+static void finish_transfer(struct file_context *ctx, int error, bool notify_remote)
 {
-    if (ctx->fd > -1) {
-        close(ctx->fd);
-        ctx->fd = -1;
-    }
+    uint32_t code = htonl(error);
+    uint8_t byte;
 
-    if (ctx->ctlfd > -1) {
-        close(ctx->ctlfd);
-        ctx->ctlfd = -1;
-    }
+    if (ctx->ctlfd < 0)
+        return;
 
-    if (ctx->buf) {
-        free(ctx->buf);
-        ctx->buf = NULL;
-    }
+    if (notify_remote && ctx->state != FILE_HANDSHAKE)
+        send_file_msg(ctx, RTTY_FILE_MSG_ABORT, NULL, 0);
+
+    /* Stop new acknowledgments and discard pending ones before closing.
+     * Closing with unread packets would reset the CLI before it reads DONE. */
+    shutdown(ctx->ctlfd, SHUT_RD);
+    while (recv(ctx->ctlfd, &byte, sizeof(byte), MSG_TRUNC) > 0)
+        ;
+
+    if (error)
+        file_ipc_send(ctx->ctlfd, FILE_IPC_ERROR, &code, sizeof(code), -1);
+    else
+        file_ipc_send(ctx->ctlfd, FILE_IPC_DONE, NULL, 0, -1);
+
+    reset_transfer(ctx);
 }
 
-static void notify_user_canceled(struct tty_term *tty)
+static int notify_info(struct file_context *ctx)
 {
-    struct rtty *rtty = tty->tty.rtty;
+    uint8_t data[4 + NAME_MAX];
+    uint32_t size = htonl(ctx->total);
+    size_t len = strlen(ctx->name);
 
-    buffer_put_u8(&rtty->wb, MSG_TYPE_FILE);
-    buffer_put_u16be(&rtty->wb, 33);
-    buffer_put_data(&rtty->wb, tty->tty.sid, 32);
-    buffer_put_u8(&rtty->wb, RTTY_FILE_MSG_ABORT);
-    ev_io_start(rtty->loop, &rtty->iow);
+    memcpy(data, &size, sizeof(size));
+    memcpy(data + 4, ctx->name, len);
+    return file_ipc_send(ctx->ctlfd, FILE_IPC_INFO, data, 4 + len, -1);
 }
 
 static int notify_progress(struct file_context *ctx)
 {
-    if (send_file_control_msg(ctx->ctlfd, RTTY_FILE_CTL_PROGRESS, &ctx->remain_size, 4) < 0)
+    uint32_t remaining = htonl(ctx->remaining);
+
+    /* Only one unacknowledged update: a stopped CLI cannot fill the socket. */
+    if (ctx->progress_pending)
+        return 0;
+
+    if (file_ipc_send(ctx->ctlfd, FILE_IPC_PROGRESS, &remaining, sizeof(remaining), -1) < 0)
+        return -1;
+
+    ctx->progress_pending = true;
+    return 0;
+}
+
+static int prepare_source(struct file_context *ctx)
+{
+    struct stat st;
+    char link[64];
+    char resolved[PATH_MAX + 1];
+    const char *name;
+    ssize_t len;
+
+    if (fstat(ctx->fd, &st) < 0)
+        return -1;
+
+    if (!S_ISREG(st.st_mode)) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    if ((uint64_t)st.st_size > UINT32_MAX) {
+        errno = EFBIG;
+        return -1;
+    }
+
+    /* Preserve the existing download name, without reopening the resolved path. */
+    snprintf(link, sizeof(link), "/proc/self/fd/%d", ctx->fd);
+    len = readlink(link, resolved, sizeof(resolved) - 1);
+    if (len < 0)
+        return -1;
+
+    if (len == sizeof(resolved) - 1) {
+        errno = ENAMETOOLONG;
+        return -1;
+    }
+
+    resolved[len] = 0;
+    name = strrchr(resolved, '/');
+    name = name ? name + 1 : resolved;
+    if (!file_valid_name(name, strlen(name))) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    strcpy(ctx->name, name);
+    ctx->total = ctx->remaining = st.st_size;
+    return 0;
+}
+
+static int check_space(struct file_context *ctx)
+{
+    struct statfs fs;
+    struct statvfs space;
+    uint64_t available;
+
+    if (fstatfs(ctx->dirfd, &fs) < 0)
+        return -1;
+
+    if (fs.f_type == RAMFS_MAGIC) {
+        struct sysinfo info;
+
+        if (sysinfo(&info) < 0)
+            return -1;
+
+        available = (uint64_t)info.freeram * info.mem_unit;
+    } else {
+        if (fstatvfs(ctx->dirfd, &space) < 0)
+            return -1;
+
+        available = (uint64_t)space.f_bavail * space.f_frsize;
+    }
+
+    if (ctx->total > available) {
+        errno = ENOSPC;
+        return -1;
+    }
+
+    return 0;
+}
+
+static int prepare_receive_file(struct file_context *ctx, const uint8_t *data, size_t len)
+{
+    struct stat st;
+    char temporary[sizeof(ctx->temporary)];
+    struct timespec now;
+    uint32_t size;
+
+    if (len < 5 || !file_valid_name(data + 4, len - 4)) {
+        errno = EPROTO;
+        return -1;
+    }
+
+    memcpy(&size, data, 4);
+    ctx->total = ctx->remaining = ntohl(size);
+    memcpy(ctx->name, data + 4, len - 4);
+    ctx->name[len - 4] = 0;
+
+    if (!fstatat(ctx->dirfd, ctx->name, &st, AT_SYMLINK_NOFOLLOW)) {
+        errno = EEXIST;
+        return -1;
+    }
+
+    if (errno != ENOENT || check_space(ctx) < 0)
+        return -1;
+
+    clock_gettime(CLOCK_MONOTONIC, &now);
+    snprintf(temporary, sizeof(temporary), ".rtty-%ld-%ld.part", (long)getpid(), now.tv_nsec);
+
+    ctx->fd = openat(ctx->dirfd, temporary, O_WRONLY | O_CREAT | O_EXCL | O_CLOEXEC, 0600);
+    if (ctx->fd < 0)
+        return -1;
+
+    strcpy(ctx->temporary, temporary);
+    return 0;
+}
+
+static int check_connection(struct file_context *ctx)
+{
+    struct pollfd pfd = { .fd = ctx->ctlfd, .events = POLLRDHUP };
+
+    if (poll(&pfd, 1, 0) < 0)
+        return -1;
+
+    if (pfd.revents & (POLLRDHUP | POLLHUP | POLLERR)) {
+        errno = ECANCELED;
+        return -1;
+    }
+
+    return 0;
+}
+
+static int commit_receive_file(struct file_context *ctx)
+{
+    int fd;
+
+    if (check_connection(ctx) < 0)
+        return -1;
+
+    if (fchown(ctx->fd, ctx->uid, ctx->gid) < 0)
+        log_err("fchown '%s': %s\n", ctx->name, strerror(errno));
+
+    if (fchmod(ctx->fd, ctx->create_mode) < 0)
+        return -1;
+
+    if (fsync(ctx->fd) < 0)
+        return -1;
+
+    fd = ctx->fd;
+    ctx->fd = -1;
+
+    if (close(fd) < 0)
+        return -1;
+
+    if (check_connection(ctx) < 0)
+        return -1;
+
+#ifdef SYS_renameat2
+    if (!syscall(SYS_renameat2, ctx->dirfd, ctx->temporary, ctx->dirfd, ctx->name, 1 /* RENAME_NOREPLACE */)) {
+        ctx->temporary[0] = 0;
+        return 0;
+    }
+
+    if (errno != ENOSYS && errno != EINVAL && errno != EOPNOTSUPP)
+        return -1;
+#endif
+
+    if (linkat(ctx->dirfd, ctx->temporary, ctx->dirfd, ctx->name, 0) < 0)
         return -1;
 
     return 0;
 }
 
-static void send_file_data(struct file_context *ctx)
+static int send_file_data(struct file_context *ctx)
 {
-    struct tty_term *tty = container_of(ctx, struct tty_term, file);
-    struct rtty *rtty = tty->tty.rtty;
-    int ret;
+    uint8_t data[FILE_BLOCK_SIZE];
+    size_t want = ctx->remaining < sizeof(data) ? ctx->remaining : sizeof(data);
+    ssize_t len = read(ctx->fd, data, want);
 
-    if (!ctx->buf) {
-        ctx->buf = malloc(UPLOAD_FILE_BUF_SIZE);
-        if (!ctx->buf) {
-            log_err("malloc: %s\n", strerror(errno));
-            send_file_control_msg(ctx->ctlfd, RTTY_FILE_CTL_ERR, NULL, 0);
-            goto err;
+    if (len < 0)
+        return -1;
+
+    if (!len && want) {
+        errno = EIO;
+        return -1;
+    }
+
+    if (send_file_msg(ctx, RTTY_FILE_MSG_DATA, data, len) < 0)
+        return -1;
+
+    ctx->remaining -= len;
+
+    if (!len) {
+        finish_transfer(ctx, 0, false);
+        return 0;
+    }
+
+    return notify_progress(ctx);
+}
+
+static int receive_data(struct file_context *ctx, const uint8_t *data, size_t len)
+{
+    size_t offset = 0;
+
+    while (offset < len) {
+        ssize_t ret = write(ctx->fd, data + offset, len - offset);
+
+        if (ret <= 0) {
+            if (!ret)
+                errno = EIO;
+            return -1;
         }
+
+        offset += ret;
     }
 
-    if (ctx->fd < 0)
-        return;
+    ctx->remaining -= len;
 
-    ret = read(ctx->fd, ctx->buf, UPLOAD_FILE_BUF_SIZE);
-    if (ret < 0) {
-        send_file_control_msg(ctx->ctlfd, RTTY_FILE_CTL_ERR, NULL, 0);
-        goto err;
-    }
+    if (!ctx->remaining) {
+        if (commit_receive_file(ctx) < 0)
+            return -1;
 
-    ctx->remain_size -= ret;
-
-    buffer_put_u8(&rtty->wb, MSG_TYPE_FILE);
-    buffer_put_u16be(&rtty->wb, 33 + ret);
-    buffer_put_data(&rtty->wb, tty->tty.sid, 32);
-    buffer_put_u8(&rtty->wb, RTTY_FILE_MSG_DATA);
-    buffer_put_data(&rtty->wb, ctx->buf, ret);
-    ev_io_start(rtty->loop, &rtty->iow);
-
-    if (ret == 0) {
-        file_context_reset(ctx);
-        return;
+        finish_transfer(ctx, 0, false);
+        return 0;
     }
 
     if (notify_progress(ctx) < 0)
+        return -1;
+
+    return send_file_msg(ctx, RTTY_FILE_MSG_ACK, NULL, 0);
+}
+
+static int start_transfer(struct file_context *ctx, struct file_packet *packet)
+{
+    struct tty_term *term = container_of(ctx, struct tty_term, file);
+    struct stat st;
+
+    if (packet->len || packet->fd < 0)
+        goto invalid;
+
+    switch (packet->type) {
+    case FILE_IPC_SEND:
+        ctx->fd = packet->fd;
+        packet->fd = -1;
+        if (prepare_source(ctx) < 0 || notify_info(ctx) < 0)
+            return -1;
+
+        ctx->state = FILE_SEND_ACK;
+        if (send_file_msg(ctx, RTTY_FILE_MSG_SEND, ctx->name, strlen(ctx->name)) < 0)
+            return -1;
+        break;
+
+    case FILE_IPC_RECV:
+        if (fstat(packet->fd, &st) < 0)
+            return -1;
+
+        if (!S_ISDIR(st.st_mode))
+            goto invalid;
+
+        ctx->dirfd = packet->fd;
+        packet->fd = -1;
+        ctx->state = FILE_RECV_INFO;
+        if (send_file_msg(ctx, RTTY_FILE_MSG_RECV, NULL, 0) < 0)
+            return -1;
+        break;
+
+    default:
+        goto invalid;
+    }
+
+    ev_timer_stop(term->tty.rtty->loop, &ctx->timer);
+    return 0;
+
+invalid:
+    errno = EPROTO;
+    return -1;
+}
+
+static void on_local_read(struct ev_loop *loop, struct ev_io *w, int revents)
+{
+    struct file_context *ctx = container_of(w, struct file_context, ior);
+    struct tty_term *term = container_of(ctx, struct tty_term, file);
+    struct file_packet packet;
+    int ret;
+    int error = 0;
+
+    ret = file_ipc_recv(ctx->ctlfd, &packet);
+    if (ret <= 0) {
+        finish_transfer(ctx, ret < 0 ? errno : ECANCELED, true);
+        return;
+    }
+
+    ev_timer_again(loop, &term->tmr);
+    if (ctx->state == FILE_HANDSHAKE) {
+        if (start_transfer(ctx, &packet) < 0)
+            error = errno;
+    } else if (packet.type == FILE_IPC_PROGRESS && !packet.len && packet.fd < 0 && ctx->progress_pending) {
+        ctx->progress_pending = false;
+    } else {
+        error = EPROTO;
+    }
+
+    if (packet.fd >= 0)
+        close(packet.fd);
+
+    if (error)
+        finish_transfer(ctx, error, true);
+}
+
+static void on_timeout(struct ev_loop *loop, struct ev_timer *w, int revents)
+{
+    struct file_context *ctx = container_of(w, struct file_context, timer);
+
+    finish_transfer(ctx, ETIMEDOUT, false);
+}
+
+static void on_accept(struct ev_loop *loop, struct ev_io *w, int revents)
+{
+    struct file_context *ctx = container_of(w, struct file_context, listener);
+    struct tty_term *term = container_of(ctx, struct tty_term, file);
+    struct ucred cred;
+    socklen_t len = sizeof(cred);
+    uint32_t code;
+    pid_t session;
+    int fd;
+
+    fd = accept4(ctx->listenfd, NULL, NULL, SOCK_CLOEXEC);
+    if (fd < 0)
+        return;
+
+    session = tcgetsid(term->pty);
+    if (session <= 0)
         goto err;
+
+    if (getsockopt(fd, SOL_SOCKET, SO_PEERCRED, &cred, &len) < 0)
+        goto err;
+
+    if (cred.pid <= 0 || getsid(cred.pid) != session)
+        goto err;
+
+    if (ctx->ctlfd >= 0) {
+        code = htonl(EBUSY);
+        file_ipc_send(fd, FILE_IPC_ERROR, &code, sizeof(code), -1);
+        goto err;
+    }
+
+    ctx->ctlfd = fd;
+    ctx->uid = cred.uid;
+    ctx->gid = cred.gid;
+    ctx->state = FILE_HANDSHAKE;
+
+    ev_io_init(&ctx->ior, on_local_read, fd, EV_READ);
+    ev_io_start(loop, &ctx->ior);
+
+    ev_timer_set(&ctx->timer, FILE_HANDSHAKE_TIMEOUT, 0);
+    ev_timer_start(loop, &ctx->timer);
+
+    if (file_ipc_send(fd, FILE_IPC_ACCEPT, NULL, 0, -1) < 0)
+        reset_transfer(ctx);
 
     return;
 
 err:
-    notify_user_canceled(tty);
-    file_context_reset(ctx);
+    close(fd);
 }
 
-static int start_upload_file(struct file_context *ctx, const char *path)
+void file_context_init(struct file_context *ctx)
 {
-    struct tty_term *tty = container_of(ctx, struct tty_term, file);
-    struct rtty *rtty = tty->tty.rtty;
-    const char *name;
-    struct stat st;
+    struct tty_term *term = container_of(ctx, struct tty_term, file);
+    struct sockaddr_un addr;
+    mode_t mask = umask(0);
+    int len;
     int fd;
-    char *dirc;
 
-    dirc = strdup(path);
-    name = basename(dirc);
-    fd = open(path, O_RDONLY);
+    umask(mask);
+    memset(ctx, 0, sizeof(*ctx));
+
+    ctx->listenfd = -1;
+    ctx->ctlfd = ctx->fd = ctx->dirfd = -1;
+    ctx->create_mode = 0644 & ~mask;
+
+    len = file_socket_address(&addr, term->pty);
+    if (len < 0)
+        return;
+
+    fd = socket(AF_UNIX, SOCK_SEQPACKET | SOCK_NONBLOCK | SOCK_CLOEXEC, 0);
     if (fd < 0) {
-        log_err("open '%s' fail: %s\n", path, strerror(errno));
-        free(dirc);
-        return -1;
-    }
-
-    fstat(fd, &st);
-
-    buffer_put_u8(&rtty->wb, MSG_TYPE_FILE);
-    buffer_put_u16be(&rtty->wb, 33 + strlen(name));
-    buffer_put_data(&rtty->wb, tty->tty.sid, 32);
-    buffer_put_u8(&rtty->wb, RTTY_FILE_MSG_SEND);
-    buffer_put_string(&rtty->wb, name);
-    ev_io_start(rtty->loop, &rtty->iow);
-
-    ctx->fd = fd;
-    ctx->total_size = st.st_size;
-    ctx->remain_size = st.st_size;
-
-    log_info("upload file: %s, size: %" PRIu64 "\n", path, (uint64_t)st.st_size);
-    free(dirc);
-
-    return 0;
-}
-
-bool detect_file_operation(uint8_t *buf, int len, const char *sid, struct file_context *ctx)
-{
-    struct tty_term *tty = container_of(ctx, struct tty_term, file);
-    struct rtty *rtty = tty->tty.rtty;
-    char fifo_name[128];
-    pid_t pid;
-    int ctlfd;
-    uid_t uid;
-    gid_t gid;
-
-    if (len != 12)
-        return false;
-
-    if (memcmp(buf, RTTY_FILE_MAGIC, 3))
-        return false;
-
-    memcpy(&pid, buf + 4, 4);
-
-    if (!getuid_by_pid(pid, &uid)) {
-        kill(pid, SIGTERM);
-        return true;
-    }
-
-    if (!getgid_by_pid(pid, &gid)) {
-        kill(pid, SIGTERM);
-        return true;
-    }
-
-    sprintf(fifo_name, "/tmp/rtty-file-%d.fifo", pid);
-
-    ctlfd = open(fifo_name, O_WRONLY);
-    if (ctlfd < 0) {
-        log_err("Could not open fifo %s\n", fifo_name);
-        kill(pid, SIGTERM);
-        return true;
-    }
-
-    if (ctx->ctlfd > -1) {
-        send_file_control_msg(ctlfd, RTTY_FILE_CTL_BUSY, NULL, 0);
-        close(ctlfd);
-
-        return true;
-    }
-
-    if (buf[3] == 'R') {
-        buffer_put_u8(&rtty->wb, MSG_TYPE_FILE);
-        buffer_put_u16be(&rtty->wb, 33);
-        buffer_put_data(&rtty->wb, tty->tty.sid, 32);
-        buffer_put_u8(&rtty->wb, RTTY_FILE_MSG_RECV);
-        ev_io_start(rtty->loop, &rtty->iow);
-
-        send_file_control_msg(ctlfd, RTTY_FILE_CTL_REQUEST_ACCEPT, NULL, 0);
-
-        memset(savepath, 0, sizeof(savepath));
-        getcwd_by_pid(pid, savepath, sizeof(savepath) - 1);
-        strcat(savepath, "/");
-
-        ctx->uid = uid;
-        ctx->gid = gid;
-    } else {
-        char path[PATH_MAX] = "";
-        char link[128];
-        int fd;
-
-        memcpy(&fd, buf + 8, 4);
-
-        sprintf(link, "/proc/%d/fd/%d", pid, fd);
-
-        if (readlink(link, path, sizeof(path) - 1) < 0) {
-            log_err("readlink: %s\n", strerror(errno));
-
-            send_file_control_msg(ctlfd, RTTY_FILE_CTL_ERR, NULL, 0);
-            close(ctlfd);
-
-            return true;
-        }
-
-        send_file_control_msg(ctlfd, RTTY_FILE_CTL_REQUEST_ACCEPT, NULL, 0);
-
-        if (start_upload_file(ctx, path) < 0) {
-            send_file_control_msg(ctlfd, RTTY_FILE_CTL_ERR, NULL, 0);
-            close(ctlfd);
-
-            return true;
-        }
-    }
-
-    ctx->ctlfd = ctlfd;
-
-    return true;
-}
-
-static void start_download_file(struct file_context *ctx, struct buffer *info, int len)
-{
-    char *name = savepath + strlen(savepath);
-    struct mntent *ment;
-    struct statvfs sfs;
-    char buf[512];
-    int fd;
-
-    if (ctx->ctlfd < 0) {
-        buffer_pull(info, NULL, len);
+        log_err("socket: %s\n", strerror(errno));
         return;
     }
 
-    ctx->total_size = ctx->remain_size = buffer_pull_u32be(info);
-
-    ment = find_mount_point(savepath);
-    if (ment) {
-        uint64_t avail;
-
-        if (!strcmp(ment->mnt_type, "ramfs")) {
-            struct sysinfo si;
-
-            if (sysinfo(&si)) {
-                log_err("download file fail: '%s'\n", strerror(errno));
-                goto check_space_fail;
-            }
-
-            avail = si.freeram;
-        } else if (!statvfs(ment->mnt_dir, &sfs)) {
-            avail = sfs.f_bavail * sfs.f_frsize;
-        } else {
-            log_err("download file fail: '%s'\n", strerror(errno));
-            goto check_space_fail;
-        }
-
-        if (ctx->total_size > avail) {
-            log_err("download file fail: no enough space\n");
-            goto check_space_fail;
-        }
-    } else {
-        uint64_t avail;
-        
-        if (!statvfs(savepath, &sfs)) {
-            avail = sfs.f_bavail * sfs.f_frsize;
-
-            if (ctx->total_size > avail) {
-                log_err("download file fail: no enough space\n");
-                goto check_space_fail;
-            }
-        } else {
-            log_err("download file fail: not found mount point of '%s'\n", savepath);
-            goto check_space_fail;
-        }
+    if (bind(fd, (struct sockaddr *)&addr, len) < 0) {
+        log_err("bind: %s\n", strerror(errno));
+        goto err;
     }
 
-    buffer_pull(info, name, len - 4);
-
-    if (!access(savepath, F_OK)) {
-        send_file_control_msg(ctx->ctlfd, RTTY_FILE_CTL_ERR_EXIST, NULL, 0);
-        log_err("the file '%s' already exists\n", name);
-        goto open_fail;
+    if (listen(fd, 4) < 0) {
+        log_err("listen: %s\n", strerror(errno));
+        goto err;
     }
 
-    fd = open(savepath, O_WRONLY | O_TRUNC | O_CREAT, 0644);
-    if (fd < 0) {
-        send_file_control_msg(ctx->ctlfd, RTTY_FILE_CTL_ERR, NULL, 0);
-        log_err("create file '%s' fail: %s\n", name, strerror(errno));
-        goto open_fail;
-    }
-
-    log_info("download file: %s, size: %u\n", savepath, ctx->total_size);
-
-    if (fchown(fd, ctx->uid, ctx->gid) < 0)
-        log_err("fchown %s fail: %s\n", savepath, strerror(errno));
-
-    if (ctx->total_size == 0)
-        close(fd);
-    else
-        ctx->fd = fd;
-
-    memcpy(buf, &ctx->total_size, 4);
-    strcpy(buf + 4, name);
-
-    send_file_control_msg(ctx->ctlfd, RTTY_FILE_CTL_INFO, buf, 4 + strlen(name));
-
+    ctx->listenfd = fd;
+    ev_io_init(&ctx->listener, on_accept, fd, EV_READ);
+    ev_io_start(term->tty.rtty->loop, &ctx->listener);
+    ev_timer_init(&ctx->timer, on_timeout, 0, 0);
     return;
 
-check_space_fail:
-    send_file_control_msg(ctx->ctlfd, RTTY_FILE_CTL_NO_SPACE, NULL, 0);
-    buffer_pull(info, NULL, len - 4);
-open_fail:
-    file_context_reset(ctx);
+err:
+    close(fd);
 }
 
-static void send_file_data_ack(struct tty_term *tty)
+void file_context_close(struct file_context *ctx)
 {
-    struct rtty *rtty = tty->tty.rtty;
+    struct tty_term *term = container_of(ctx, struct tty_term, file);
 
-    buffer_put_u8(&rtty->wb, MSG_TYPE_FILE);
-    buffer_put_u16be(&rtty->wb, 33);
-    buffer_put_data(&rtty->wb, tty->tty.sid, 32);
-    buffer_put_u8(&rtty->wb, RTTY_FILE_MSG_ACK);
-    ev_io_start(rtty->loop, &rtty->iow);
+    reset_transfer(ctx);
+
+    if (ctx->listenfd >= 0) {
+        ev_io_stop(term->tty.rtty->loop, &ctx->listener);
+        close(ctx->listenfd);
+    }
+
+    ctx->listenfd = -1;
 }
 
-void parse_file_msg(struct file_context *ctx, struct buffer *data, int len)
+void parse_file_msg(struct file_context *ctx, const uint8_t *data, size_t len)
 {
-    struct tty_term *tty = container_of(ctx, struct tty_term, file);
-    int type = buffer_pull_u8(data);
+    struct tty_term *term = container_of(ctx, struct tty_term, file);
+    int type;
 
+    if (len < 1) {
+        finish_transfer(ctx, EPROTO, true);
+        return;
+    }
+
+    type = *data++;
     len--;
+
+    if (ctx->state == FILE_IDLE || ctx->state == FILE_HANDSHAKE)
+        return;
+
+    ev_timer_again(term->tty.rtty->loop, &term->tmr);
 
     switch (type) {
     case RTTY_FILE_MSG_INFO:
-        start_download_file(ctx, data, len);
-        break;
+        if (ctx->state != FILE_RECV_INFO)
+            break;
+
+        if (prepare_receive_file(ctx, data, len) < 0) {
+            finish_transfer(ctx, errno, true);
+            return;
+        }
+
+        ctx->state = FILE_RECV_DATA;
+        if (notify_info(ctx) < 0)
+            finish_transfer(ctx, errno, true);
+        return;
 
     case RTTY_FILE_MSG_DATA:
-        if (len > 0) {
-            if (ctx->fd > -1) {
-                buffer_pull_to_fd(data, ctx->fd, len);
-                ctx->remain_size -= len;
+        if (ctx->state != FILE_RECV_DATA || len > ctx->remaining || (!len && ctx->remaining))
+            break;
 
-                if (notify_progress(ctx) < 0) {
-                    file_context_reset(ctx);
-                } else {
-                    if (ctx->remain_size == 0)
-                        file_context_reset(ctx);
-                    else
-                        send_file_data_ack(tty);
-                }
-            } else {
-                buffer_pull(data, NULL, len);
-            }
-        } else {
-            file_context_reset(ctx);
-        }
-        break;
+        if (receive_data(ctx, data, len) < 0)
+            finish_transfer(ctx, errno, true);
+        return;
 
     case RTTY_FILE_MSG_ACK:
-        send_file_data(ctx);
-        break;
+        if (ctx->state != FILE_SEND_ACK || len)
+            break;
+
+        if (send_file_data(ctx) < 0)
+            finish_transfer(ctx, errno, true);
+        return;
 
     case RTTY_FILE_MSG_ABORT:
-        send_file_control_msg(ctx->ctlfd, RTTY_FILE_CTL_ABORT, NULL, 0);
-        file_context_reset(ctx);
-        break;
+        if (len)
+            break;
 
-    default:
-        break;
+        finish_transfer(ctx, ECANCELED, false);
+        return;
     }
+
+    finish_transfer(ctx, EPROTO, true);
 }

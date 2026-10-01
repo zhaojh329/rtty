@@ -628,11 +628,11 @@ int main(int argc, char **argv)
             rtty.username = optarg;
             break;
         case 'R':
-            request_transfer_file('R', NULL);
-            return 0;
+            ret = request_transfer_file('R', NULL);
+            goto clean;
         case 'S':
-            request_transfer_file('S', optarg);
-            return 0;
+            ret = request_transfer_file('S', optarg);
+            goto clean;
         case 'v':
             verbose = true;
             break;

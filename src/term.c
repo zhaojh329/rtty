@@ -40,7 +40,7 @@ void term_close(struct tty *tty)
     ev_child_stop(loop, &term->cw);
     close(term->pty);
     kill(term->pid, SIGTERM);
-    file_context_reset(&term->file);
+    file_context_close(&term->file);
 }
 
 static void pty_on_read(struct ev_loop *loop, struct ev_io *w, int revents)
@@ -62,9 +62,6 @@ static void pty_on_read(struct ev_loop *loop, struct ev_io *w, int revents)
     }
 
     if (len == 0)
-        return;
-
-    if (detect_file_operation(buf, len, tty->sid, &term->file))
         return;
 
     tty_wait_ack(tty, len);
@@ -157,8 +154,6 @@ int term_open(struct rtty *rtty, const uint8_t *data, size_t len)
     tty->pty = pty;
     tty->tty.rtty = rtty;
     tty->tty.type = TTY_TERM;
-    tty->file.fd = -1;
-    tty->file.ctlfd = -1;
 
     strcpy(tty->tty.sid, sid);
 
@@ -177,6 +172,8 @@ int term_open(struct rtty *rtty, const uint8_t *data, size_t len)
 
     ev_timer_init(&tty->tmr, tty_timer_cb, RTTY_TTY_TIMEOUT, RTTY_TTY_TIMEOUT);
     ev_timer_start(rtty->loop, &tty->tmr);
+
+    file_context_init(&tty->file);
 
     code = 0;
 
@@ -228,7 +225,8 @@ int term_handle_session(struct tty *tty, int type, int len)
         set_tty_winsize(term);
         break;
     case MSG_TYPE_FILE:
-        parse_file_msg(&term->file, b, len);
+        parse_file_msg(&term->file, buffer_data(b), len);
+        buffer_pull(b, NULL, len);
         break;
     default:
         /* never to here */

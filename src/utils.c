@@ -22,13 +22,10 @@
  * SOFTWARE.
  */
 
-#include <sys/stat.h>
-#include <mntent.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
 #include <ctype.h>
-#include <unistd.h>
 
 #include "utils.h"
 
@@ -110,111 +107,4 @@ const char *format_size(size_t size)
         sprintf(str, "%.2f MB", size / 1024.0 / 1024.0);
 
     return str;
-}
-
-/*
- * Given any file (or directory), find the mount table entry for its
- * filesystem.
- */
-struct mntent *find_mount_point(const char *name)
-{
-    struct mntent *ment;
-    dev_t devno_of_name;
-    struct stat s;
-    FILE *mtab_fp;
-
-    if (stat(name, &s) < 0)
-        return NULL;
-
-    devno_of_name = s.st_dev;
-
-    if (S_ISBLK(s.st_mode) || S_ISCHR(s.st_mode))
-        return NULL;
-
-    mtab_fp = setmntent("/etc/mtab", "r");
-    if (!mtab_fp)
-        return NULL;
-
-    while ((ment = getmntent(mtab_fp))) {
-        if (!strcmp(ment->mnt_fsname, "rootfs"))
-            continue;
-
-        /* string match */
-        if (!strcmp(name, ment->mnt_dir))
-            break;
-
-        /* match the directory's mount point. */
-        if (stat(ment->mnt_dir, &s) == 0 && s.st_dev == devno_of_name)
-            break;
-    }
-    endmntent(mtab_fp);
-
-    return ment;
-}
-
-/*
- *  getcwd_pid does not append a null byte to buf.  It will (silently) truncate the contents (to
- *  a length of bufsiz characters), in case the buffer is too small to hold all the contents.
- */
-ssize_t getcwd_by_pid(pid_t pid, char *buf, size_t bufsiz)
-{
-    char link[128];
-
-    sprintf(link, "/proc/%d/cwd", pid);
-
-    return readlink(link, buf, bufsiz);
-}
-
-bool getuid_by_pid(pid_t pid, uid_t *uid)
-{
-    char status[128];
-    char line[128];
-    int i = 9;
-    FILE *fp;
-
-    sprintf(status, "/proc/%d/status", pid);
-
-    fp = fopen(status, "r");
-    if (!fp)
-        return false;
-
-    while (i-- > 0) {
-        if (!fgets(line, sizeof(line), fp)) {
-            fclose(fp);
-            return false;
-        }
-    }
-
-    fclose(fp);
-
-    sscanf(line, "Uid:\t%u", uid);
-
-    return true;
-}
-
-bool getgid_by_pid(pid_t pid, gid_t *gid)
-{
-    char status[128];
-    char line[128];
-    int i = 10;
-    FILE *fp;
-
-    sprintf(status, "/proc/%d/status", pid);
-
-    fp = fopen(status, "r");
-    if (!fp)
-        return false;
-
-    while (i-- > 0) {
-        if (!fgets(line, sizeof(line), fp)) {
-            fclose(fp);
-            return false;
-        }
-    }
-
-    fclose(fp);
-
-    sscanf(line, "Gid:\t%u", gid);
-
-    return true;
 }

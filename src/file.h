@@ -26,8 +26,7 @@
 #define RTTY_FILE_H
 
 #include <ev.h>
-
-#include "buffer.h"
+#include "fileipc.h"
 
 enum {
     RTTY_FILE_MSG_SEND,
@@ -38,42 +37,36 @@ enum {
     RTTY_FILE_MSG_ABORT
 };
 
-enum {
-    RTTY_FILE_CTL_REQUEST_ACCEPT,
-    RTTY_FILE_CTL_PROGRESS,
-    RTTY_FILE_CTL_INFO,
-    RTTY_FILE_CTL_BUSY,
-    RTTY_FILE_CTL_ABORT,
-    RTTY_FILE_CTL_NO_SPACE,
-    RTTY_FILE_CTL_ERR_EXIST,
-    RTTY_FILE_CTL_ERR
-};
-
-
-#define UPLOAD_FILE_BUF_SIZE (1024 * 63)
-
-struct file_control_msg {
-    int type;
-    uint8_t buf[128];
+enum file_state {
+    FILE_IDLE,
+    FILE_HANDSHAKE,
+    FILE_SEND_ACK,
+    FILE_RECV_INFO,
+    FILE_RECV_DATA
 };
 
 struct file_context {
-    int fd;
+    struct ev_io listener;
+    struct ev_io ior;
+    struct ev_timer timer;
+    int listenfd;
     int ctlfd;
+    int fd;
+    int dirfd;
     uid_t uid;
     gid_t gid;
-    uint8_t *buf;
-    uint32_t total_size;
-    uint32_t remain_size;
+    mode_t create_mode;
+    enum file_state state;
+    uint32_t total;
+    uint32_t remaining;
+    bool progress_pending;
+    char name[NAME_MAX + 1];
+    char temporary[80];
 };
 
-void request_transfer_file(char type, const char *path);
-
-bool detect_file_operation(uint8_t *buf, int len, const char *sid, struct file_context *ctx);
-
-void parse_file_msg(struct file_context *ctx, struct buffer *data, int len);
-
-void file_context_reset(struct file_context *ctx);
+int request_transfer_file(char type, const char *path);
+void file_context_init(struct file_context *ctx);
+void file_context_close(struct file_context *ctx);
+void parse_file_msg(struct file_context *ctx, const uint8_t *data, size_t len);
 
 #endif
-
