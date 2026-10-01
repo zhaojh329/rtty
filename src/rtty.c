@@ -486,7 +486,7 @@ static void on_net_read(struct ev_loop *loop, struct ev_io *w, int revents)
                 return;
         }
 
-        ret = buffer_put_fd_ex(&rtty->rb, w->fd, 4096, &eof, rtty_ssl_read, rtty);
+        ret = buffer_put_fd_ex(&rtty->rb, w->fd, -1, &eof, rtty_ssl_read, rtty);
         if (ret < 0)
             goto err;
 #endif
