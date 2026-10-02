@@ -11,10 +11,6 @@
 [7]: https://img.shields.io/badge/发布版本-9.1.0-blue.svg?style=plastic
 [8]: https://github.com/zhaojh329/rtty/releases
 [9]: https://github.com/zhaojh329/rtty/workflows/build/badge.svg
-[10]: https://raw.githubusercontent.com/CodePhiliaX/resource-trusteeship/main/readmex.svg
-[11]: https://readmex.com/zhaojh329/rtty
-[12]: https://deepwiki.com/badge.svg
-[13]: https://deepwiki.com/zhaojh329/rtty
 [14]: https://img.shields.io/badge/技术交流群-点击加入：153530783-brightgreen.svg
 [15]: https://jq.qq.com/?_wv=1027&k=5PKxbTV
 [16]: https://img.shields.io/github/downloads/zhaojh329/rtty/total
@@ -25,8 +21,6 @@
 [![Release Version][7]][8]
 ![Build Status][9]
 ![Downloads][16]
-[![ReadmeX][10]][11]
-[![Ask DeepWiki][12]][13]
 ![visitors](https://visitor-badge.laobi.icu/badge?page_id=zhaojh329.rtty)
 [![Chinese Chat][14]][15]
 
@@ -38,11 +32,13 @@
 [vue]: https://github.com/vuejs/vue
 [服务端]: https://github.com/zhaojh329/rttys
 
+**[项目官网](https://zhaojh329.github.io/rtty/#/) · [安装与使用文档](https://zhaojh329.github.io/rtty/#/docs)**
+
 ## 系统架构
 
 ```mermaid
 flowchart TB
-s[rttys 服务器（公网IP）]
+s["rttys 服务端"]
 u1["用户（Web浏览器）"] --> s
 u2["用户（Web浏览器）"] --> s
 u3["用户（Web浏览器）"] --> s
@@ -51,23 +47,25 @@ s --> c2["rtty（Linux设备）"]
 s --> c3["rtty（Linux设备）"]
 ```
 
-![](/img/terminal.gif)
-![](/img/file.gif)
-![](/img/web.gif)
-![](/img/virtual-keyboard.jpg)
+![浏览器中的远程终端](/img/terminal.gif)
+![文件上传与下载](/img/file.gif)
+![访问设备的 Web 管理界面](/img/web.gif)
 
 ## 产品概述
 
-rtty 是一套强大的远程终端解决方案，由客户端和[服务端]组成。客户端现已支持两种实现：
+rtty 是一套远程访问解决方案，由设备客户端和 [rttys 服务端][服务端]组成。
+本仓库提供 C 语言客户端；rttys 提供 Web 管理界面，并转发到设备的连接。
+通过统一的服务端，您可以打开设备终端、传输文件和访问设备服务。客户端支持两种实现：
 
-- **C 语言客户端**：极致轻量，专为嵌入式Linux和资源受限设备设计。
+- **C 语言客户端**：极致轻量，专为嵌入式 Linux 和资源受限设备设计。
 - **Go 语言客户端**：易于跨平台编译，适合快速集成和二次开发。
 
 服务端采用 Go 语言实现，前端界面基于 [Vue] 框架构建。
 
-通过 Web 浏览器，您可以随时随地访问设备，并通过唯一设备 ID 进行设备区分和管理。
+浏览器和设备客户端都需要能够访问服务端。客户端主动发起连接，因此 NAT 后的设备无需公网 IP，也无需配置入站端口转发。
+您可以通过浏览器访问设备，并通过设备 ID 和分组进行区分和管理。
 
-rtty 非常适合远程维护和管理大规模分布式Linux设备，是企业级设备运维的理想选择。
+rtty 适用于 OpenWrt 路由器远程维护、嵌入式 Linux 网关故障排查，以及分布式 Linux 设备运维。
 
 **Go 客户端仓库地址：** [https://github.com/zhaojh329/rtty-go](https://github.com/zhaojh329/rtty-go)
 
@@ -75,40 +73,46 @@ rtty 非常适合远程维护和管理大规模分布式Linux设备，是企业�
 ## 核心特性
 
 ### 🚀 **多语言客户端选择**
+
 - **C 语言客户端**：
-  - 极致轻量，专为嵌入式Linux和资源受限设备设计
-  - 占用极小（无SSL版本：rtty 32KB + libev 56KB；SSL版本：+ libmbedtls 88KB + libmbedcrypto 241KB + libmbedx509 48KB）
+  - 极致轻量，专为嵌入式 Linux 和资源受限设备设计
   - 支持多种 SSL 后端（OpenSSL、mbedtls、CyaSSl/wolfssl）
   - 支持双向 SSL 认证（mTLS）
 
 - **Go 语言客户端**：
   - 易于跨平台编译，适合快速集成和二次开发
-  - 依赖少，部署简单，适合云原生和容器环境
-  - 与 C 客户端功能一致，完全兼容
+  - 依赖由 Go 工具链管理，便于构建和部署
+  - 与 C 客户端连接同一个 rttys 服务端
 
 ### 🔐 **安全**
-- 支持多种SSL后端和双向认证，保障数据安全
+
+- 支持设备客户端与 rttys 之间的 TLS 加密连接
+- 可选双向 TLS 认证（mTLS），通过证书认证客户端
 
 ### 🌐 **高级远程管理**
-- 批量命令执行，跨多设备远程批量操作
-- 设备 ID 识别，基于唯一设备 ID 进行设备区分
-- HTTP 代理支持，访问设备的 Web 管理界面
+
+- 跨设备批量执行命令
+- 通过设备 ID 和分组区分、管理设备
+- HTTP 代理，访问设备的 Web 管理界面
+- TCP 端口转发，通过已连接的设备访问 TCP 服务
 
 ### 📁 **文件管理**
-- 无缝文件传输，便捷的上传和下载功能
-- Web 界面操作，直观的文件管理体验
+
+- 通过 Web 界面上传和下载文件
 
 ### 💻 **现代终端体验**
-- 全功能终端，基于 [Xterm.js] 的完整终端体验
-- 浏览器访问，随时随地的设备访问能力
-- 虚拟键盘支持，触摸设备的虚拟键盘支持
+
+- 基于 [Xterm.js] 的全功能终端
+- 通过浏览器随时随地访问设备
+- 适用于触摸设备的虚拟键盘
 - 支持窗口分割，便于多会话和多任务操作
 - 支持串口终端转发
 
 ### ⚡ **部署与兼容性**
-- 简单部署，快速搭建过程
-- 易于使用，直观的操作界面
-- 跨平台兼容，支持多种系统和环境
+
+- 部署简单，配置服务端并接入设备即可使用
+- 通过 Web 界面管理设备、访问终端和传输文件
+- 客户端适用于 Linux、OpenWrt 等环境
 
 ## 生产用户
 
@@ -125,16 +129,18 @@ rtty 非常适合远程维护和管理大规模分布式Linux设备，是企业�
 ## 客户端依赖
 
 ### C 语言客户端依赖
+
 - **必需组件**
   - [libev] - 高性能事件循环库
   - [inih](https://github.com/benhoyt/inih) - 轻量级 INI 解析库，用于加载 rtty 配置文件
-- **可选组件（SSL支持）**
-  - [mbedtls(polarssl)] - 轻量级SSL/TLS库
-  - [CyaSSl(wolfssl)] - 嵌入式SSL/TLS库
-  - [openssl] - 全功能SSL/TLS工具包
+- **可选组件（SSL 支持）**
+  - [mbedtls(polarssl)] - 轻量级 SSL/TLS 库
+  - [CyaSSl(wolfssl)] - 嵌入式 SSL/TLS 库
+  - [openssl] - 全功能 SSL/TLS 工具包
 
 ### Go 语言客户端依赖
-- 无需额外依赖，编译和运行均为纯 Go 环境。
+
+- Go 模块依赖由 Go 工具链管理。
 
 ## ⭐ Star历史
 
