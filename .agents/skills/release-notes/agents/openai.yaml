@@ -1,0 +1,4 @@
+interface:
+  display_name: "中英文发布说明"
+  short_description: "根据版本差异生成英文在前、中文在后的 Markdown 发布说明"
+  default_prompt: "使用 $release-notes，根据当前仓库的目标版本与上一版本差异按问题修复、改进优化和新功能分类编写中英文发布说明，并保存为 Markdown 文件。"
