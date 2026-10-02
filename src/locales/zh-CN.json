@@ -44,6 +44,18 @@
           {
             "title": "HTTP 代理",
             "description": "不仅能访问设备自身的 Web 界面，更能穿透内网，访问设备所在局域网内任意主机上的任意 HTTP 服务"
+          },
+          {
+            "title": "串口终端",
+            "description": "通过浏览器访问设备串口，可选择串口并配置波特率、数据位、校验和停止位"
+          },
+          {
+            "title": "TCP 端口转发",
+            "description": "通过已连接设备访问指定 IPv4 地址和端口的 TCP 服务"
+          },
+          {
+            "title": "临时设备分享",
+            "description": "通过 SSH 临时分享设备终端或串口，或通过独立端口分享 TCP 服务"
           }
         ]
       },
@@ -85,7 +97,7 @@
           },
           {
             "title": "现代化前端",
-            "description": "基于Vue + Xterm.js的终端界面，提供全功能命令行体验"
+            "description": "基于 Vue + Xterm.js 的终端界面，支持窗口分割"
           },
           {
             "title": "设备看板",
@@ -114,6 +126,5 @@
   },
   "docs": {
     "copied": "已复制到剪贴板"
-  },
-  "sponsors": "赞助商"
+  }
 }

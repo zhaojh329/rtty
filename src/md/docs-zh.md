@@ -1,5 +1,5 @@
 
-# 安装客户端 rtty
+# 安装 C 客户端 rtty
 
 ## Linux 发行版
 
@@ -9,23 +9,23 @@
 
 **Ubuntu/Debian**
 ```bash
-sudo apt install -y libev-dev libssl-dev libinih-dev
+sudo apt install -y build-essential cmake pkg-config libev-dev libinih-dev libssl-dev
 ```
 
 **ArchLinux**
 ```bash
-sudo pacman -S --noconfirm libev openssl libinih
+sudo pacman -S --noconfirm base-devel cmake pkgconf libev inih openssl
 ```
 
 **CentOS/RHEL**
 ```bash
-sudo yum install -y libev-devel openssl-devel inih-devel
+sudo yum install -y gcc make cmake pkgconfig libev-devel inih-devel openssl-devel
 ```
 
 ### 2. 下载源代码
 下载最新版本的 rtty 源代码：
 ```bash
-wget https://github.com/zhaojh329/rtty/releases/download/v9.0.0/rtty-RTTY-VERSION.tar.gz
+wget https://github.com/zhaojh329/rtty/releases/download/vRTTY-VERSION/rtty-RTTY-VERSION.tar.gz
 ```
 
 ### 3. 解压源代码
@@ -87,21 +87,68 @@ Utilities  --->
 
 对于其他嵌入式 Linux 系统，您需要进行交叉编译。请将以下示例中的交叉编译工具链替换为您环境中的实际工具链。
 
-### 1. 编译 libev 依赖库
+### 1. 交叉编译 libev
+
 ```bash
 git clone https://github.com/enki/libev.git
 cd libev
-./configure --host=arm-linux-gnueabi
+./configure --host=aarch64-linux-gnu
 DESTDIR=/tmp/rtty_install make install
 ```
 
-### 2. 交叉编译 rtty
+### 2. 交叉编译 inih
+
+克隆代码
 ```bash
-wget https://github.com/zhaojh329/rtty/releases/download/v9.0.0/rtty-RTTY-VERSION.tar.gz
+git clone https://github.com/benhoyt/inih.git
+cd inih
+```
+
+创建交叉编译配置文件 aarch64-linux-gnu.ini
+```ini
+[binaries]
+c = 'aarch64-linux-gnu-gcc'
+ar = 'aarch64-linux-gnu-ar'
+strip = 'aarch64-linux-gnu-strip'
+
+[host_machine]
+system = 'linux'
+cpu_family = 'aarch64'
+cpu = 'aarch64'
+endian = 'little'
+
+[properties]
+needs_exe_wrapper = true
+```
+
+编译
+```bash
+meson setup build --cross-file aarch64-linux-gnu.ini -Dwith_INIReader=false
+DESTDIR=/tmp/rtty_install meson install -C build
+```
+
+### 2. 交叉编译 rtty
+
+克隆代码
+```bash
+wget https://github.com/zhaojh329/rtty/releases/download/vRTTY-VERSION/rtty-RTTY-VERSION.tar.gz
 tar xvf rtty-RTTY-VERSION.tar.gz
 cd rtty-RTTY-VERSION
-cmake . -DCMAKE_C_COMPILER=arm-linux-gnueabi-gcc -DCMAKE_FIND_ROOT_PATH=/tmp/rtty_install
-DESTDIR=/tmp/rtty_install make install
+```
+
+编译
+```bash
+PKG_CONFIG_PATH= \
+    PKG_CONFIG_LIBDIR=/tmp/rtty_install/usr/local/lib/pkgconfig \
+    PKG_CONFIG_SYSROOT_DIR=/tmp/rtty_install \
+    cmake -S . -B build \
+    -DCMAKE_SYSTEM_NAME=Linux \
+    -DCMAKE_C_COMPILER=aarch64-linux-gnu-gcc \
+    -DCMAKE_FIND_ROOT_PATH=/tmp/rtty_install \
+    -DCMAKE_EXE_LINKER_FLAGS="-L/tmp/rtty_install/usr/local/lib" \
+    -DSSL_SUPPORT=OFF
+cmake --build build
+DESTDIR=/tmp/rtty_install cmake --install build
 ```
 
 ### 3. 部署到目标设备
@@ -111,11 +158,23 @@ DESTDIR=/tmp/rtty_install make install
 └── usr
     └── local
         ├── bin
-        │   └── rtty
-        └── lib
-            ├── libev.so -> libev.so.4.0.0
-            ├── libev.so.4 -> libev.so.4.0.0
-            └── libev.so.4.0.0
+        │   └── rtty
+        ├── lib
+        │   ├── libev.so -> libev.so.4.0.0
+        │   ├── libev.so.4 -> libev.so.4.0.0
+        │   ├── libev.so.4.0.0
+        │   ├── libinih.so -> libinih.so.0
+        │   ├── libinih.so.0
+```
+
+# 安装 Go 客户端 rtty-go
+
+在仓库根目录构建，Go 版本以仓库 `go.mod` 为准。生成的程序仍名为 `rtty`，与 C 客户端二选一安装。
+
+```bash
+git clone https://github.com/zhaojh329/rtty-go.git
+cd rtty-go
+go install ./cmd/rtty
 ```
 
 # 安装服务端 rttys
@@ -206,13 +265,13 @@ npm run build
 ### 4. 编译服务端程序
 ```bash
 cd ../
-./build.sh linux amd64
+./scripts/build.sh linux amd64
 ```
 
 ### 5. 编译结果
 编译完成后，会在当前目录生成以下文件：
 ```bash
-rttys-linux-amd64/
+rttys-RTTYS-VERSION-linux-amd64/
 ├── rttys          # 服务端可执行文件
 ├── rttys.conf     # 配置文件模板
 └── rttys.service  # systemd 服务文件
@@ -236,13 +295,14 @@ sudo docker run -it -p 5912:5912 -p 5913:5913 -p 5914:5914 \
 
 ## 命令行参数详解
 
-### rtty 客户端参数
+### C 客户端参数
 
 使用以下命令查看 rtty 客户端的所有支持参数：
 
 ```bash
 $ rtty --help
 Usage: rtty [option]
+      --conf=file              从 INI 配置文件加载选项
       -g, --group=string       为设备设置分组（最多 16 个字符，不允许空格）
       -I, --id=string          为设备设置 ID（最多 32 个字符，不允许空格）
       -h, --host=string        服务器主机名或 IP 地址（默认为 localhost）
@@ -250,6 +310,7 @@ Usage: rtty [option]
       -d, --description=string 添加设备描述（最多 126 字节）
       -a                       自动重连到服务器
       -i number                设置心跳间隔秒数（默认 30 秒）
+      --http-timeout=number    HTTP 空闲超时秒数（默认 30 秒，范围 5–255）
       -s                       启用 SSL
       -C, --cacert             用于验证对端的 CA 证书
       -x, --insecure           使用 SSL 时允许不安全的服务器连接
@@ -281,12 +342,16 @@ VERSION:
    RTTYS-VERSION
 
 GLOBAL OPTIONS:
-   --log string                      日志文件路径（默认："/var/log/rttys.log"）
    --log-level string                日志级别（debug, info, warn, error）（默认："info"）
    --conf string, -c string          要加载的配置文件
    --addr-dev string                 设备监听地址（默认：":5912"）
    --addr-user string                用户监听地址（默认：":5913"）
    --addr-http-proxy string          HTTP 代理监听地址（默认自动）
+   --share-bind-host string         临时分享监听地址（默认所有接口）
+   --share-public-host string       分享连接信息中的公网主机名
+   --share-port-start int           分享端口范围起点（默认 20000）
+   --share-port-end int             分享端口范围终点（默认 21000）
+   --share-host-key string          分享所用的 SSH 主机密钥路径
    --http-proxy-redir-url string     HTTP 代理重定向 URL
    --http-proxy-redir-domain string  HTTP 代理设置 cookie 的域名
    --token string, -t string         使用的令牌
@@ -295,6 +360,10 @@ GLOBAL OPTIONS:
    --local-auth                      本地访问是否需要认证（默认：true）
    --password string                 Web 管理密码
    --allow-origins                   允许跨域请求的所有来源（默认：false）
+   --sslcert string                 设备连接的 TLS 证书
+   --sslkey string                  设备连接的 TLS 私钥
+   --cacert string                  验证设备证书的 CA（mTLS）
+   --pprof string                   启用 pprof 并监听指定地址
    --verbose, -V                     更详细的输出（默认：false）
    --help, -h                        显示帮助
    --version, -v                     打印版本
@@ -307,16 +376,7 @@ GLOBAL OPTIONS:
 使用默认配置启动 rttys 服务端：
 
 ```bash
-$ rttys
-2025-07-06T22:51:34+08:00 |INFO| Go Version: go1.24.4
-2025-07-06T22:51:34+08:00 |INFO| Go OS/Arch: linux/amd64
-2025-07-06T22:51:34+08:00 |INFO| Rttys Version: RTTYS-VERSION
-2025-07-06T22:51:34+08:00 |INFO| Git Commit: 36d270c
-2025-07-06T22:51:34+08:00 |INFO| Build Time: 2025-07-06T21:48:57+0800
-2025-07-06T22:51:34+08:00 |INFO| Listen devices on: [::]:5912
-2025-07-06T22:51:34+08:00 |INFO| Listen http proxy on: [::]:46308
-2025-07-06T22:51:34+08:00 |INFO| Listen users on: [::]:5913
-2025-07-06T22:51:37+08:00 |INFO| device 'test' registered, group '' proto 5, heartbeat 30s
+rttys
 ```
 
 ### 连接客户端
@@ -324,10 +384,7 @@ $ rttys
 在需要远程访问的设备上运行 rtty 客户端：
 
 ```bash
-$ sudo rtty -I test
-2025/07/06 22:51:37 info rtty[68091]: (main.c:278) rtty version RTTY-VERSION
-2025/07/06 22:51:37 info rtty[68091]: (rtty.c:690) connected to server
-2025/07/06 22:51:37 info rtty[68091]: (rtty.c:498) register success
+sudo rtty -I test
 ```
 
 ### 访问 Web 管理界面
@@ -338,6 +395,74 @@ http://127.0.0.1:5913
 ```
 
 现在您可以通过 Web 界面远程访问已连接的设备终端了。
+
+## C 客户端配置与权限
+
+通过 `rtty --conf /etc/rtty/rtty.ini` 显式加载 INI 文件。配置优先级依次为：默认值、配置文件、命令行参数，后者覆盖前者。
+
+```ini
+[rtty]
+id = test
+host = 127.0.0.1
+port = 5912
+reconnect = true
+heartbeat = 30
+http-timeout = 30
+
+[ssl]
+enabled = false
+```
+
+使用 TLS 时，`[ssl]` 中还可设置 `cacert`、`cert`、`key` 和 `insecure`。
+
+## 文件传输
+
+在通过 Web 终端打开的设备 Shell 中执行：
+
+```bash
+# 从浏览器接收文件到设备当前目录
+rtty -R
+# 将设备文件发送到浏览器
+rtty -S /path/to/file
+```
+
+## 串口终端
+
+在 Web 界面中打开设备的串口操作入口，选择串口，并设置波特率、数据位、校验和停止位后连接。
+
+客户端进程必须有打开串口的权限，且串口处于可用状态。串口会话不会启动设备 Shell，也不支持上述 Shell 文件传输命令。
+
+## 临时 SSH 与 TCP 分享
+
+在设备的分享入口选择**终端**、**串口**或 **TCP**，再选择对外端口和空闲超时。端口填 `0` 时，服务端从配置范围内选择可用端口。
+
+- **终端 / 串口**：使用创建后显示的临时密码，通过 `ssh -p PORT share@HOST` 连接。串口分享需要先选择串口参数。请在密码显示时保存，分享列表不会再次返回密码。终端分享仍会打开设备的登录会话。
+- **TCP**：填写设备能够访问的目标 IPv4 地址及端口，然后连接返回的服务端地址和端口。这是原始 TCP 转发，对外 TCP 监听不额外提供分享密码或加密，认证和加密由目标服务负责。
+
+空闲超时范围为 1–60 分钟，默认 1 分钟。这里的空闲指没有活动连接，而非没有键盘输入或网络流量；存在活动连接时不会因该计时器回收。在分享列表中结束分享会立即断开其用户连接。设备断线或服务端重启也会结束分享。
+
+在 `/etc/rttys/rttys.conf` 中配置分享监听：
+
+```yaml
+share-bind-host: 0.0.0.0
+share-public-host: access.example.com
+share-port-start: 20000
+share-port-end: 21000
+share-host-key: /var/lib/rttys/ssh_host_ed25519_key
+```
+
+首次创建主机密钥时，服务进程需要对密钥保存位置有写权限；重启后应保留同一密钥。服务端防火墙和 NAT 需允许访问配置的分享端口；这些是独立 TCP 监听，不是下方 Nginx 配置代理的 HTTP 路由。
+
+使用 Docker 时，还需映射相同的 TCP 端口范围、设置对外主机名，并持久化 SSH 主机密钥，例如：
+
+```bash
+sudo docker run -it -p 5912:5912 -p 5913:5913 -p 5914:5914 \
+  -p 20000-21000:20000-21000/tcp -v rttys-data:/var/lib/rttys \
+  zhaojh329/rttys:latest --addr-http-proxy :5914 \
+  --share-public-host access.example.com \
+  --share-port-start 20000 --share-port-end 21000 \
+  --share-host-key /var/lib/rttys/ssh_host_ed25519_key
+```
 
 ## 启用 TLS/SSL 支持
 
@@ -360,9 +485,9 @@ rttys --sslcert=/etc/rttys/rttys.crt --sslkey=/etc/rttys/rttys.key
 sudo rtty -I test -s
 ```
 
-**如果使用自签名证书，需要添加 `-x` 参数跳过证书验证：**
+**使用私有 CA 或自签名证书时，通过 `--cacert` 指定信任的证书，并确保连接主机名与证书匹配：**
 ```bash
-sudo rtty -I test -s -x
+sudo rtty -I test -h device-server.example.com -s --cacert /etc/rtty/ca.pem
 ```
 
 ## 生产环境部署
@@ -381,11 +506,11 @@ server {
     listen       443 ssl;
     server_name  rttys.net;
 
-    ssl_certificate      /etc/letsencrypt/live/rttys.net/cert.pem;
+    ssl_certificate      /etc/letsencrypt/live/rttys.net/fullchain.pem;
     ssl_certificate_key  /etc/letsencrypt/live/rttys.net/privkey.pem;
 
     # WebSocket 连接支持
-    location /connect/ {
+    location /api/connect/ {
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "Upgrade";
@@ -404,7 +529,7 @@ server {
     listen       443 ssl;
     server_name  web.rttys.net;
 
-    ssl_certificate      /etc/letsencrypt/live/web.rttys.net/cert.pem;
+    ssl_certificate      /etc/letsencrypt/live/web.rttys.net/fullchain.pem;
     ssl_certificate_key  /etc/letsencrypt/live/web.rttys.net/privkey.pem;
 
     location / {
@@ -453,8 +578,8 @@ http-proxy-redir-domain: rttys.net
 password: rttys
 
 # 设备监听 SSL/TLS
-sslkey: /etc/letsencrypt/live/rttys.net/cert.pem;
-cacert: /etc/letsencrypt/live/rttys.net/privkey.pem;
+sslcert: /etc/letsencrypt/live/rttys.net/fullchain.pem
+sslkey: /etc/letsencrypt/live/rttys.net/privkey.pem
 ```
 
 ### 启动服务
@@ -477,14 +602,13 @@ systemctl reload nginx  # 重新加载配置
 在需要远程管理的设备上运行客户端：
 
 ```bash
-sudo rtty -I test -h rttys.net -sx
+sudo rtty -I test -h rttys.net -s
 ```
 
 **参数说明：**
 - `-I test` - 设备 ID 为 "test"
 - `-h rttys.net` - 连接到 rttys.net 服务器
 - `-s` - 启用 SSL
-- `-x` - 允许不安全的 SSL 连接（如果使用自签名证书）
 
 ### 访问设备
 

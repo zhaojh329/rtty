@@ -62,6 +62,8 @@ import {
 } from '@vicons/tabler'
 import { MdKey as KeyIcon } from '@vicons/ionicons4'
 import { TerminalSharp as TerminalSharpIcon } from '@vicons/ionicons5'
+import { SerialPort16Regular as SerialPortIcon } from '@vicons/fluent'
+import { Connection as ConnectionIcon, Share as ShareIcon } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
 
 const i18n = useI18n()
@@ -70,7 +72,7 @@ const categories = i18n.messages.value.en.features.categories
 const activeCategory = ref(0)
 
 const featuresIcon = [
-  [ TerminalIcon, IdentificationIcon, GroupIcon, UploadFileIcon, SettingsIcon, IEIcon],
+  [ TerminalIcon, IdentificationIcon, GroupIcon, UploadFileIcon, SettingsIcon, IEIcon, SerialPortIcon, ConnectionIcon, ShareIcon],
   [ SSLIcon, LinuxIcon, GoogleIcon, DesktopIcon, KeyIcon, RetryFailedIcon],
   [ ServerIcon, TerminalSharpIcon, UserIcon],
   [ MeshIcon, DebugIcon, SettingsIcon ]

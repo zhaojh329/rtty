@@ -44,6 +44,18 @@
           {
             "title": "HTTP proxy",
             "description": "Not only accesses the device's own web interface but also traverses the internal network to access any HTTP service on any host within the device's local area network (LAN)"
+          },
+          {
+            "title": "Serial console",
+            "description": "Access device serial ports from the browser with configurable baud rate, data bits, parity and stop bits; requires a protocol v6 client"
+          },
+          {
+            "title": "TCP port forwarding",
+            "description": "Access TCP services at a specified IPv4 address and port through a connected device; requires a protocol v6 client"
+          },
+          {
+            "title": "Temporary device sharing",
+            "description": "Temporarily share a device terminal or serial console over SSH, or expose a TCP service on a dedicated port; supports idle expiry and manual termination"
           }
         ]
       },
@@ -85,7 +97,7 @@
           },
           {
             "title": "Modern front-end",
-            "description": "Vue + Xterm.js-based terminal interface, providing full-featured command line experience."
+            "description": "Vue + Xterm.js terminal interface with up to six split panes; disconnected terminals stay open so their output can still be inspected."
           },
           {
             "title": "Device dashboard",
@@ -114,6 +126,5 @@
   },
   "docs": {
     "copied": "Copied to clipboard"
-  },
-  "sponsors": "Sponsors"
+  }
 }

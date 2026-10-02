@@ -32,24 +32,8 @@
       </el-col>
     </el-row>
 
-    <h1 class="sponsors-title">{{ $t('sponsors') }}</h1>
-    <el-space size="large">
-      <el-link v-for="(sponsor, index) in sponsors" :key="index" :href="sponsor.url" target="_blank" class="sponsor-link">
-        <img :src="sponsor.logo" :alt="sponsor.name"/>
-      </el-link>
-    </el-space>
   </div>
 </template>
-
-<script setup>
-const sponsors = [
-  {
-    name: 'GL.iNet',
-    logo: 'https://www.gl-inet.com/logo.svg',
-    url: 'https://www.gl-inet.com'
-  }
-]
-</script>
 
 <style scoped>
 .home-container {
@@ -159,20 +143,4 @@ const sponsors = [
   to { width: 100%; }
 }
 
-.sponsors-title {
-  color: #64c8c8;
-  font-size: 2rem;
-  margin-bottom: 25px;
-  font-weight: 500;
-}
-
-.sponsor-link {
-  background-color: aliceblue;
-  border-radius: 5px;
-  padding: 10px;
-}
-
-.sponsor-link img {
-  width: 200px;
-}
 </style>
