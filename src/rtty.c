@@ -212,7 +212,8 @@ static size_t rtty_put_attr_str(struct buffer *b, int type, const char *s)
 static void rtty_register(struct rtty *rtty)
 {
     struct buffer *wb = &rtty->wb;
-    uint16_t *len_ptr;
+    uint8_t *len_ptr;
+    uint16_t be_len;
     size_t len = 0;
 
     buffer_put_u8(wb, MSG_TYPE_REGISTER);
@@ -232,7 +233,9 @@ static void rtty_register(struct rtty *rtty)
     if (rtty->token)
         len += rtty_put_attr_str(wb, MSG_REG_ATTR_TOKEN, rtty->token);
 
-    *len_ptr = htobe16(len);
+    /* The length field is not 2-byte aligned in the buffer */
+    be_len = htobe16(len);
+    memcpy(len_ptr, &be_len, sizeof(be_len));
 
     ev_io_start(rtty->loop, &rtty->iow);
 
@@ -608,7 +611,8 @@ static void rtty_send_heartbeat(struct rtty *rtty)
 {
     struct buffer *wb = &rtty->wb;
     struct sysinfo info = {};
-    uint16_t *len_ptr;
+    uint8_t *len_ptr;
+    uint16_t be_len;
     size_t len = 0;
 
     sysinfo(&info);
@@ -619,7 +623,9 @@ static void rtty_send_heartbeat(struct rtty *rtty)
 
     len += rtty_put_attr_u32be(wb, MSG_HEARTBEAT_ATTR_UPTIME, info.uptime);
 
-    *len_ptr = htobe16(len);
+    /* The length field is not 2-byte aligned in the buffer */
+    be_len = htobe16(len);
+    memcpy(len_ptr, &be_len, sizeof(be_len));
 
     ev_io_start(rtty->loop, &rtty->iow);
 
