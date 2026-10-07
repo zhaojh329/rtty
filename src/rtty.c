@@ -344,9 +344,19 @@ static int parse_msg(struct rtty *rtty)
 
         switch (msgtype) {
         case MSG_TYPE_REGISTER:
+            if (msglen < 1)
+                return -1;
+
             if (buffer_pull_u8(rb)) {
                 char errs[128] = "";
-                buffer_pull(rb, errs, msglen - 1);
+                int len = msglen - 1;
+
+                /* Truncate the error message to fit, and drop the rest */
+                if (len > (int)sizeof(errs) - 1)
+                    len = sizeof(errs) - 1;
+
+                buffer_pull(rb, errs, len);
+                buffer_pull(rb, NULL, msglen - 1 - len);
                 log_err("register fail: %s\n", errs);
                 return -1;
             }
