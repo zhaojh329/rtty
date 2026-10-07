@@ -291,7 +291,8 @@ ERR:
     task_free(t);
 }
 
-static void add_task(struct rtty *rtty, const char *token, uid_t uid, const char *cmd, const char *data)
+static void add_task(struct rtty *rtty, const char *token, uid_t uid, const char *cmd,
+                     int nparams, const char *data)
 {
     struct task *t;
     int i;
@@ -308,7 +309,7 @@ static void add_task(struct rtty *rtty, const char *token, uid_t uid, const char
     strcpy(t->cmd, cmd);
     strcpy(t->token, token);
 
-    t->nparams = *data++;
+    t->nparams = nparams;
     t->params = calloc(t->nparams + 2, sizeof(char *));
 
     t->params[0] = t->cmd;
@@ -324,15 +325,60 @@ static void add_task(struct rtty *rtty, const char *token, uid_t uid, const char
         list_add_tail(&t->list, &task_pending);
 }
 
-void run_command(struct rtty *rtty, const char *data)
+/*
+ * Return the NUL-terminated string at *data and advance past it, or
+ * NULL if it is not terminated within the remaining *len bytes.
+ */
+static const char *pull_string(const char **data, int *len)
 {
-    const char *username = data;
-    const char *cmd = username + strlen(username) + 1;
-    const char *token = cmd + strlen(cmd) + 1;
+    const char *str = *data;
+    const char *end;
+
+    if (*len < 1)
+        return NULL;
+
+    end = memchr(str, '\0', *len);
+    if (!end)
+        return NULL;
+
+    *len -= end - str + 1;
+    *data = end + 1;
+
+    return str;
+}
+
+int run_command(struct rtty *rtty, const char *data, int len)
+{
+    const char *username, *cmd, *token, *params;
     struct passwd *pw;
+    uint8_t nparams;
+    int i;
     int err = 0;
 
-    data = token + strlen(token) + 1;
+    username = pull_string(&data, &len);
+    if (!username)
+        goto INVALID;
+
+    cmd = pull_string(&data, &len);
+    if (!cmd)
+        goto INVALID;
+
+    token = pull_string(&data, &len);
+    if (!token || strlen(token) >= CMD_TOKEN_LEN)
+        goto INVALID;
+
+    if (len < 1)
+        goto INVALID;
+
+    /* The parameter count, followed by the NUL-terminated parameters */
+    nparams = *data++;
+    params = data;
+    len--;
+
+    for (i = 0; i < nparams; i++) {
+        if (!pull_string(&params, &len))
+            goto INVALID;
+    }
 
     if (!username[0]) {
         err = RTTY_CMD_ERR_PERMIT;
@@ -351,9 +397,14 @@ void run_command(struct rtty *rtty, const char *data)
         goto ERR;
     }
 
-    add_task(rtty, token, pw->pw_uid, cmd, data);
-    return;
+    add_task(rtty, token, pw->pw_uid, cmd, nparams, data);
+    return 0;
 
 ERR:
     cmd_err_reply(rtty, token, err);
+    return 0;
+
+INVALID:
+    log_err("invalid command message\n");
+    return -1;
 }

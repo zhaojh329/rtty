@@ -29,6 +29,7 @@
 
 #define RTTY_CMD_MAX_RUNNING     5
 #define RTTY_CMD_EXEC_TIMEOUT    30
+#define CMD_TOKEN_LEN            33
 
 enum {
     RTTY_CMD_ERR_PERMIT = 1,
@@ -50,10 +51,10 @@ struct task {
     uid_t uid;
     int nparams;
     char **params;
-    char token[33];
+    char token[CMD_TOKEN_LEN];
     char cmd[0];
 };
 
-void run_command(struct rtty *rtty, const char *data);
+int run_command(struct rtty *rtty, const char *data, int len);
 
 #endif

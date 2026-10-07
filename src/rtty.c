@@ -404,7 +404,8 @@ static int parse_msg(struct rtty *rtty)
             break;
 
         case MSG_TYPE_CMD:
-            run_command(rtty, buffer_data(rb));
+            if (run_command(rtty, buffer_data(rb), msglen) < 0)
+                return -1;
             buffer_pull(rb, NULL, msglen);
             break;
 
