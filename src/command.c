@@ -208,10 +208,10 @@ static void ev_timer_cb(struct ev_loop *loop, struct ev_timer *w, int revents)
 {
     struct task *t = container_of(w, struct task, timer);
 
+    log_err("exec '%s' timeout\n", t->cmd);
+
     task_free(t);
     nrunning--;
-
-    log_err("exec '%s' timeout\n", t->cmd);
 }
 
 static void ev_io_stdout_cb(struct ev_loop *loop, struct ev_io *w, int revents)
