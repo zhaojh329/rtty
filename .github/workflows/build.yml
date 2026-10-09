@@ -5,6 +5,7 @@ on:
       - '**'
     tags-ignore:
       - '**'
+  pull_request:
 jobs:
   build:
     runs-on: ubuntu-24.04
