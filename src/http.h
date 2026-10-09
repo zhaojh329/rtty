@@ -40,7 +40,6 @@ struct http_connection {
     struct ev_io iow;
     struct buffer rb;
     struct buffer wb;
-    ev_tstamp active;
     int sock;
     uint8_t addr[18];   /* upstream connection address: [port ip] */
     uint8_t flags;

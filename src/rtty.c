@@ -35,6 +35,7 @@
 #include "term.h"
 #include "list.h"
 #include "command.h"
+#include "utils.h"
 #include "log/log.h"
 
 void del_tty(struct tty *tty)
@@ -630,7 +631,7 @@ static void rtty_send_heartbeat(struct rtty *rtty)
     ev_io_start(rtty->loop, &rtty->iow);
 
     rtty->wait_heartbeat = true;
-    rtty->last_heartbeat = ev_now(rtty->loop);
+    rtty->last_heartbeat = monotonic_time();
 
     log_debug("send msg: heartbeat\n");
 }
@@ -656,9 +657,14 @@ static void rtty_timer_cb(struct ev_loop *loop, struct ev_timer *w, int revents)
         return;
     }
 
-    double elapsed = ev_now(rtty->loop) - rtty->last_heartbeat;
+    /*
+     * ev_now() follows the system time, so a time correction made this
+     * negative or huge. A last_heartbeat of 0 means that no heartbeat was
+     * sent yet.
+     */
+    double elapsed = monotonic_time() - rtty->last_heartbeat;
 
-    if (elapsed < rtty->heartbeat) {
+    if (rtty->last_heartbeat && elapsed < rtty->heartbeat) {
         ev_timer_set(&rtty->tmr, rtty->heartbeat - elapsed, 0);
     } else {
         rtty_send_heartbeat(rtty);

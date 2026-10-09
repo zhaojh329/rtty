@@ -69,14 +69,6 @@ static void on_signal(int sig)
     _exit(128 + sig);
 }
 
-static double monotonic_time(void)
-{
-    struct timespec now;
-
-    clock_gettime(CLOCK_MONOTONIC, &now);
-    return now.tv_sec + now.tv_nsec / 1000000000.0;
-}
-
 static int receive_local(int fd, struct file_packet *packet)
 {
     int ret;

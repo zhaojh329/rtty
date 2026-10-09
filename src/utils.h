@@ -36,4 +36,7 @@ int b64_encode(const void *src, size_t srclen, void *dest, size_t destsize);
 
 const char *format_size(size_t size);
 
+/* Seconds from the monotonic clock, which doesn't jump with the system time */
+double monotonic_time(void);
+
 #endif

@@ -26,6 +26,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <ctype.h>
+#include <time.h>
 
 #include "utils.h"
 
@@ -107,4 +108,12 @@ const char *format_size(size_t size)
         sprintf(str, "%.2f MB", size / 1024.0 / 1024.0);
 
     return str;
+}
+
+double monotonic_time(void)
+{
+    struct timespec now;
+
+    clock_gettime(CLOCK_MONOTONIC, &now);
+    return now.tv_sec + now.tv_nsec / 1000000000.0;
 }
