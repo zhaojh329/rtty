@@ -48,8 +48,6 @@ static void send_http_msg(struct http_connection *conn, size_t len, uint8_t *dat
     buffer_put_data(wb, conn->addr, 18);
     buffer_put_data(wb, data, len);
     ev_io_start(rtty->loop, &rtty->iow);
-
-    conn->active = ev_now(rtty->loop);
 }
 
 void http_conn_free(struct http_connection *conn)
@@ -138,6 +136,7 @@ static void on_net_read(struct ev_loop *loop, struct ev_io *w, int revents)
 #endif
 
     send_http_msg(conn, ret, buf);
+    ev_timer_again(loop, &conn->tmr);
 
     return;
 
@@ -182,7 +181,7 @@ static void on_net_write(struct ev_loop *loop, struct ev_io *w, int revents)
     }
 #endif
 
-    conn->active = ev_now(conn->rtty->loop);
+    ev_timer_again(loop, &conn->tmr);
 
     if (buffer_length(b) > 0)
         return;
@@ -194,10 +193,6 @@ err:
 static void on_timer_cb(struct ev_loop *loop, struct ev_timer *w, int revents)
 {
     struct http_connection *conn = container_of(w, struct http_connection, tmr);
-    ev_tstamp now = ev_now(loop);
-
-    if (now - conn->active < conn->rtty->http_timeout)
-        return;
 
     http_conn_free(conn);
 }
@@ -224,8 +219,8 @@ static void on_connected(int sock, void *arg)
     ev_io_init(&conn->iow, on_net_write, sock, EV_WRITE);
     ev_io_start(loop, &conn->iow);
 
-    ev_timer_init(&conn->tmr, on_timer_cb, 3, 3);
-    ev_timer_start(loop, &conn->tmr);
+    ev_timer_init(&conn->tmr, on_timer_cb, 0, rtty->http_timeout);
+    ev_timer_again(loop, &conn->tmr);
 
     conn->sock = sock;
 
@@ -309,7 +304,6 @@ void http_request(struct rtty *rtty, int len)
 
     conn = (struct http_connection *)calloc(1, sizeof(struct http_connection));
     conn->rtty = rtty;
-    conn->active = ev_now(rtty->loop);
 
     if (https)
         conn->flags |= HTTP_CON_FLAG_HTTPS;
