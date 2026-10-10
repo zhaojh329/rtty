@@ -46,7 +46,10 @@ static void send_http_msg(struct http_connection *conn, size_t len, uint8_t *dat
     buffer_put_u8(wb, MSG_TYPE_HTTP);
     buffer_put_u16be(wb, 18 + len);
     buffer_put_data(wb, conn->addr, 18);
-    buffer_put_data(wb, data, len);
+
+    /* Messages that report a closed connection have no data */
+    if (len > 0)
+        buffer_put_data(wb, data, len);
     ev_io_start(rtty->loop, &rtty->iow);
 
     conn->active = ev_now(rtty->loop);
