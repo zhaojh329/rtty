@@ -20,6 +20,11 @@ jobs:
           - ssl: mbedtls
             name: MBEDTLS
             pkg: libmbedtls-dev
+          # Ubuntu only packages Mbed TLS 2.x, so build 4.x from the release
+          - ssl: mbedtls4
+            name: MBEDTLS
+            mbedtls_version: 4.1.1
+            mbedtls_sha256: 3359a349e23db3d5536fcee032ae7b2ecbfc08972fab643089b5cbf2a375c98c
           - ssl: wolfssl
             name: WOLFSSL
             pkg: libwolfssl-dev
@@ -27,12 +32,39 @@ jobs:
       - uses: actions/checkout@v2
         with:
           submodules: true
+      - name: cache Mbed TLS
+        if: matrix.mbedtls_version
+        id: cache-mbedtls
+        uses: actions/cache@v4
+        with:
+          path: ~/mbedtls
+          key: mbedtls-${{ matrix.mbedtls_version }}-ubuntu-24.04
+      - name: build Mbed TLS
+        if: matrix.mbedtls_version && steps.cache-mbedtls.outputs.cache-hit != 'true'
+        env:
+          version: ${{ matrix.mbedtls_version }}
+          sha256: ${{ matrix.mbedtls_sha256 }}
+        run: |
+          cd "$RUNNER_TEMP"
+          curl -fsSLO "https://github.com/Mbed-TLS/mbedtls/releases/download/mbedtls-$version/mbedtls-$version.tar.bz2"
+          echo "$sha256  mbedtls-$version.tar.bz2" | sha256sum -c
+          tar -xjf "mbedtls-$version.tar.bz2"
+          cmake -S "mbedtls-$version" -B mbedtls-build -DCMAKE_INSTALL_PREFIX="$HOME/mbedtls" \
+            -DUSE_SHARED_MBEDTLS_LIBRARY=ON -DENABLE_TESTING=OFF -DENABLE_PROGRAMS=OFF -DGEN_FILES=OFF
+          cmake --build mbedtls-build -j"$(nproc)"
+          cmake --install mbedtls-build
       - name: build
         env:
           name: ${{ matrix.name }}
           pkg: ${{ matrix.pkg }}
+          mbedtls_version: ${{ matrix.mbedtls_version }}
         run: |
           sudo apt install -y libev-dev libinih-dev
           [ -n "$pkg" ] && sudo apt install -y $pkg
-          [ "$name" = "none" ] && cmake . -DSSL_SUPPORT=OFF || cmake . -DUSE_$name=ON
+          [ -n "$mbedtls_version" ] && prefix_opt="-DCMAKE_PREFIX_PATH=$HOME/mbedtls"
+          [ "$name" = "none" ] && cmake . -DSSL_SUPPORT=OFF || cmake . -DUSE_$name=ON $prefix_opt
           make
+          # Fail if CMake fell back to another Mbed TLS than the one built above
+          if [ -n "$mbedtls_version" ]; then
+            ldd src/rtty | grep "$HOME/mbedtls/lib/libtfpsacrypto"
+          fi
