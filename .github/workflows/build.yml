@@ -17,6 +17,11 @@ jobs:
           - ssl: openssl
             name: OPENSSL
             pkg: libssl-dev
+          # Ubuntu only packages OpenSSL 3.x, so build 4.x from the release
+          - ssl: openssl4
+            name: OPENSSL
+            openssl_version: 4.0.3
+            openssl_sha256: 325b5c806167c13b40b1ffeadfe0248197c00eccc4cf123ec1e28d2d2fd216d9
           - ssl: mbedtls
             name: MBEDTLS
             pkg: libmbedtls-dev
@@ -32,6 +37,27 @@ jobs:
       - uses: actions/checkout@v2
         with:
           submodules: true
+      - name: cache OpenSSL
+        if: matrix.openssl_version
+        id: cache-openssl
+        uses: actions/cache@v4
+        with:
+          path: ~/openssl
+          key: openssl-${{ matrix.openssl_version }}-ubuntu-24.04
+      - name: build OpenSSL
+        if: matrix.openssl_version && steps.cache-openssl.outputs.cache-hit != 'true'
+        env:
+          version: ${{ matrix.openssl_version }}
+          sha256: ${{ matrix.openssl_sha256 }}
+        run: |
+          cd "$RUNNER_TEMP"
+          curl -fsSLO "https://github.com/openssl/openssl/releases/download/openssl-$version/openssl-$version.tar.gz"
+          echo "$sha256  openssl-$version.tar.gz" | sha256sum -c
+          tar -xzf "openssl-$version.tar.gz"
+          cd "openssl-$version"
+          ./Configure --prefix="$HOME/openssl" --libdir=lib no-docs no-tests shared
+          make -j"$(nproc)"
+          make install_sw
       - name: cache Mbed TLS
         if: matrix.mbedtls_version
         id: cache-mbedtls
@@ -58,13 +84,19 @@ jobs:
           name: ${{ matrix.name }}
           pkg: ${{ matrix.pkg }}
           mbedtls_version: ${{ matrix.mbedtls_version }}
+          openssl_version: ${{ matrix.openssl_version }}
         run: |
           sudo apt install -y libev-dev libinih-dev
           [ -n "$pkg" ] && sudo apt install -y $pkg
+          [ -n "$openssl_version" ] && export PKG_CONFIG_PATH="$HOME/openssl/lib/pkgconfig"
           [ -n "$mbedtls_version" ] && prefix_opt="-DCMAKE_PREFIX_PATH=$HOME/mbedtls"
           [ "$name" = "none" ] && cmake . -DSSL_SUPPORT=OFF || cmake . -DUSE_$name=ON $prefix_opt
           make
           # Fail if CMake fell back to another Mbed TLS than the one built above
           if [ -n "$mbedtls_version" ]; then
             ldd src/rtty | grep "$HOME/mbedtls/lib/libtfpsacrypto"
+          fi
+          # Fail if CMake fell back to the system OpenSSL
+          if [ -n "$openssl_version" ]; then
+            readelf -d src/rtty | grep "libssl.so.${openssl_version%%.*}"
           fi
