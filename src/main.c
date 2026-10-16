@@ -38,7 +38,8 @@
 enum {
     LONG_OPT_CONFIG = 1,
     LONG_OPT_HELP,
-    LONG_OPT_HTTP_TIMEOUT
+    LONG_OPT_HTTP_TIMEOUT,
+    LONG_OPT_SHELL
 };
 
 struct config {
@@ -436,6 +437,7 @@ static struct option long_options[] = {
     {"description", required_argument, NULL, 'd'},
     {"token",       required_argument, NULL, 't'},
     {"http-timeout", required_argument, NULL, LONG_OPT_HTTP_TIMEOUT},
+    {"shell",       required_argument, NULL, LONG_OPT_SHELL},
 #ifdef SSL_SUPPORT
     {"cacert",      required_argument, NULL, 'C'},
     {"insecure",    no_argument, NULL, 'x'},
@@ -470,6 +472,7 @@ static void usage(const char *prog)
             "      -D                       Run in the background\n"
             "      -t, --token=string       Authorization token\n"
             "      -f username              Skip a second login authentication. See man login(1) about the details\n"
+            "      --shell=path             Run an interactive shell as the current user without login (absolute path, conflicts with -f/username)\n"
             "      -R                       Receive file\n"
             "      -S file                  Send file\n"
             "      -v, --verbose            verbose\n"
@@ -627,6 +630,15 @@ int main(int argc, char **argv)
         case 'f':
             rtty.username = optarg;
             break;
+        case LONG_OPT_SHELL:
+            if (optarg[0] != '/') {
+                log_err("--shell requires an absolute path\n");
+                ret = -1;
+                goto clean;
+            }
+
+            rtty.shell = optarg;
+            break;
         case 'R':
             ret = request_transfer_file('R', NULL);
             goto clean;
@@ -646,6 +658,12 @@ int main(int argc, char **argv)
             usage(argv[0]);
             break;
         }
+    }
+
+    if (rtty.shell && rtty.username) {
+        log_err("--shell cannot be used with -f or config username\n");
+        ret = -1;
+        goto clean;
     }
 
     signal(SIGPIPE, SIG_IGN);

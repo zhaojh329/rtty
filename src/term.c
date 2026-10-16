@@ -119,14 +119,16 @@ int term_open(struct rtty *rtty, const uint8_t *data, size_t len)
         goto done;
     }
 
-    if (getuid() != 0) {
-        log_err("shell login requires root privileges\n");
-        goto done;
-    }
+    if (!rtty->shell) {
+        if (getuid() != 0) {
+            log_err("shell login requires root privileges\n");
+            goto done;
+        }
 
-    if (find_login(rtty->login_path, sizeof(rtty->login_path) - 1) < 0) {
-        log_err("the program 'login' is not found\n");
-        goto done;
+        if (find_login(rtty->login_path, sizeof(rtty->login_path) - 1) < 0) {
+            log_err("the program 'login' is not found\n");
+            goto done;
+        }
     }
 
     tty = calloc(1, sizeof(struct tty_term));
@@ -142,12 +144,15 @@ int term_open(struct rtty *rtty, const uint8_t *data, size_t len)
     }
 
     if (pid == 0) {
-        if (rtty->username)
+        if (rtty->shell)
+            execl(rtty->shell, rtty->shell, "-i", NULL);
+        else if (rtty->username)
             execl(rtty->login_path, "login", "-f", rtty->username, NULL);
         else
             execl(rtty->login_path, "login", NULL);
 
-        exit(1);
+        log_err("exec %s: %s\n", rtty->shell ? rtty->shell : rtty->login_path, strerror(errno));
+        _exit(1);
     }
 
     tty->pid = pid;
