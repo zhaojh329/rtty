@@ -244,7 +244,7 @@ int request_transfer_file(char type, const char *path)
     if (getsockopt(ctx.socket, SOL_SOCKET, SO_PEERCRED, &cred, &len) < 0)
         goto done;
 
-    if (cred.uid != 0) {
+    if (cred.uid != geteuid()) {
         errno = EACCES;
         goto done;
     }
